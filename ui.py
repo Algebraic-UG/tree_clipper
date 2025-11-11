@@ -14,8 +14,8 @@ class SCENE_PT_NodesAsJSON_Panel_Export(bpy.types.Operator):
             ("Compositor",) * 3,
             ("Material",) * 3,
         ]
-    )
-    name: bpy.props.StringProperty(name="Material/NodeTree")
+    )  # type: ignore
+    name: bpy.props.StringProperty(name="Material/NodeTree")  # type: ignore
     output_file: bpy.props.StringProperty(name="Output File", subtype="FILE_PATH")  # type: ignore
 
     def invoke(self, context, _):
@@ -35,8 +35,8 @@ class SCENE_PT_NodesAsJSON_Panel_Import(bpy.types.Operator):
             ("Compositor",) * 3,
             ("Material",) * 3,
         ]
-    )
-    name: bpy.props.StringProperty(name="Material/NodeTree")
+    )  # type: ignore
+    name: bpy.props.StringProperty(name="Material/NodeTree")  # type: ignore
     input_file: bpy.props.StringProperty(name="Input File", subtype="FILE_PATH")  # type: ignore
 
     def invoke(self, context, _):
