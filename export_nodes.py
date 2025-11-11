@@ -3,17 +3,32 @@ import bpy
 import json
 from pathlib import Path
 
+from .common import COPY_MEMBERS
 
-def export_node_tree(node_tree):
-    # oof
-    type = {
-        "GEOMETRY": "GeometryNodeTree",
-        "COMPOSITING": "CompositorNodeTree",
-        "SHADER": "ShaderNodeTree",
-        "TEXTURE": "TextureNodeTree",
-    }[node_tree.type]
 
-    return {"type": type}
+def export_node_tree(node_tree: bpy.types.NodeTree):
+
+    d = {}
+
+    for m in COPY_MEMBERS:
+        if hasattr(node_tree, m):
+            d[m] = getattr(node_tree, m)
+
+    # Skip: animation_data, annotation
+    # TODO: grease_pencil
+
+    # TODO
+    interface = {}
+    links = []
+    nodes = []
+    view_center = "TODO"
+
+    d["interface"] = interface
+    d["links"] = links
+    d["nodes"] = nodes
+    d["view_center"] = view_center
+
+    return d
 
 
 def export_nodes(self, _context):
