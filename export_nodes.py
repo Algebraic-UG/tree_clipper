@@ -3,7 +3,38 @@ import bpy
 import json
 from pathlib import Path
 
-from .common import COPY_MEMBERS_NODE, COPY_MEMBERS_NODE_TREE
+from .common import (
+    COPY_MEMBERS_NODE,
+    COPY_MEMBERS_NODE_LINK,
+    COPY_MEMBERS_NODE_SOCKET,
+    COPY_MEMBERS_NODE_TREE,
+)
+
+
+def export_node_socket(socket: bpy.types.NodeSocket):
+    d = {}
+
+    for m in COPY_MEMBERS_NODE_SOCKET:
+        d[m] = getattr(socket, m)
+
+    d["identifier"] = socket.identifier
+    d["use_multi_input"] = socket.is_multi_input
+
+    return d
+
+
+def export_node_link(link: bpy.types.NodeLink):
+    d = {}
+
+    for m in COPY_MEMBERS_NODE_LINK:
+        d[m] = getattr(link, m)
+
+    d["from_node"] = link.from_node.name
+    d["from_socket"] = link.from_socket.identifier
+    d["to_node"] = link.to_node.name
+    d["to_socket"] = link.to_socket.identifier
+
+    return d
 
 
 def export_node(node: bpy.types.Node):
@@ -18,10 +49,16 @@ def export_node(node: bpy.types.Node):
     location_absolute = ()
     parent = "TODO"
 
+    # TODO: is this needed for custom nodes, maybe?
+    inputs = [export_node_socket(socket) for socket in node.inputs]
+    outputs = [export_node_socket(socket) for socket in node.outputs]
+
     d["color"] = color
-    d["location"] = color
+    d["location"] = location
     d["location_absolute"] = location_absolute
     d["parent"] = parent
+    d["inputs"] = inputs
+    d["outputs"] = outputs
 
     return d
 
@@ -39,7 +76,7 @@ def export_node_tree(node_tree: bpy.types.NodeTree):
 
     # TODO
     interface = {}
-    links = []
+    links = [export_node_link(link) for link in node_tree.links]
     nodes = [export_node(node) for node in node_tree.nodes]
 
     d["interface"] = interface

@@ -65,6 +65,20 @@ COPY_MEMBERS_NODE = [
     "width",
 ]
 
+COPY_MEMBERS_NODE_SOCKET = [
+    "bl_idname",
+    "bl_label",
+    "bl_subtype_label",
+    "description",
+    "enabled",
+    "hide",
+    "hide_value",
+    "link_limit",
+    "name",
+    "pin_gizmo",
+    "show_expanded",
+    "type",
+]
 
 # TODO: the following should be automated
 
