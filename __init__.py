@@ -13,9 +13,17 @@
 
 import bpy
 
-from .panel import SCENE_PT_NodesAsJSON_Panel
+from .panel import (
+    SCENE_PT_NodesAsJSON_Panel,
+    SCENE_PT_NodesAsJSON_Panel_Export,
+    SCENE_PT_NodesAsJSON_Panel_Import,
+)
 
-classes = [SCENE_PT_NodesAsJSON_Panel]
+classes = [
+    SCENE_PT_NodesAsJSON_Panel,
+    SCENE_PT_NodesAsJSON_Panel_Export,
+    SCENE_PT_NodesAsJSON_Panel_Import,
+]
 
 
 def register():
