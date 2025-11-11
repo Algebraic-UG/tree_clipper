@@ -1,4 +1,4 @@
-COPY_MEMBERS = [
+COPY_MEMBERS_NODE_TREE = [
     # ID
     "is_runtime_data",
     "name",
@@ -35,6 +35,37 @@ COPY_MEMBERS = [
     "use_wait_for_click",
 ]
 
+COPY_MEMBERS_NODE_LINK = [
+    "is_muted",
+    "is_valid",
+]
+
+COPY_MEMBERS_NODE = [
+    "bl_description",
+    "bl_height_default",
+    "bl_height_max",
+    "bl_height_min",
+    "bl_icon",
+    "bl_idname",
+    "bl_label",
+    "bl_width_default",
+    "bl_width_max",
+    "bl_width_min",
+    "height",
+    "hide",
+    "label",
+    "mute",
+    "name",
+    "select",
+    "show_options",
+    "show_preview",
+    "show_texture",
+    "use_custom_color",
+    "warning_propagation",
+    "width",
+]
+
+
 # TODO: the following should be automated
 
 # import bpy
@@ -46,33 +77,3 @@ COPY_MEMBERS = [
 #     except Exception:
 #         continue
 #     print(f"{m}: {type(a)}")
-
-
-# Yields:
-
-# annotation: <class 'NoneType'>
-# bl_description: <class 'str'>
-# bl_icon: <class 'str'>
-# bl_idname: <class 'str'>
-# bl_label: <class 'str'>
-# bl_use_group_interface: <class 'bool'>
-# color_tag: <class 'str'>
-# default_group_node_width: <class 'int'>
-# description: <class 'str'>
-# is_mode_edit: <class 'bool'>
-# is_mode_object: <class 'bool'>
-# is_mode_paint: <class 'bool'>
-# is_mode_sculpt: <class 'bool'>
-# is_modifier: <class 'bool'>
-# is_runtime_data: <class 'bool'>
-# is_tool: <class 'bool'>
-# is_type_curve: <class 'bool'>
-# is_type_grease_pencil: <class 'bool'>
-# is_type_mesh: <class 'bool'>
-# is_type_pointcloud: <class 'bool'>
-# name: <class 'str'>
-# show_modifier_manage_panel: <class 'bool'>
-# tag: <class 'bool'>
-# use_extra_user: <class 'bool'>
-# use_fake_user: <class 'bool'>
-# use_wait_for_click: <class 'bool'>

@@ -3,14 +3,34 @@ import bpy
 import json
 from pathlib import Path
 
-from .common import COPY_MEMBERS
+from .common import COPY_MEMBERS_NODE, COPY_MEMBERS_NODE_TREE
+
+
+def export_node(node: bpy.types.Node):
+    d = {}
+
+    for m in COPY_MEMBERS_NODE:
+        d[m] = getattr(node, m)
+
+    # TODO
+    color = {}
+    location = ()
+    location_absolute = ()
+    parent = "TODO"
+
+    d["color"] = color
+    d["location"] = color
+    d["location_absolute"] = location_absolute
+    d["parent"] = parent
+
+    return d
 
 
 def export_node_tree(node_tree: bpy.types.NodeTree):
-
     d = {}
 
-    for m in COPY_MEMBERS:
+    for m in COPY_MEMBERS_NODE_TREE:
+        # different types of tree have different attributes
         if hasattr(node_tree, m):
             d[m] = getattr(node_tree, m)
 
@@ -20,7 +40,7 @@ def export_node_tree(node_tree: bpy.types.NodeTree):
     # TODO
     interface = {}
     links = []
-    nodes = []
+    nodes = [export_node(node) for node in node_tree.nodes]
     view_center = "TODO"
 
     d["interface"] = interface
