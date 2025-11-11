@@ -52,7 +52,11 @@ class SCENE_PT_NodesAsJSON_Panel(bpy.types.Panel):
 
         export = self.layout.operator(SCENE_PT_NodesAsJSON_Panel_Export.bl_idname)
         export.material = isinstance(context.space_data.id, bpy.types.Material)
-        export.name = context.space_data.id.name
+        export.name = (
+            context.space_data.id.name
+            if export.material
+            else context.space_data.node_tree.name
+        )
         export.output_file = f"{str(DEFAULT_FILE)}"
         self.layout.operator(SCENE_PT_NodesAsJSON_Panel_Import.bl_idname).input_file = (
             f"{str(DEFAULT_FILE)}"
