@@ -41,12 +41,10 @@ def export_node_tree(node_tree: bpy.types.NodeTree):
     interface = {}
     links = []
     nodes = [export_node(node) for node in node_tree.nodes]
-    view_center = "TODO"
 
     d["interface"] = interface
     d["links"] = links
     d["nodes"] = nodes
-    d["view_center"] = view_center
 
     return d
 
