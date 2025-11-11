@@ -43,11 +43,17 @@ class SCENE_PT_NodesAsJSON_Panel(bpy.types.Panel):
     bl_region_type = "UI"
     bl_category = "Nodes As JSON"
 
-    def draw(self, _context):
+    def draw(self, context):
 
-        self.layout.operator(
-            SCENE_PT_NodesAsJSON_Panel_Export.bl_idname
-        ).output_file = f"{str(DEFAULT_FILE)}"
+        node_tree = context.space_data.node_tree
+        if node_tree is None:
+            self.layout.label(text="No node tree.")
+            return
+
+        export = self.layout.operator(SCENE_PT_NodesAsJSON_Panel_Export.bl_idname)
+        export.material = isinstance(context.space_data.id, bpy.types.Material)
+        export.name = context.space_data.id.name
+        export.output_file = f"{str(DEFAULT_FILE)}"
         self.layout.operator(SCENE_PT_NodesAsJSON_Panel_Import.bl_idname).input_file = (
             f"{str(DEFAULT_FILE)}"
         )
