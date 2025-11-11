@@ -13,13 +13,7 @@ class SCENE_PT_NodesAsJSON_Panel_Export(bpy.types.Operator):
     bl_idname = "scene.nodes_as_json_export"
     bl_label = "Export"
 
-    context: bpy.props.EnumProperty(
-        items=[
-            ("Geometry",) * 3,
-            ("Compositor",) * 3,
-            ("Material",) * 3,
-        ]
-    )  # type: ignore
+    material: bpy.props.BoolProperty(name="Top level Material")  # type: ignore
     name: bpy.props.StringProperty(name="Material/NodeTree")  # type: ignore
     output_file: bpy.props.StringProperty(name="Output File", subtype="FILE_PATH")  # type: ignore
 
@@ -34,14 +28,6 @@ class SCENE_PT_NodesAsJSON_Panel_Import(bpy.types.Operator):
     bl_idname = "scene.nodes_as_json_import"
     bl_label = "Import"
 
-    context: bpy.props.EnumProperty(
-        items=[
-            ("Geometry",) * 3,
-            ("Compositor",) * 3,
-            ("Material",) * 3,
-        ]
-    )  # type: ignore
-    name: bpy.props.StringProperty(name="Material/NodeTree")  # type: ignore
     input_file: bpy.props.StringProperty(name="Input File", subtype="FILE_PATH")  # type: ignore
 
     def invoke(self, context, _):
