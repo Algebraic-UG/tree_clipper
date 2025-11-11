@@ -1,30 +1,49 @@
 import bpy
 
+from .export_nodes import export_nodes
+from .import_nodes import import_nodes
+
 
 class SCENE_PT_NodesAsJSON_Panel_Export(bpy.types.Operator):
     bl_idname = "scene.nodes_as_json_export"
     bl_label = "Export"
 
+    context: bpy.props.EnumProperty(
+        items=[
+            ("Geometry",) * 3,
+            ("Compositor",) * 3,
+            ("Material",) * 3,
+        ]
+    )
+    name: bpy.props.StringProperty(name="Material/NodeTree")
     output_file: bpy.props.StringProperty(name="Output File", subtype="FILE_PATH")  # type: ignore
 
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):
-        return super().execute(context)
+        return export_nodes(self, context)
 
 
 class SCENE_PT_NodesAsJSON_Panel_Import(bpy.types.Operator):
     bl_idname = "scene.nodes_as_json_import"
     bl_label = "Import"
 
+    context: bpy.props.EnumProperty(
+        items=[
+            ("Geometry",) * 3,
+            ("Compositor",) * 3,
+            ("Material",) * 3,
+        ]
+    )
+    name: bpy.props.StringProperty(name="Material/NodeTree")
     input_file: bpy.props.StringProperty(name="Input File", subtype="FILE_PATH")  # type: ignore
 
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):
-        return super().execute(context)
+        return import_nodes(self, context)
 
 
 class SCENE_PT_NodesAsJSON_Panel(bpy.types.Panel):

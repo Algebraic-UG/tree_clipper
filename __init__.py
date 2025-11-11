@@ -13,7 +13,7 @@
 
 import bpy
 
-from .panel import (
+from .ui import (
     SCENE_PT_NodesAsJSON_Panel,
     SCENE_PT_NodesAsJSON_Panel_Export,
     SCENE_PT_NodesAsJSON_Panel_Import,
