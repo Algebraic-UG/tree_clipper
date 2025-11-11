@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 
-def import_nodes(self, context):
+def import_nodes(self, _context):
 
     with Path(self.input_file).open("r", encoding="utf-8") as f:
         d = json.load(f)
