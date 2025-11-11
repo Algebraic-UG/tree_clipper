@@ -11,7 +11,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-def register(): ...
+import bpy
+
+from .panel import SCENE_PT_NodesAsJSON_Panel
+
+classes = [SCENE_PT_NodesAsJSON_Panel]
 
 
-def unregister(): ...
+def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
+
+def unregister():
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
