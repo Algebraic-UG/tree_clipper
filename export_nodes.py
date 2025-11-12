@@ -97,11 +97,48 @@ def export_node_link(link: bpy.types.NodeLink):
     return d
 
 
+def export_property(obj: bpy.types.bpy_struct, prop: bpy.types.Property):
+
+    d = {"type": prop.type}
+    attribute = getattr(obj, prop.identifier)
+
+    if prop.type in [
+        "BOOLEAN",
+        "INT",
+        "FLOAT",
+    ]:
+        if prop.is_array:
+            d["attr"] = list(attribute)
+        else:
+            d["attr"] = attribute
+
+    elif prop.type in [
+        "STRING",
+        "ENUM",
+    ]:
+        d["attr"] = attribute
+
+    elif prop.type == "POINTER":
+        d["fixed_type"] = None if prop.fixed_type is None else prop.fixed_type.name
+        d["attr"] = None if attribute is None else attribute.name
+
+    elif prop.type == "COLLECTION":
+        d["fixed_type"] = None if prop.fixed_type is None else prop.fixed_type.name
+        d["attr"] = [element.name for element in attribute]
+
+    else:
+        raise RuntimeError(f"Unknown type: {prop.type}")
+
+    return d
+
+
 def export_node(node: bpy.types.Node):
     d = {}
 
-    for m in COPY_MEMBERS_NODE:
-        d[m] = getattr(node, m)
+    for property in node.bl_rna.properties:
+        if node.is_property_readonly(property.identifier):
+            continue
+        d[property.identifier] = property
 
     # these are just a bit special
     d["color"] = [node.color.r, node.color.g, node.color.b]
