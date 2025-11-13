@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 def is_built_in(obj):
-    getattr(obj, "__module__", "").startswith("bpy.types")
+    return getattr(obj, "__module__", "").startswith("bpy.types")
 
 
 def export_property(
@@ -56,7 +56,7 @@ def export_all_writable_properties(obj: bpy.types.bpy_struct):
         if obj.is_property_readonly(prop.identifier):
             continue
         exported_prop = export_property(obj, prop)
-        if export_property is not None:
+        if exported_prop is not None:
             d[prop.identifier] = exported_prop
     return d
 
