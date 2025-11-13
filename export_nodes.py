@@ -20,14 +20,9 @@ from .common import (
     SOCKET_IDENTIFIER,
     SOCKET_TYPE,
     BLENDER_VERSION,
-    FIXED_TYPE,
     FROM_NODE,
     FROM_SOCKET,
-    IS_MATERIAL,
-    TOP_LEVEL_NAME,
     NODES_AS_JSON_VERSION,
-    REFERENCE,
-    REFERENCES,
     ROOT,
     SUB_TREES,
     TO_NODE,
@@ -68,22 +63,19 @@ class _Exporter:
                 return None
             return attribute
 
-        d = {
-            FIXED_TYPE: None if prop.fixed_type is None else prop.fixed_type.name,
-        }
-
+        # hmm, kinda tricky, `path_from_module` appears to contain enough info
         if prop.type == "POINTER":
-            if skip_defaults and attribute is None:
+            if attribute is None:
                 return None
-            d[REFERENCE] = None if attribute is None else attribute.name
-        elif prop.type == "COLLECTION":
-            if skip_defaults and len(attribute) == 0:
-                return None
-            d[REFERENCES] = [element.name for element in attribute]
-        else:
-            raise RuntimeError(f"Unknown property type: {prop.type}")
+            return attribute.path_from_module()
 
-        return d
+        # is there even a use case for this at the moment?
+        if prop.type == "COLLECTION":
+            raise RuntimeError(
+                "You have a use case for collection properties in nodes? Please tell use about this:\nhttps://github.com/Algebraic-UG/nodes_as_json/issues/new"
+            )
+
+        raise RuntimeError(f"Unknown property type: {prop.type}")
 
     def _export_all_writable_properties(self, obj: bpy.types.bpy_struct):
         d = {}
@@ -100,9 +92,12 @@ class _Exporter:
         d = self._export_all_writable_properties(socket)
 
         # not sure when one has to add sockets, but the following would be needed
-        d[SOCKET_TYPE] = socket.bl_idname  # will be used as 'type' arg in 'new'
+        d[SOCKET_TYPE] = (
+            socket.rna_type.identifier
+        )  # will be used as 'type' arg in 'new'
         # d["name"] = socket.name # name is writable, so we already have it
         d[SOCKET_IDENTIFIER] = socket.identifier
+        # this technically only needed for inputs
         d[USE_MULTI_INPUT] = socket.is_multi_input
 
         return d
@@ -121,7 +116,7 @@ class _Exporter:
     def _export_node(self, node: bpy.types.Node):
         d = self._export_all_writable_properties(node)
 
-        d[NODE_TYPE] = node.bl_idname  # will be used as 'type' arg in 'new'
+        d[NODE_TYPE] = node.rna_type.identifier  # will be used as 'type' arg in 'new'
 
         d[INPUTS] = [self._export_node_socket(socket) for socket in node.inputs]
         d[OUTPUTS] = [self._export_node_socket(socket) for socket in node.outputs]
@@ -131,7 +126,7 @@ class _Exporter:
     def _export_interface_tree_socket(self, socket: bpy.types.NodeTreeInterfaceSocket):
         d = self._export_all_writable_properties(socket)
         d[INTERFACE_SOCKET_TYPE] = (
-            socket.bl_socket_idname
+            socket.socket_type
         )  # will be used as 'socket_type' arg in 'new_socket'
         d[IN_OUT] = socket.in_out
         return d
@@ -166,7 +161,9 @@ class _Exporter:
         d = self._export_all_writable_properties(node_tree)
 
         # d["name"] = node_tree.name # name is writable, so we already have it
-        d[NODE_TREE_TYPE] = node_tree.bl_idname  # will be used as 'type' arg in 'new'
+        d[NODE_TREE_TYPE] = (
+            node_tree.rna_type.identifier
+        )  # will be used as 'type' arg in 'new'
 
         d[NODE_TREE_INTERFACE] = self._export_interface(node_tree.interface)
         d[NODE_TREE_LINKS] = [self._export_node_link(link) for link in node_tree.links]
