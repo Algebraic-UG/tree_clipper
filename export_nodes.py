@@ -13,7 +13,7 @@ class Exporter:
         self.export_sub_groups = export_sub_groups
         self.skip_built_in_defaults = skip_built_in_defaults
 
-    def export_property(
+    def _export_property(
         self,
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
@@ -54,19 +54,19 @@ class Exporter:
 
         return d
 
-    def export_all_writable_properties(self, obj: bpy.types.bpy_struct):
+    def _export_all_writable_properties(self, obj: bpy.types.bpy_struct):
         d = {}
         for prop in obj.bl_rna.properties:
             if obj.is_property_readonly(prop.identifier):
                 continue
-            exported_prop = self.export_property(obj, prop)
+            exported_prop = self._export_property(obj, prop)
             if exported_prop is not None:
                 d[prop.identifier] = exported_prop
         return d
 
     # we often only need the default_value, which is a writable property
-    def export_node_socket(self, socket: bpy.types.NodeSocket):
-        d = self.export_all_writable_properties(socket)
+    def _export_node_socket(self, socket: bpy.types.NodeSocket):
+        d = self._export_all_writable_properties(socket)
 
         # not sure when one has to add sockets, but the following would be needed
         d["bl_idname"] = socket.bl_idname  # will be used as 'type' arg in 'new'
@@ -76,8 +76,8 @@ class Exporter:
 
         return d
 
-    def export_node_link(self, link: bpy.types.NodeLink):
-        d = self.export_all_writable_properties(link)
+    def _export_node_link(self, link: bpy.types.NodeLink):
+        d = self._export_all_writable_properties(link)
 
         # link in second pass
         d["from_node"] = link.from_node.name
@@ -87,57 +87,57 @@ class Exporter:
 
         return d
 
-    def export_node(self, node: bpy.types.Node):
-        d = self.export_all_writable_properties(node)
+    def _export_node(self, node: bpy.types.Node):
+        d = self._export_all_writable_properties(node)
 
         d["bl_idname"] = node.bl_idname  # will be used as 'type' arg in 'new'
 
-        d["inputs"] = [self.export_node_socket(socket) for socket in node.inputs]
-        d["outputs"] = [self.export_node_socket(socket) for socket in node.outputs]
+        d["inputs"] = [self._export_node_socket(socket) for socket in node.inputs]
+        d["outputs"] = [self._export_node_socket(socket) for socket in node.outputs]
 
         return d
 
-    def export_interface_tree_socket(self, socket: bpy.types.NodeTreeInterfaceSocket):
-        d = self.export_all_writable_properties(socket)
+    def _export_interface_tree_socket(self, socket: bpy.types.NodeTreeInterfaceSocket):
+        d = self._export_all_writable_properties(socket)
         d["bl_socket_idname"] = (
             socket.bl_socket_idname
         )  # will be used as 'socket_type' arg in 'new_socket'
         d["in_out"] = socket.in_out
         return d
 
-    def export_interface_tree_panel(self, panel: bpy.types.NodeTreeInterfacePanel):
-        d = self.export_all_writable_properties(panel)
+    def _export_interface_tree_panel(self, panel: bpy.types.NodeTreeInterfacePanel):
+        d = self._export_all_writable_properties(panel)
         d["iterface_items"] = [
-            self.export_interface_item(item) for item in panel.interface_items
+            self._export_interface_item(item) for item in panel.interface_items
         ]
         return d
 
-    def export_interface_item(self, item: bpy.types.NodeTreeInterfaceItem):
+    def _export_interface_item(self, item: bpy.types.NodeTreeInterfaceItem):
         if item.item_type == "SOCKET":
-            return self.export_interface_tree_socket(item)
+            return self._export_interface_tree_socket(item)
         elif item.item_type == "PANEL":
-            return self.export_interface_tree_panel(item)
+            return self._export_interface_tree_panel(item)
         else:
             raise RuntimeError(f"Unknown item type: {item.item_type}")
 
-    def export_interface(self, interface: bpy.types.NodeTreeInterface):
-        d = self.export_all_writable_properties(interface)
+    def _export_interface(self, interface: bpy.types.NodeTreeInterface):
+        d = self._export_all_writable_properties(interface)
 
         d["items_tree"] = [
-            self.export_interface_item(item) for item in interface.items_tree
+            self._export_interface_item(item) for item in interface.items_tree
         ]
 
         return d
 
-    def export_node_tree(self, node_tree: bpy.types.NodeTree):
-        d = self.export_all_writable_properties(node_tree)
+    def _export_node_tree(self, node_tree: bpy.types.NodeTree):
+        d = self._export_all_writable_properties(node_tree)
 
         # d["name"] = node_tree.name # name is writable, so we already have it
         d["bl_idname"] = node_tree.bl_idname  # will be used as 'type' arg in 'new'
 
-        d["interface"] = self.export_interface(node_tree.interface)
-        d["links"] = [self.export_node_link(link) for link in node_tree.links]
-        d["nodes"] = [self.export_node(node) for node in node_tree.nodes]
+        d["interface"] = self._export_interface(node_tree.interface)
+        d["links"] = [self._export_node_link(link) for link in node_tree.links]
+        d["nodes"] = [self._export_node(node) for node in node_tree.nodes]
 
         return d
 
@@ -151,7 +151,7 @@ class Exporter:
             "blender_version": bpy.app.version_string,
             "is_material": is_material,
             "name": name,
-            "root": self.export_node_tree(root),
+            "root": self._export_node_tree(root),
         }
 
         with Path(output_file).open("w", encoding="utf-8") as f:
