@@ -4,7 +4,7 @@ MATERIAL_NAME = "name"
 ROOT = "root"
 SUB_TREES = "sub_trees"
 
-SOCKET_TYPE = "type"
+SOCKET_TYPE = "rna_type"
 SOCKET_IDENTIFIER = "identifier"
 USE_MULTI_INPUT = "use_multi_input"
 
@@ -13,17 +13,17 @@ FROM_SOCKET = "from_socket"
 TO_NODE = "to_node"
 TO_SOCKET = "to_socket"
 
-NODE_TYPE = "type"
+NODE_TYPE = "rna_type"
 INPUTS = "inputs"
 OUTPUTS = "outputs"
 
-INTERFACE_SOCKET_TYPE = "type"
+INTERFACE_SOCKET_TYPE = "rna_type"
 IN_OUT = "in_out"
 
 INTERFACE_ITEMS = "items"
 INTERFACE_ITEMS_TREE = "tree"
 
-NODE_TREE_TYPE = "type"
+NODE_TREE_TYPE = "rna_type"
 NODE_TREE_INTERFACE = "interface"
 NODE_TREE_LINKS = "links"
 NODE_TREE_NODES = "nodes"
