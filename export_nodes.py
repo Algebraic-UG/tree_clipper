@@ -151,6 +151,7 @@ def export_nodes(is_material: bool, name: str, output_file: str):
         root = bpy.data.node_groups[name]
 
     d = {
+        "blender_version": bpy.app.version_string,
         "is_material": is_material,
         "name": name,
         "root": export_node_tree(root),
