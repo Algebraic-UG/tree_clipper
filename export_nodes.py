@@ -4,6 +4,36 @@ import tomllib
 import json
 from pathlib import Path
 
+from .common import (
+    IN_OUT,
+    INPUTS,
+    INTERFACE_ITEMS,
+    INTERFACE_ITEMS_TREE,
+    INTERFACE_SOCKET_TYPE,
+    NODE_TREE_INTERFACE,
+    NODE_TREE_LINKS,
+    NODE_TREE_NODES,
+    NODE_TREE_TYPE,
+    NODE_TYPE,
+    OUTPUTS,
+    SOCKET_IDENTIFIER,
+    SOCKET_TYPE,
+    BLENDER_VERSION,
+    FIXED_TYPE,
+    FROM_NODE,
+    FROM_SOCKET,
+    IS_MATERIAL,
+    TOP_LEVEL_NAME,
+    NODES_AS_JSON_VERSION,
+    REFERENCE,
+    REFERENCES,
+    ROOT,
+    SUB_TREES,
+    TO_NODE,
+    TO_SOCKET,
+    USE_MULTI_INPUT,
+)
+
 
 def _is_built_in(obj):
     return getattr(obj, "__module__", "").startswith("bpy.types")
@@ -38,17 +68,17 @@ class _Exporter:
             return attribute
 
         d = {
-            "fixed_type": None if prop.fixed_type is None else prop.fixed_type.name,
+            FIXED_TYPE: None if prop.fixed_type is None else prop.fixed_type.name,
         }
 
         if prop.type == "POINTER":
             if skip_defaults and attribute is None:
                 return None
-            d["name"] = None if attribute is None else attribute.name
+            d[REFERENCE] = None if attribute is None else attribute.name
         elif prop.type == "COLLECTION":
             if skip_defaults and len(attribute) == 0:
                 return None
-            d["names"] = [element.name for element in attribute]
+            d[REFERENCES] = [element.name for element in attribute]
         else:
             raise RuntimeError(f"Unknown property type: {prop.type}")
 
@@ -69,10 +99,10 @@ class _Exporter:
         d = self._export_all_writable_properties(socket)
 
         # not sure when one has to add sockets, but the following would be needed
-        d["bl_idname"] = socket.bl_idname  # will be used as 'type' arg in 'new'
+        d[SOCKET_TYPE] = socket.bl_idname  # will be used as 'type' arg in 'new'
         # d["name"] = socket.name # name is writable, so we already have it
-        d["identifier"] = socket.identifier
-        d["use_multi_input"] = socket.is_multi_input
+        d[SOCKET_IDENTIFIER] = socket.identifier
+        d[USE_MULTI_INPUT] = socket.is_multi_input
 
         return d
 
@@ -80,34 +110,34 @@ class _Exporter:
         d = self._export_all_writable_properties(link)
 
         # link in second pass
-        d["from_node"] = link.from_node.name
-        d["from_socket"] = link.from_socket.identifier
-        d["to_node"] = link.to_node.name
-        d["to_socket"] = link.to_socket.identifier
+        d[FROM_NODE] = link.from_node.name
+        d[FROM_SOCKET] = link.from_socket.identifier
+        d[TO_NODE] = link.to_node.name
+        d[TO_SOCKET] = link.to_socket.identifier
 
         return d
 
     def _export_node(self, node: bpy.types.Node):
         d = self._export_all_writable_properties(node)
 
-        d["bl_idname"] = node.bl_idname  # will be used as 'type' arg in 'new'
+        d[NODE_TYPE] = node.bl_idname  # will be used as 'type' arg in 'new'
 
-        d["inputs"] = [self._export_node_socket(socket) for socket in node.inputs]
-        d["outputs"] = [self._export_node_socket(socket) for socket in node.outputs]
+        d[INPUTS] = [self._export_node_socket(socket) for socket in node.inputs]
+        d[OUTPUTS] = [self._export_node_socket(socket) for socket in node.outputs]
 
         return d
 
     def _export_interface_tree_socket(self, socket: bpy.types.NodeTreeInterfaceSocket):
         d = self._export_all_writable_properties(socket)
-        d["bl_socket_idname"] = (
+        d[INTERFACE_SOCKET_TYPE] = (
             socket.bl_socket_idname
         )  # will be used as 'socket_type' arg in 'new_socket'
-        d["in_out"] = socket.in_out
+        d[IN_OUT] = socket.in_out
         return d
 
     def _export_interface_tree_panel(self, panel: bpy.types.NodeTreeInterfacePanel):
         d = self._export_all_writable_properties(panel)
-        d["iterface_items"] = [
+        d[INTERFACE_ITEMS] = [
             self._export_interface_item(item) for item in panel.interface_items
         ]
         return d
@@ -123,7 +153,7 @@ class _Exporter:
     def _export_interface(self, interface: bpy.types.NodeTreeInterface):
         d = self._export_all_writable_properties(interface)
 
-        d["items_tree"] = [
+        d[INTERFACE_ITEMS_TREE] = [
             self._export_interface_item(item) for item in interface.items_tree
         ]
 
@@ -135,11 +165,11 @@ class _Exporter:
         d = self._export_all_writable_properties(node_tree)
 
         # d["name"] = node_tree.name # name is writable, so we already have it
-        d["bl_idname"] = node_tree.bl_idname  # will be used as 'type' arg in 'new'
+        d[NODE_TREE_TYPE] = node_tree.bl_idname  # will be used as 'type' arg in 'new'
 
-        d["interface"] = self._export_interface(node_tree.interface)
-        d["links"] = [self._export_node_link(link) for link in node_tree.links]
-        d["nodes"] = [self._export_node(node) for node in node_tree.nodes]
+        d[NODE_TREE_INTERFACE] = self._export_interface(node_tree.interface)
+        d[NODE_TREE_LINKS] = [self._export_node_link(link) for link in node_tree.links]
+        d[NODE_TREE_NODES] = [self._export_node(node) for node in node_tree.nodes]
 
         return d
 
@@ -171,17 +201,17 @@ def export_nodes(
         blender_manifest = tomllib.load(f)
 
     d = {
-        "blender_version": bpy.app.version_string,
-        "nodes_as_json_version": blender_manifest["version"],
-        "is_material": is_material,
-        "name": name,
-        "root": exporter.export_node_tree(root),
+        BLENDER_VERSION: bpy.app.version_string,
+        NODES_AS_JSON_VERSION: blender_manifest["version"],
+        IS_MATERIAL: is_material,
+        TOP_LEVEL_NAME: name,
+        ROOT: exporter.export_node_tree(root),
     }
 
     if export_sub_trees:
         sub_trees = []
         _collect_sub_trees(root, sub_trees)
-        d["sub_trees"] = [
+        d[SUB_TREES] = [
             exporter.export_node_tree(bpy.data.node_groups[tree]) for tree in sub_trees
         ]
 
