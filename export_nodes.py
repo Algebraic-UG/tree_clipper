@@ -166,6 +166,11 @@ class _Exporter:
     def _export_interface(self, interface: bpy.types.NodeTreeInterface):
         d = self._export_all_writable_properties(interface)
 
+        # this is very ugly, but we don't want to store this
+        # it is a PointerProperty which we can't recreate easily
+        # and it's not that important anyway
+        d.pop("active")
+
         no_clobber(
             d,
             INTERFACE_ITEMS_TREE,
