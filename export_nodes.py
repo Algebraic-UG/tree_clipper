@@ -8,9 +8,8 @@ def _is_built_in(obj):
     return getattr(obj, "__module__", "").startswith("bpy.types")
 
 
-class Exporter:
-    def __init__(self, export_sub_groups=True, skip_built_in_defaults=True):
-        self.export_sub_groups = export_sub_groups
+class _Exporter:
+    def __init__(self, skip_built_in_defaults):
         self.skip_built_in_defaults = skip_built_in_defaults
 
     def _export_property(
@@ -129,7 +128,9 @@ class Exporter:
 
         return d
 
-    def _export_node_tree(self, node_tree: bpy.types.NodeTree):
+    def export_node_tree(self, node_tree: bpy.types.NodeTree):
+        # pylint: disable=missing-function-docstring
+
         d = self._export_all_writable_properties(node_tree)
 
         # d["name"] = node_tree.name # name is writable, so we already have it
@@ -141,18 +142,42 @@ class Exporter:
 
         return d
 
-    def export_nodes(self, is_material: bool, name: str, output_file: str):
-        if is_material:
-            root = bpy.data.materials[name].node_tree
-        else:
-            root = bpy.data.node_groups[name]
 
-        d = {
-            "blender_version": bpy.app.version_string,
-            "is_material": is_material,
-            "name": name,
-            "root": self._export_node_tree(root),
-        }
+def _collect_sub_trees(node_tree: bpy.types.NodeTree, sub_trees: set):
+    for node in node_tree.nodes:
+        if hasattr(node, "node_tree"):
+            if node.node_tree.name not in sub_trees:
+                sub_trees.add(node.node_tree.name)
+                _collect_sub_trees(node.node_tree, sub_trees)
 
-        with Path(output_file).open("w", encoding="utf-8") as f:
-            f.write(json.dumps(d, indent=4))
+
+def export_nodes(
+    is_material: bool,
+    name: str,
+    output_file: str,
+    export_sub_trees=True,
+    skip_built_in_defaults=True,
+):
+    exporter = _Exporter(skip_built_in_defaults)
+
+    if is_material:
+        root = bpy.data.materials[name].node_tree
+    else:
+        root = bpy.data.node_groups[name]
+
+    d = {
+        "blender_version": bpy.app.version_string,
+        "is_material": is_material,
+        "name": name,
+        "root": exporter.export_node_tree(root),
+    }
+
+    if export_sub_trees:
+        sub_trees = set()
+        _collect_sub_trees(root, sub_trees)
+        d["sub_trees"] = [
+            exporter.export_node_tree(bpy.data.node_groups[tree]) for tree in sub_trees
+        ]
+
+    with Path(output_file).open("w", encoding="utf-8") as f:
+        f.write(json.dumps(d, indent=4))
