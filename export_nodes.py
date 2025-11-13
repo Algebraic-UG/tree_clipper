@@ -6,23 +6,23 @@ from pathlib import Path
 
 # this handles all the writable properties except for sub trees
 def export_property(obj: bpy.types.bpy_struct, prop: bpy.types.Property):
-    d = {"type": prop.type}
     attribute = getattr(obj, prop.identifier)
 
     if prop.type in ["BOOLEAN", "INT", "FLOAT"]:
-        d["attr"] = list(attribute) if prop.is_array else attribute
+        return list(attribute) if prop.is_array else attribute
 
     elif prop.type in ["STRING", "ENUM"]:
-        d["attr"] = attribute
+        return attribute
 
-    elif prop.type == "POINTER":
-        d["fixed_type"] = None if prop.fixed_type is None else prop.fixed_type.name
-        d["attr"] = None if attribute is None else attribute.name
+    d = {
+        "type": prop.type,
+        "fixed_type": None if prop.fixed_type is None else prop.fixed_type.name,
+    }
 
+    if prop.type == "POINTER":
+        d["name"] = None if attribute is None else attribute.name
     elif prop.type == "COLLECTION":
-        d["fixed_type"] = None if prop.fixed_type is None else prop.fixed_type.name
-        d["attr"] = [element.name for element in attribute]
-
+        d["names"] = [element.name for element in attribute]
     else:
         raise RuntimeError(f"Unknown property type: {prop.type}")
 
