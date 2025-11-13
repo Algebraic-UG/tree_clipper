@@ -14,15 +14,20 @@ class SCENE_OT_NodesAsJSON_Panel_Export(bpy.types.Operator):
     bl_label = "Export"
     bl_options = {"REGISTER"}
 
-    material: bpy.props.BoolProperty(name="Top level Material")  # type: ignore
+    is_material: bpy.props.BoolProperty(name="Top level Material")  # type: ignore
     name: bpy.props.StringProperty(name="Material/NodeTree")  # type: ignore
     output_file: bpy.props.StringProperty(name="Output File", default=DEFAULT_FILE, subtype="FILE_PATH")  # type: ignore
 
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
 
-    def execute(self, context):
-        return export_nodes(self, context)
+    def execute(self, _context):
+        export_nodes(
+            is_material=self.is_material,
+            name=self.name,
+            output_file=self.output_file,
+        )
+        return {"FINISHED"}
 
 
 class SCENE_OT_NodesAsJSON_Panel_Import(bpy.types.Operator):
@@ -53,14 +58,14 @@ class SCENE_PT_NodesAsJSON_Panel(bpy.types.Panel):
             self.layout.label(text="No node tree.")
             return
 
-        material = isinstance(context.space_data.id, bpy.types.Material)
-        if material:
+        is_material = isinstance(context.space_data.id, bpy.types.Material)
+        if is_material:
             name = context.space_data.id.name
         else:
             name = context.space_data.node_tree.name
 
         export_op = self.layout.operator(SCENE_OT_NodesAsJSON_Panel_Export.bl_idname)
-        export_op.material = material
+        export_op.is_material = is_material
         export_op.name = name
 
         self.layout.operator(SCENE_OT_NodesAsJSON_Panel_Import.bl_idname)

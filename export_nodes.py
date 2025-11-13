@@ -3,100 +3,8 @@ import bpy
 import json
 from pathlib import Path
 
-from .common import (
-    COPY_MEMBERS_NODE,
-    COPY_MEMBERS_NODE_LINK,
-    COPY_MEMBERS_NODE_SOCKET,
-    COPY_MEMBERS_NODE_TREE,
-)
 
-
-def export_node_socket(socket: bpy.types.NodeSocket):
-    d = {}
-
-    for m in COPY_MEMBERS_NODE_SOCKET:
-        d[m] = getattr(socket, m)
-
-    # this will be useful for setting the defaults
-    d["identifier"] = socket.identifier
-
-    # only needed for recreating the socket, possibly useful in custom nodes?
-    d["use_multi_input"] = socket.is_multi_input
-
-    # all of these can just be stored in JSON
-    if socket.type in [
-        "VALUE",
-        "INT",
-        "BOOLEAN",
-        "STRING",
-        "MENU",  # this also ends up being a string
-    ]:
-        d["default_value"] = socket.default_value
-
-    # both of these work by with a 3-float-array
-    if socket.type in [
-        "VECTOR",
-        "ROTATION",  # always XYZ ordering
-    ]:
-        d["default_value"] = [
-            socket.default_value[0],
-            socket.default_value[1],
-            socket.default_value[2],
-        ]
-
-    # here it's 4 floats
-    if socket.type == "RGBA":
-        d["default_value"] = [
-            socket.default_value[0],
-            socket.default_value[1],
-            socket.default_value[2],
-            socket.default_value[3],
-        ]
-
-    # best we can do here is record the name?
-    if socket.type in [
-        "OBJECT",
-        "MATERIAL",
-        "TEXTURE",
-        "IMAGE",
-        "COLLECTION",
-    ]:
-        d["default_value"] = (
-            None if socket.default_value is None else socket.default_value.name
-        )
-
-    # seems (currently) not possible to set a default value
-    if socket.type in [
-        "MATRIX",
-        "SHADER",
-        "BUNDLE",
-        "CLOSURE",
-        "GEOMETRY",
-    ]:
-        pass
-
-    # the group input has virtual sockets that fall into here
-    if socket.type == "CUSTOM":
-        pass
-
-    return d
-
-
-def export_node_link(link: bpy.types.NodeLink):
-    d = {}
-
-    for m in COPY_MEMBERS_NODE_LINK:
-        d[m] = getattr(link, m)
-
-    # link in second pass
-    d["from_node"] = link.from_node.name
-    d["from_socket"] = link.from_socket.identifier
-    d["to_node"] = link.to_node.name
-    d["to_socket"] = link.to_socket.identifier
-
-    return d
-
-
+# this handles all the writable properties except for sub trees
 def export_property(obj: bpy.types.bpy_struct, prop: bpy.types.Property):
 
     d = {"type": prop.type}
@@ -132,21 +40,51 @@ def export_property(obj: bpy.types.bpy_struct, prop: bpy.types.Property):
     return d
 
 
+# we often only need the default_value, which is a property
+def export_node_socket(socket: bpy.types.NodeSocket):
+    d = {}
+    for prop in socket.bl_rna.properties:
+        if socket.is_property_readonly(prop.identifier):
+            continue
+        d[prop.identifier] = export_property(socket, prop)
+
+    # not sure when one has to add sockets, but the following would be needed
+    d["bl_idname"] = socket.bl_idname  # will be used as 'type' arg in 'new'
+    # d["name"] = socket.name # name is writable, so we already have it
+    d["identifier"] = socket.identifier
+    d["use_multi_input"] = socket.is_multi_input
+
+    return d
+
+
+def export_node_link(link: bpy.types.NodeLink):
+    d = {}
+    for prop in link.bl_rna.properties:
+        if link.is_property_readonly(prop.identifier):
+            continue
+        d[prop.identifier] = export_property(link, prop)
+
+    # link in second pass
+    d["from_node"] = link.from_node.name
+    d["from_socket"] = link.from_socket.identifier
+    d["to_node"] = link.to_node.name
+    d["to_socket"] = link.to_socket.identifier
+
+    return d
+
+
 def export_node(node: bpy.types.Node):
     d = {}
-
-    for property in node.bl_rna.properties:
-        if node.is_property_readonly(property.identifier):
+    for prop in node.bl_rna.properties:
+        if node.is_property_readonly(prop.identifier):
             continue
-        d[property.identifier] = property
 
-    # these are just a bit special
-    d["color"] = [node.color.r, node.color.g, node.color.b]
-    d["location"] = [node.location.x, node.location.y]
-    d["location_absolute"] = [node.location_absolute.x, node.location_absolute.y]
+        if prop.type == "POINTER" and prop.fixed_type == bpy.types.NodeTree.bl_rna:
+            raise RuntimeError("sub trees not implemented yet")
 
-    # use this in the second pass
-    d["parent"] = None if node.parent is None else node.parent.name
+        d[prop.identifier] = export_property(node, prop)
+
+    d["bl_idname"] = node.bl_idname  # will be used as 'type' arg in 'new'
 
     d["inputs"] = [export_node_socket(socket) for socket in node.inputs]
     d["outputs"] = [export_node_socket(socket) for socket in node.outputs]
@@ -156,37 +94,32 @@ def export_node(node: bpy.types.Node):
 
 def export_node_tree(node_tree: bpy.types.NodeTree):
     d = {}
+    for prop in node_tree.bl_rna.properties:
+        if node_tree.is_property_readonly(prop.identifier):
+            continue
+        d[prop.identifier] = export_property(node_tree, prop)
 
-    for m in COPY_MEMBERS_NODE_TREE:
-        # different types of tree have different attributes
-        if hasattr(node_tree, m):
-            d[m] = getattr(node_tree, m)
+    # d["name"] = node_tree.name # name is writable, so we already have it
+    d["bl_idname"] = node_tree.bl_idname  # will be used as 'type' arg in 'new'
 
-    # Skip: animation_data, annotation
-    # TODO: grease_pencil
-
-    # TODO
-    d["interface"] = {}
+    d["interface"] = {}  # TODO
     d["links"] = [export_node_link(link) for link in node_tree.links]
     d["nodes"] = [export_node(node) for node in node_tree.nodes]
 
     return d
 
 
-def export_nodes(self, _context):
-
-    if self.material:
-        root = bpy.data.materials[self.name].node_tree
+def export_nodes(is_material: bool, name: str, output_file: str):
+    if is_material:
+        root = bpy.data.materials[name].node_tree
     else:
-        root = bpy.data.node_groups[self.name]
+        root = bpy.data.node_groups[name]
 
     d = {
-        "material": self.material,
-        "name": self.name,
+        "is_material": is_material,
+        "name": name,
         "root": export_node_tree(root),
     }
 
-    with Path(self.output_file).open("w", encoding="utf-8") as f:
+    with Path(output_file).open("w", encoding="utf-8") as f:
         f.write(json.dumps(d, indent=4))
-
-    return {"FINISHED"}
