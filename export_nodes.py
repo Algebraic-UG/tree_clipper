@@ -9,7 +9,8 @@ def _is_built_in(obj):
 
 
 class Exporter:
-    def __init__(self, skip_built_in_defaults=True):
+    def __init__(self, export_sub_groups=True, skip_built_in_defaults=True):
+        self.export_sub_groups = export_sub_groups
         self.skip_built_in_defaults = skip_built_in_defaults
 
     def export_property(
