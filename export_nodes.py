@@ -4,23 +4,45 @@ import json
 from pathlib import Path
 
 
-def export_property(obj: bpy.types.bpy_struct, prop: bpy.types.Property):
+def is_built_in(obj):
+    getattr(obj, "__module__", "").startswith("bpy.types")
+
+
+def export_property(
+    obj: bpy.types.bpy_struct,
+    prop: bpy.types.Property,
+    skip_builtin_defaults=True,
+):
+    skip_defaults = skip_builtin_defaults and is_built_in(obj)
+
     attribute = getattr(obj, prop.identifier)
 
     if prop.type in ["BOOLEAN", "INT", "FLOAT"]:
-        return list(attribute) if prop.is_array else attribute
+        if prop.is_array:
+            if skip_defaults and prop.default_array == attribute:
+                return None
+            return list(attribute)
+        else:
+            if skip_defaults and prop.default == attribute:
+                return None
+            return attribute
 
-    elif prop.type in ["STRING", "ENUM"]:
+    if prop.type in ["STRING", "ENUM"]:
+        if skip_defaults and prop.default == attribute:
+            return None
         return attribute
 
     d = {
-        "type": prop.type,
         "fixed_type": None if prop.fixed_type is None else prop.fixed_type.name,
     }
 
     if prop.type == "POINTER":
+        if skip_defaults and attribute is None:
+            return None
         d["name"] = None if attribute is None else attribute.name
     elif prop.type == "COLLECTION":
+        if skip_defaults and len(attribute) == 0:
+            return None
         d["names"] = [element.name for element in attribute]
     else:
         raise RuntimeError(f"Unknown property type: {prop.type}")
@@ -33,7 +55,9 @@ def export_all_writable_properties(obj: bpy.types.bpy_struct):
     for prop in obj.bl_rna.properties:
         if obj.is_property_readonly(prop.identifier):
             continue
-        d[prop.identifier] = export_property(obj, prop)
+        exported_prop = export_property(obj, prop)
+        if export_property is not None:
+            d[prop.identifier] = exported_prop
     return d
 
 
