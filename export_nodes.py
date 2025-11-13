@@ -6,24 +6,13 @@ from pathlib import Path
 
 # this handles all the writable properties except for sub trees
 def export_property(obj: bpy.types.bpy_struct, prop: bpy.types.Property):
-
     d = {"type": prop.type}
     attribute = getattr(obj, prop.identifier)
 
-    if prop.type in [
-        "BOOLEAN",
-        "INT",
-        "FLOAT",
-    ]:
-        if prop.is_array:
-            d["attr"] = list(attribute)
-        else:
-            d["attr"] = attribute
+    if prop.type in ["BOOLEAN", "INT", "FLOAT"]:
+        d["attr"] = list(attribute) if prop.is_array else attribute
 
-    elif prop.type in [
-        "STRING",
-        "ENUM",
-    ]:
+    elif prop.type in ["STRING", "ENUM"]:
         d["attr"] = attribute
 
     elif prop.type == "POINTER":
@@ -35,18 +24,23 @@ def export_property(obj: bpy.types.bpy_struct, prop: bpy.types.Property):
         d["attr"] = [element.name for element in attribute]
 
     else:
-        raise RuntimeError(f"Unknown type: {prop.type}")
+        raise RuntimeError(f"Unknown property type: {prop.type}")
 
+    return d
+
+
+def export_all_writable_properties(obj: bpy.types.bpy_struct):
+    d = {}
+    for prop in obj.bl_rna.properties:
+        if obj.is_property_readonly(prop.identifier):
+            continue
+        d[prop.identifier] = export_property(obj, prop)
     return d
 
 
 # we often only need the default_value, which is a property
 def export_node_socket(socket: bpy.types.NodeSocket):
-    d = {}
-    for prop in socket.bl_rna.properties:
-        if socket.is_property_readonly(prop.identifier):
-            continue
-        d[prop.identifier] = export_property(socket, prop)
+    d = export_all_writable_properties(socket)
 
     # not sure when one has to add sockets, but the following would be needed
     d["bl_idname"] = socket.bl_idname  # will be used as 'type' arg in 'new'
@@ -58,11 +52,7 @@ def export_node_socket(socket: bpy.types.NodeSocket):
 
 
 def export_node_link(link: bpy.types.NodeLink):
-    d = {}
-    for prop in link.bl_rna.properties:
-        if link.is_property_readonly(prop.identifier):
-            continue
-        d[prop.identifier] = export_property(link, prop)
+    d = export_all_writable_properties(link)
 
     # link in second pass
     d["from_node"] = link.from_node.name
@@ -74,15 +64,7 @@ def export_node_link(link: bpy.types.NodeLink):
 
 
 def export_node(node: bpy.types.Node):
-    d = {}
-    for prop in node.bl_rna.properties:
-        if node.is_property_readonly(prop.identifier):
-            continue
-
-        if prop.type == "POINTER" and prop.fixed_type == bpy.types.NodeTree.bl_rna:
-            raise RuntimeError("sub trees not implemented yet")
-
-        d[prop.identifier] = export_property(node, prop)
+    d = export_all_writable_properties(node)
 
     d["bl_idname"] = node.bl_idname  # will be used as 'type' arg in 'new'
 
@@ -92,17 +74,47 @@ def export_node(node: bpy.types.Node):
     return d
 
 
+def export_interface_tree_socket(socket: bpy.types.NodeTreeInterfaceSocket):
+    d = export_all_writable_properties(socket)
+    d["bl_socket_idname"] = (
+        socket.bl_socket_idname
+    )  # will be used as 'socket_type' arg in 'new_socket'
+    d["in_out"] = socket.in_out
+    return d
+
+
+def export_interface_tree_panel(panel: bpy.types.NodeTreeInterfacePanel):
+    d = export_all_writable_properties(panel)
+    d["iterface_items"] = [
+        export_interface_item(item) for item in panel.interface_items
+    ]
+    return d
+
+
+def export_interface_item(item: bpy.types.NodeTreeInterfaceItem):
+    if item.item_type == "SOCKET":
+        return export_interface_tree_socket(item)
+    elif item.item_type == "PANEL":
+        return export_interface_tree_panel(item)
+    else:
+        raise RuntimeError(f"Unknown item type: {item.item_type}")
+
+
+def export_interface(interface: bpy.types.NodeTreeInterface):
+    d = export_all_writable_properties(interface)
+
+    d["items_tree"] = [export_interface_item(item) for item in interface.items_tree]
+
+    return d
+
+
 def export_node_tree(node_tree: bpy.types.NodeTree):
-    d = {}
-    for prop in node_tree.bl_rna.properties:
-        if node_tree.is_property_readonly(prop.identifier):
-            continue
-        d[prop.identifier] = export_property(node_tree, prop)
+    d = export_all_writable_properties(node_tree)
 
     # d["name"] = node_tree.name # name is writable, so we already have it
     d["bl_idname"] = node_tree.bl_idname  # will be used as 'type' arg in 'new'
 
-    d["interface"] = {}  # TODO
+    d["interface"] = export_interface(node_tree.interface)
     d["links"] = [export_node_link(link) for link in node_tree.links]
     d["nodes"] = [export_node(node) for node in node_tree.nodes]
 
