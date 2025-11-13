@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 
-# this handles all the writable properties except for sub trees
 def export_property(obj: bpy.types.bpy_struct, prop: bpy.types.Property):
     attribute = getattr(obj, prop.identifier)
 
@@ -38,7 +37,7 @@ def export_all_writable_properties(obj: bpy.types.bpy_struct):
     return d
 
 
-# we often only need the default_value, which is a property
+# we often only need the default_value, which is a writable property
 def export_node_socket(socket: bpy.types.NodeSocket):
     d = export_all_writable_properties(socket)
 
