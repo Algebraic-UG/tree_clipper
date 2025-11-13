@@ -1,5 +1,6 @@
 import bpy
 
+import tomllib
 import json
 from pathlib import Path
 
@@ -165,8 +166,13 @@ def export_nodes(
     else:
         root = bpy.data.node_groups[name]
 
+    manifest_path = Path(__file__).parent / "blender_manifest.toml"
+    with manifest_path.open("rb") as f:
+        blender_manifest = tomllib.load(f)
+
     d = {
         "blender_version": bpy.app.version_string,
+        "nodes_as_json_version": blender_manifest["version"],
         "is_material": is_material,
         "name": name,
         "root": exporter.export_node_tree(root),
