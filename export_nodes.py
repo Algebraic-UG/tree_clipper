@@ -35,6 +35,12 @@ def _is_built_in(obj):
     return getattr(obj, "__module__", "").startswith("bpy.types")
 
 
+def no_clobber(d: dict, key: str, value):
+    if key in d:
+        raise RuntimeError(f"Clobbering '{key}'")
+    d[key] = value
+
+
 class _Exporter:
     def __init__(self, skip_built_in_defaults: bool):
         self.skip_built_in_defaults = skip_built_in_defaults
@@ -92,50 +98,61 @@ class _Exporter:
         d = self._export_all_writable_properties(socket)
 
         # not sure when one has to add sockets, but the following would be needed
-        d[SOCKET_TYPE] = (
-            socket.rna_type.identifier
-        )  # will be used as 'type' arg in 'new'
-        # d["name"] = socket.name # name is writable, so we already have it
-        d[SOCKET_IDENTIFIER] = socket.identifier
+        # name is writable, so we already have it
+
+        # will be used as 'type' arg in 'new'
+        no_clobber(d, SOCKET_TYPE, socket.rna_type.identifier)
+        no_clobber(d, SOCKET_IDENTIFIER, socket.identifier)
         # this technically only needed for inputs
-        d[USE_MULTI_INPUT] = socket.is_multi_input
+        no_clobber(d, USE_MULTI_INPUT, socket.is_multi_input)
 
         return d
 
     def _export_node_link(self, link: bpy.types.NodeLink):
         d = self._export_all_writable_properties(link)
 
-        # link in second pass
-        d[FROM_NODE] = link.from_node.name
-        d[FROM_SOCKET] = link.from_socket.identifier
-        d[TO_NODE] = link.to_node.name
-        d[TO_SOCKET] = link.to_socket.identifier
+        no_clobber(d, FROM_NODE, link.from_node.name)
+        no_clobber(d, FROM_SOCKET, link.from_socket.identifier)
+        no_clobber(d, TO_NODE, link.to_node.name)
+        no_clobber(d, TO_SOCKET, link.to_socket.identifier)
 
         return d
 
     def _export_node(self, node: bpy.types.Node):
         d = self._export_all_writable_properties(node)
 
-        d[NODE_TYPE] = node.rna_type.identifier  # will be used as 'type' arg in 'new'
+        # will be used as 'type' arg in 'new'
+        no_clobber(d, NODE_TYPE, node.rna_type.identifier)
 
-        d[INPUTS] = [self._export_node_socket(socket) for socket in node.inputs]
-        d[OUTPUTS] = [self._export_node_socket(socket) for socket in node.outputs]
+        no_clobber(
+            d,
+            INPUTS,
+            [self._export_node_socket(socket) for socket in node.inputs],
+        )
+        no_clobber(
+            d,
+            OUTPUTS,
+            [self._export_node_socket(socket) for socket in node.outputs],
+        )
 
         return d
 
     def _export_interface_tree_socket(self, socket: bpy.types.NodeTreeInterfaceSocket):
         d = self._export_all_writable_properties(socket)
-        d[INTERFACE_SOCKET_TYPE] = (
-            socket.socket_type
-        )  # will be used as 'socket_type' arg in 'new_socket'
-        d[IN_OUT] = socket.in_out
+
+        # will be used as 'socket_type' arg in 'new_socket'
+        no_clobber(d, INTERFACE_SOCKET_TYPE, socket.socket_type)
+        no_clobber(d, IN_OUT, socket.in_out)
+
         return d
 
     def _export_interface_tree_panel(self, panel: bpy.types.NodeTreeInterfacePanel):
         d = self._export_all_writable_properties(panel)
-        d[INTERFACE_ITEMS] = [
-            self._export_interface_item(item) for item in panel.interface_items
-        ]
+        no_clobber(
+            d,
+            INTERFACE_ITEMS,
+            [self._export_interface_item(item) for item in panel.interface_items],
+        )
         return d
 
     def _export_interface_item(self, item: bpy.types.NodeTreeInterfaceItem):
@@ -149,9 +166,11 @@ class _Exporter:
     def _export_interface(self, interface: bpy.types.NodeTreeInterface):
         d = self._export_all_writable_properties(interface)
 
-        d[INTERFACE_ITEMS_TREE] = [
-            self._export_interface_item(item) for item in interface.items_tree
-        ]
+        no_clobber(
+            d,
+            INTERFACE_ITEMS_TREE,
+            [self._export_interface_item(item) for item in interface.items_tree],
+        )
 
         return d
 
@@ -160,14 +179,22 @@ class _Exporter:
 
         d = self._export_all_writable_properties(node_tree)
 
-        # d["name"] = node_tree.name # name is writable, so we already have it
-        d[NODE_TREE_TYPE] = (
-            node_tree.rna_type.identifier
-        )  # will be used as 'type' arg in 'new'
+        # name is writable, so we already have it
 
-        d[NODE_TREE_INTERFACE] = self._export_interface(node_tree.interface)
-        d[NODE_TREE_LINKS] = [self._export_node_link(link) for link in node_tree.links]
-        d[NODE_TREE_NODES] = [self._export_node(node) for node in node_tree.nodes]
+        # will be used as 'type' arg in 'new'
+        no_clobber(d, NODE_TREE_TYPE, node_tree.rna_type.identifier)
+
+        no_clobber(d, NODE_TREE_INTERFACE, self._export_interface(node_tree.interface))
+        no_clobber(
+            d,
+            NODE_TREE_LINKS,
+            [self._export_node_link(link) for link in node_tree.links],
+        )
+        no_clobber(
+            d,
+            NODE_TREE_NODES,
+            [self._export_node(node) for node in node_tree.nodes],
+        )
 
         return d
 
