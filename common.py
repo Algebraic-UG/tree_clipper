@@ -1,7 +1,6 @@
 BLENDER_VERSION = "blender_version"
 NODES_AS_JSON_VERSION = "nodes_as_json_version"
-IS_MATERIAL = "is_material"
-TOP_LEVEL_NAME = "name"
+MATERIAL_NAME = "name"
 ROOT = "root"
 SUB_TREES = "sub_trees"
 
@@ -29,5 +28,5 @@ INTERFACE_ITEMS_TREE = "tree"
 
 NODE_TREE_TYPE = "type"
 NODE_TREE_INTERFACE = "interface"
-NODE_TREE_LINKS = "interface"
-NODE_TREE_NODES = "interface"
+NODE_TREE_LINKS = "links"
+NODE_TREE_NODES = "nodes"

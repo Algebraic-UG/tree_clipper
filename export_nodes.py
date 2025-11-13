@@ -10,6 +10,7 @@ from .common import (
     INTERFACE_ITEMS,
     INTERFACE_ITEMS_TREE,
     INTERFACE_SOCKET_TYPE,
+    MATERIAL_NAME,
     NODE_TREE_INTERFACE,
     NODE_TREE_LINKS,
     NODE_TREE_NODES,
@@ -40,7 +41,7 @@ def _is_built_in(obj):
 
 
 class _Exporter:
-    def __init__(self, skip_built_in_defaults):
+    def __init__(self, skip_built_in_defaults: bool):
         self.skip_built_in_defaults = skip_built_in_defaults
 
     def _export_property(
@@ -203,10 +204,11 @@ def export_nodes(
     d = {
         BLENDER_VERSION: bpy.app.version_string,
         NODES_AS_JSON_VERSION: blender_manifest["version"],
-        IS_MATERIAL: is_material,
-        TOP_LEVEL_NAME: name,
         ROOT: exporter.export_node_tree(root),
     }
+
+    if is_material:
+        d[MATERIAL_NAME] = name
 
     if export_sub_trees:
         sub_trees = []

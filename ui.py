@@ -17,6 +17,8 @@ class SCENE_OT_NodesAsJSON_Panel_Export(bpy.types.Operator):
     is_material: bpy.props.BoolProperty(name="Top level Material")  # type: ignore
     name: bpy.props.StringProperty(name="Material/NodeTree")  # type: ignore
     output_file: bpy.props.StringProperty(name="Output File", default=DEFAULT_FILE, subtype="FILE_PATH")  # type: ignore
+    export_sub_trees: bpy.props.BoolProperty(name="Export Sub Trees")  # type: ignore
+    skip_built_in_defaults: bpy.props.BoolProperty(name="Skip Built-in Defaults")  # type: ignore
 
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
@@ -26,6 +28,8 @@ class SCENE_OT_NodesAsJSON_Panel_Export(bpy.types.Operator):
             is_material=self.is_material,
             name=self.name,
             output_file=self.output_file,
+            export_sub_trees=True,
+            skip_built_in_defaults=True,
         )
         return {"FINISHED"}
 
@@ -35,14 +39,19 @@ class SCENE_OT_NodesAsJSON_Panel_Import(bpy.types.Operator):
     bl_label = "Import"
     bl_options = {"REGISTER", "UNDO"}
 
-    overwrite: bpy.props.BoolProperty(name="Overwrite", default=True)  # type: ignore
     input_file: bpy.props.StringProperty(name="Input File", default=DEFAULT_FILE, subtype="FILE_PATH")  # type: ignore
+    allow_version_mismatch: bpy.props.BoolProperty(name="Ignore Version", default=False)  # type: ignore
+    overwrite: bpy.props.BoolProperty(name="Overwrite", default=True)  # type: ignore
 
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
-        import_nodes(self.overwrite, self.input_file)
+        import_nodes(
+            input_file=self.input_file,
+            allow_version_mismatch=self.allow_version_mismatch,
+            overwrite=self.overwrite,
+        )
         return {"FINISHED"}
 
 
