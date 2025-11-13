@@ -143,11 +143,11 @@ class _Exporter:
         return d
 
 
-def _collect_sub_trees(node_tree: bpy.types.NodeTree, sub_trees: set):
+def _collect_sub_trees(node_tree: bpy.types.NodeTree, sub_trees: list):
     for node in node_tree.nodes:
         if hasattr(node, "node_tree"):
             if node.node_tree.name not in sub_trees:
-                sub_trees.add(node.node_tree.name)
+                sub_trees.append(node.node_tree.name)
                 _collect_sub_trees(node.node_tree, sub_trees)
 
 
@@ -173,7 +173,7 @@ def export_nodes(
     }
 
     if export_sub_trees:
-        sub_trees = set()
+        sub_trees = []
         _collect_sub_trees(root, sub_trees)
         d["sub_trees"] = [
             exporter.export_node_tree(bpy.data.node_groups[tree]) for tree in sub_trees
