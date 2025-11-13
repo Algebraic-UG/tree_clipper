@@ -1,5 +1,6 @@
 import bpy
 
+import sys
 import tomllib
 import json
 from pathlib import Path
@@ -22,33 +23,29 @@ def _check_version(d):
         return f"{name} version mismatch. File version: {exporter_node_as_json_version}, but running {importer_node_as_json_version}"
 
 
-def import_nodes(self, allow_version_mismatch=False):
-    with Path(self.input_file).open("r", encoding="utf-8") as f:
+def import_nodes(overwrite: bool, input_file: str, allow_version_mismatch=False):
+    with Path(input_file).open("r", encoding="utf-8") as f:
         d = json.load(f)
 
     version_mismatch = _check_version(d)
     if version_mismatch is not None:
         if allow_version_mismatch:
-            self.report({"WARNING"}, version_mismatch)
+            print(version_mismatch, file=sys.stderr)
         else:
             raise RuntimeError(version_mismatch)
 
     if d["material"]:
-        if self.overwrite:
+        if overwrite:
             mat = bpy.data.materials[d["name"]]
         else:
             mat = bpy.data.materials.new(name=d["name"])
             mat.use_nodes = True
         root = mat.node_tree
     else:
-        if self.overwrite:
+        if overwrite:
             root = bpy.data.node_groups[d["name"]]
         else:
             root = bpy.data.node_groups.new(type=d["root"]["type"], name=d["name"])
 
     for node in root.nodes:
         root.nodes.remove(node)
-
-    print(d)
-
-    return {"FINISHED"}

@@ -41,8 +41,9 @@ class SCENE_OT_NodesAsJSON_Panel_Import(bpy.types.Operator):
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
 
-    def execute(self, context):
-        return import_nodes(self, context)
+    def execute(self, _context):
+        import_nodes(self.overwrite, self.input_file)
+        return {"FINISHED"}
 
 
 class SCENE_PT_NodesAsJSON_Panel(bpy.types.Panel):
