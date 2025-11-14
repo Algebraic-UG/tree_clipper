@@ -67,6 +67,7 @@ class _Exporter:
         self.skip_built_in_defaults = skip_built_in_defaults
         self.debug_prints = debug_prints
         self.pointer_to_external = []
+        self.current_tree = None
 
     @_debug_print()
     def _export_property(
@@ -247,6 +248,8 @@ class _Exporter:
 
     @_debug_print()
     def export_node_tree(self, node_tree: bpy.types.NodeTree, *, path: list):
+        self.current_tree = node_tree
+
         # pylint: disable=missing-function-docstring
         d = self._export_all_writable_properties(node_tree, path=path)
 
@@ -276,6 +279,7 @@ class _Exporter:
         ]
         _no_clobber(d, NODE_TREE_LINKS, links)
 
+        self.current_tree = None
         return d
 
 
