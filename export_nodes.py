@@ -133,10 +133,10 @@ class _Exporter:
         path: list,
     ):
         d = {}
-        all_props = set(obj.rna_type.properties)
-        base_props = set(getattr(obj.rna_type.base, "properties", []))
-
-        specific_props = all_props - base_props
+        base_prop_ids = [p.identifier for p in obj.bl_rna.base.bl_rna.properties]
+        specific_props = [
+            p for p in obj.bl_rna.properties if p.identifier not in base_prop_ids
+        ]
 
         for prop in specific_props:
             if not obj.is_property_readonly(prop.identifier):
