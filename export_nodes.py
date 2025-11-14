@@ -1,5 +1,6 @@
 import bpy
 
+import uuid as uuid_gen
 from functools import wraps
 import tomllib
 import json
@@ -57,7 +58,8 @@ def _debug_print():
 
 
 class PointerToExternal:
-    def __init__(self, *, path: str, handle):
+    def __init__(self, *, uuid: str, path: str, handle):
+        self.uuid = uuid
         self.path = path
         self.handle = handle
 
@@ -107,13 +109,15 @@ class _Exporter:
                 ):
                     return None
 
+                uuid = str(uuid_gen.uuid4())
                 self.pointer_to_external.append(
                     PointerToExternal(
+                        uuid=uuid,
                         path=path,
                         handle=attribute,
                     )
                 )
-            return None
+            return uuid
 
         if prop.type == "COLLECTION":
             raise RuntimeError(
