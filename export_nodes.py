@@ -123,9 +123,39 @@ class _Exporter:
 
         raise RuntimeError(f"Unknown property type: {prop.type}")
 
-    def _export_all_writable_properties(self, obj: bpy.types.bpy_struct, *, path: list):
+    def _export_specific_readonly_properties(
+        self,
+        obj: bpy.types.bpy_struct,
+        *,
+        path: list,
+    ):
         d = {}
-        for prop in obj.bl_rna.properties:
+        all_props = set(obj.rna_type.properties)
+        base_props = set(getattr(obj.rna_type.base, "properties", []))
+
+        specific_props = all_props - base_props
+
+        for prop in specific_props:
+            if not obj.is_property_readonly(prop.identifier):
+                continue
+            exported_prop = self._export_property(
+                obj,
+                prop,
+                path=path + [f"{prop.type} ({prop.name})"],
+            )
+            if exported_prop is not None:
+                d[prop.identifier] = exported_prop
+
+        return d
+
+    def _export_all_writable_properties(
+        self,
+        obj: bpy.types.bpy_struct,
+        *,
+        path: list,
+    ):
+        d = {}
+        for prop in obj.rna_type.properties:
             if obj.is_property_readonly(prop.identifier):
                 continue
             exported_prop = self._export_property(
