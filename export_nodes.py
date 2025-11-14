@@ -9,6 +9,7 @@ from .common import (
     IN_OUT,
     INPUTS,
     INTERFACE_ITEMS,
+    INTERFACE_ITEMS_ACTIVE,
     INTERFACE_ITEMS_TREE,
     INTERFACE_SOCKET_TYPE,
     MATERIAL_NAME,
@@ -96,6 +97,15 @@ class _Exporter:
 
         if prop.type == "POINTER":
             if attribute is not None:
+
+                # this is very ugly, but we don't want to store this.
+                # instead we're storing active_index
+                if (
+                    isinstance(obj, bpy.types.NodeTreeInterface)
+                    and prop.identifier == "active"
+                ):
+                    return None
+
                 self.pointer_to_external.append(
                     PointerToExternal(
                         path=path,
@@ -226,17 +236,12 @@ class _Exporter:
     def _export_interface(self, interface: bpy.types.NodeTreeInterface, *, path):
         d = self._export_all_writable_properties(interface, path=path)
 
-        # TODO: this doesn't work here
-        # this is very ugly, but we don't want to store this
-        # it is a PointerProperty which we can't recreate easily
-        # and it's not that important anyway
-        # d.pop("active", None)
-
         items = [
             self._export_interface_item(item, path=path)
             for item in interface.items_tree
         ]
         _no_clobber(d, INTERFACE_ITEMS_TREE, items)
+        _no_clobber(d, INTERFACE_ITEMS_ACTIVE, interface.active_index)
 
         return d
 

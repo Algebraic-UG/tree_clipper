@@ -30,6 +30,7 @@ from .common import (
     TO_NODE,
     TO_SOCKET,
     USE_MULTI_INPUT,
+    INTERFACE_ITEMS_ACTIVE,
 )
 
 

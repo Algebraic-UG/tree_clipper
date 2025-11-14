@@ -22,6 +22,7 @@ IN_OUT = "in_out"
 
 INTERFACE_ITEMS = "items"
 INTERFACE_ITEMS_TREE = "tree"
+INTERFACE_ITEMS_ACTIVE = "active"
 
 NODE_TREE_TYPE = "rna_type"
 NODE_TREE_INTERFACE = "interface"
