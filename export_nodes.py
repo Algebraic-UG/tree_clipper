@@ -253,7 +253,7 @@ class _Exporter:
         if item.item_type == "SOCKET":
             return self._export_interface_tree_socket(
                 item,
-                path=path + [f"Socket ({item.name})"],
+                path=path + [f"{item.in_out} Socket ({item.name})"],
             )
         elif item.item_type == "PANEL":
             return self._export_interface_tree_panel(
