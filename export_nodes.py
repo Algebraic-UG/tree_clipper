@@ -196,7 +196,9 @@ class _Exporter:
 
     @_debug_print()
     def _export_node(self, node: bpy.types.Node, *, path: list):
-        d = self._export_all_writable_properties(node, path=path)
+        d = self._export_all_writable_properties(
+            node, path=path
+        ) | self._export_specific_readonly_properties(node, path=path)
 
         # will be used as 'type' arg in 'new'
         _no_clobber(d, NODE_TYPE, node.rna_type.identifier)
