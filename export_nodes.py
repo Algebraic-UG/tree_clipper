@@ -99,24 +99,25 @@ class _Exporter:
             return attribute
 
         if prop.type == "POINTER":
-            if attribute is not None:
+            if attribute is None:
+                return None
 
-                # this is very ugly, but we don't want to store this.
-                # instead we're storing active_index
-                if (
-                    isinstance(obj, bpy.types.NodeTreeInterface)
-                    and prop.identifier == "active"
-                ):
-                    return None
+            # this is very ugly, but we don't want to store this.
+            # instead we're storing active_index
+            if (
+                isinstance(obj, bpy.types.NodeTreeInterface)
+                and prop.identifier == "active"
+            ):
+                return None
 
-                uuid = str(uuid_gen.uuid4())
-                self.pointer_to_external.append(
-                    PointerToExternal(
-                        uuid=uuid,
-                        path=path,
-                        handle=attribute,
-                    )
+            uuid = str(uuid_gen.uuid4())
+            self.pointer_to_external.append(
+                PointerToExternal(
+                    uuid=uuid,
+                    path=path,
+                    handle=attribute,
                 )
+            )
             return uuid
 
         if prop.type == "COLLECTION":
