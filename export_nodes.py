@@ -1,5 +1,6 @@
 import bpy
 
+from functools import wraps
 import tomllib
 import json
 from pathlib import Path
@@ -41,9 +42,51 @@ def no_clobber(d: dict, key: str, value):
     d[key] = value
 
 
+class _PathPiece:
+    def __init__(self, stack: list, piece: str):
+        self.stack = stack
+        self.piece = piece
+
+    def __enter__(self):
+        print(f"entering: {self.stack}, pushing: {self.piece}")
+        self.stack.append(self.piece)
+
+    def __exit__(self, _exc_type, _exc_value, _traceback):
+        print(f"exiting: {self.stack}, expecting: {self.piece}")
+        if self.stack.pop() != self.piece:
+            raise RuntimeError("path stack broke")
+
+
+def with_path_piece(tag):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            with _PathPiece(self.current_path, tag):
+                return func(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def with_path_piece_lambda(tag_func):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            tag = tag_func(self, *args, **kwargs)
+            with _PathPiece(self.current_path, tag):
+                return func(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 class _Exporter:
     def __init__(self, skip_built_in_defaults: bool):
         self.skip_built_in_defaults = skip_built_in_defaults
+        self.current_path = []
+        self.pointer_to_external = []
 
     def _export_property(
         self,
@@ -73,6 +116,10 @@ class _Exporter:
         if prop.type == "POINTER":
             if attribute is None:
                 return None
+            self.pointer_to_external.append(
+                (obj.path_from_module(prop.identifier), attribute.path_from_module())
+            )
+
             return attribute.path_from_module()
 
         # is there even a use case for this at the moment?
@@ -155,6 +202,7 @@ class _Exporter:
         )
         return d
 
+    @with_path_piece_lambda(lambda _, item: f"[{item.name}]")
     def _export_interface_item(self, item: bpy.types.NodeTreeInterfaceItem):
         if item.item_type == "SOCKET":
             return self._export_interface_tree_socket(item)
@@ -163,25 +211,26 @@ class _Exporter:
         else:
             raise RuntimeError(f"Unknown item type: {item.item_type}")
 
+    @with_path_piece("items_tree")
+    def _export_interface_items(self, interface: bpy.types.NodeTreeInterface):
+        return [self._export_interface_item(item) for item in interface.items_tree]
+
+    @with_path_piece("interface")
     def _export_interface(self, interface: bpy.types.NodeTreeInterface):
         d = self._export_all_writable_properties(interface)
 
         # this is very ugly, but we don't want to store this
         # it is a PointerProperty which we can't recreate easily
         # and it's not that important anyway
-        d.pop("active")
+        d.pop("active", None)
 
-        no_clobber(
-            d,
-            INTERFACE_ITEMS_TREE,
-            [self._export_interface_item(item) for item in interface.items_tree],
-        )
+        no_clobber(d, INTERFACE_ITEMS_TREE, self._export_interface_items(interface))
 
         return d
 
+    @with_path_piece("Node Tree ()")
     def export_node_tree(self, node_tree: bpy.types.NodeTree):
         # pylint: disable=missing-function-docstring
-
         d = self._export_all_writable_properties(node_tree)
 
         # name is writable, so we already have it
@@ -190,16 +239,12 @@ class _Exporter:
         no_clobber(d, NODE_TREE_TYPE, node_tree.rna_type.identifier)
 
         no_clobber(d, NODE_TREE_INTERFACE, self._export_interface(node_tree.interface))
-        no_clobber(
-            d,
-            NODE_TREE_LINKS,
-            [self._export_node_link(link) for link in node_tree.links],
-        )
-        no_clobber(
-            d,
-            NODE_TREE_NODES,
-            [self._export_node(node) for node in node_tree.nodes],
-        )
+
+        nodes = [self._export_node(node) for node in node_tree.nodes]
+        no_clobber(d, NODE_TREE_NODES, nodes)
+
+        links = [self._export_node_link(link) for link in node_tree.links]
+        no_clobber(d, NODE_TREE_LINKS, links)
 
         return d
 
