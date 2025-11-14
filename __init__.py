@@ -69,6 +69,11 @@ def playground():
     print("WITH COLLECTIONS ==============================================")
     print("\n".join([cls.__name__ for cls in with_coll]))
     print(len(with_coll))
+    for cls in with_coll:
+        fixed_types = " ".join(
+            [p.fixed_type.bl_rna.identifier for p in collection_props(cls)]
+        )
+        print(f"{cls.__name__}: {fixed_types}")
 
     def pointer_props(cls):
         return [prop for prop in unique_props(cls) if prop.type == "POINTER"]
