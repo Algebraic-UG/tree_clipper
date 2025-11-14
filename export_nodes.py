@@ -36,7 +36,7 @@ def _is_built_in(obj):
     return getattr(obj, "__module__", "").startswith("bpy.types")
 
 
-def no_clobber(d: dict, key: str, value):
+def _no_clobber(d: dict, key: str, value):
     if key in d:
         raise RuntimeError(f"Clobbering '{key}'")
     d[key] = value
@@ -129,10 +129,10 @@ class _Exporter:
         # name is writable, so we already have it
 
         # will be used as 'type' arg in 'new'
-        no_clobber(d, SOCKET_TYPE, socket.rna_type.identifier)
-        no_clobber(d, SOCKET_IDENTIFIER, socket.identifier)
+        _no_clobber(d, SOCKET_TYPE, socket.rna_type.identifier)
+        _no_clobber(d, SOCKET_IDENTIFIER, socket.identifier)
         # this technically only needed for inputs
-        no_clobber(d, USE_MULTI_INPUT, socket.is_multi_input)
+        _no_clobber(d, USE_MULTI_INPUT, socket.is_multi_input)
 
         return d
 
@@ -140,10 +140,10 @@ class _Exporter:
     def _export_node_link(self, link: bpy.types.NodeLink, *, path):
         d = self._export_all_writable_properties(link, path=path)
 
-        no_clobber(d, FROM_NODE, link.from_node.name)
-        no_clobber(d, FROM_SOCKET, link.from_socket.identifier)
-        no_clobber(d, TO_NODE, link.to_node.name)
-        no_clobber(d, TO_SOCKET, link.to_socket.identifier)
+        _no_clobber(d, FROM_NODE, link.from_node.name)
+        _no_clobber(d, FROM_SOCKET, link.from_socket.identifier)
+        _no_clobber(d, TO_NODE, link.to_node.name)
+        _no_clobber(d, TO_SOCKET, link.to_socket.identifier)
 
         return d
 
@@ -152,18 +152,18 @@ class _Exporter:
         d = self._export_all_writable_properties(node, path=path)
 
         # will be used as 'type' arg in 'new'
-        no_clobber(d, NODE_TYPE, node.rna_type.identifier)
+        _no_clobber(d, NODE_TYPE, node.rna_type.identifier)
 
         inputs = [
             self._export_node_socket(socket, path=path + [f"Input ({socket.name})"])
             for socket in node.inputs
         ]
-        no_clobber(d, INPUTS, inputs)
+        _no_clobber(d, INPUTS, inputs)
         outputs = [
             self._export_node_socket(socket, path=path + [f"Output ({socket.name})"])
             for socket in node.outputs
         ]
-        no_clobber(d, OUTPUTS, outputs)
+        _no_clobber(d, OUTPUTS, outputs)
 
         return d
 
@@ -177,8 +177,8 @@ class _Exporter:
         d = self._export_all_writable_properties(socket, path=path)
 
         # will be used as 'socket_type' arg in 'new_socket'
-        no_clobber(d, INTERFACE_SOCKET_TYPE, socket.socket_type)
-        no_clobber(d, IN_OUT, socket.in_out)
+        _no_clobber(d, INTERFACE_SOCKET_TYPE, socket.socket_type)
+        _no_clobber(d, IN_OUT, socket.in_out)
 
         return d
 
@@ -194,7 +194,7 @@ class _Exporter:
             self._export_interface_item(item, path=path)
             for item in panel.interface_items
         ]
-        no_clobber(d, INTERFACE_ITEMS, items)
+        _no_clobber(d, INTERFACE_ITEMS, items)
         return d
 
     def _export_interface_item(
@@ -230,7 +230,7 @@ class _Exporter:
             self._export_interface_item(item, path=path)
             for item in interface.items_tree
         ]
-        no_clobber(d, INTERFACE_ITEMS_TREE, items)
+        _no_clobber(d, INTERFACE_ITEMS_TREE, items)
 
         return d
 
@@ -242,16 +242,16 @@ class _Exporter:
         # name is writable, so we already have it
 
         # will be used as 'type' arg in 'new'
-        no_clobber(d, NODE_TREE_TYPE, node_tree.rna_type.identifier)
+        _no_clobber(d, NODE_TREE_TYPE, node_tree.rna_type.identifier)
 
         interface = self._export_interface(node_tree.interface, path=path)
-        no_clobber(d, NODE_TREE_INTERFACE, interface)
+        _no_clobber(d, NODE_TREE_INTERFACE, interface)
 
         nodes = [
             self._export_node(node, path=path + [f"Node ({node.name})"])
             for node in node_tree.nodes
         ]
-        no_clobber(d, NODE_TREE_NODES, nodes)
+        _no_clobber(d, NODE_TREE_NODES, nodes)
 
         links = [
             self._export_node_link(
@@ -263,7 +263,7 @@ class _Exporter:
             )
             for link in node_tree.links
         ]
-        no_clobber(d, NODE_TREE_LINKS, links)
+        _no_clobber(d, NODE_TREE_LINKS, links)
 
         return d
 
