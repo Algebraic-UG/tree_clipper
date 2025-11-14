@@ -55,8 +55,14 @@ def _debug_print():
     return decorator
 
 
+class PointerToExternal:
+    def __init__(self, *, path: str, handle):
+        self.path = path
+        self.handle = handle
+
+
 class _Exporter:
-    def __init__(self, skip_built_in_defaults: bool, debug_prints=True):
+    def __init__(self, *, skip_built_in_defaults: bool, debug_prints=True):
         self.skip_built_in_defaults = skip_built_in_defaults
         self.debug_prints = debug_prints
         self.pointer_to_external = []
@@ -88,15 +94,15 @@ class _Exporter:
                 return None
             return attribute
 
-        # hmm, kinda tricky, `path_from_module` appears to contain enough info
         if prop.type == "POINTER":
-            if attribute is None:
-                return None
-            self.pointer_to_external.append(
-                (obj.path_from_module(prop.identifier), attribute.path_from_module())
-            )
-
-            return attribute.path_from_module()
+            if attribute is not None:
+                self.pointer_to_external.append(
+                    PointerToExternal(
+                        path=path,
+                        handle=attribute,
+                    )
+                )
+            return None
 
         # is there even a use case for this at the moment?
         if prop.type == "COLLECTION":
@@ -293,13 +299,16 @@ def export_nodes(
     export_sub_trees=True,
     skip_built_in_defaults=True,
 ):
-    exporter = _Exporter(skip_built_in_defaults)
+    exporter = _Exporter(
+        skip_built_in_defaults=skip_built_in_defaults,
+        debug_prints=False,
+    )
 
     if is_material:
         path = [f"Material ({name})"]
         root = bpy.data.materials[name].node_tree
     else:
-        path = [f"Root Tree ({name})"]
+        path = [f"Root ({name})"]
         root = bpy.data.node_groups[name]
 
     manifest_path = Path(__file__).parent / "blender_manifest.toml"
@@ -322,6 +331,9 @@ def export_nodes(
             exporter.export_node_tree(bpy.data.node_groups[tree_name], path=sub_path)
             for (tree_name, sub_path) in tree_names_and_paths
         ]
+
+    for p in exporter.pointer_to_external:
+        print(f"{' -> '.join(p.path)} {p.handle}")
 
     with Path(output_file).open("w", encoding="utf-8") as f:
         f.write(json.dumps(d, indent=4))
