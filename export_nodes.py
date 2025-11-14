@@ -158,7 +158,7 @@ class _Exporter:
         path: list,
     ):
         d = {}
-        for prop in obj.rna_type.properties:
+        for prop in obj.bl_rna.properties:
             if obj.is_property_readonly(prop.identifier):
                 continue
             exported_prop = self._export_property(
@@ -179,7 +179,7 @@ class _Exporter:
         # name is writable, so we already have it
 
         # will be used as 'type' arg in 'new'
-        _no_clobber(d, SOCKET_TYPE, socket.rna_type.identifier)
+        _no_clobber(d, SOCKET_TYPE, socket.bl_rna.identifier)
         _no_clobber(d, SOCKET_IDENTIFIER, socket.identifier)
         # this technically only needed for inputs
         _no_clobber(d, USE_MULTI_INPUT, socket.is_multi_input)
@@ -204,7 +204,7 @@ class _Exporter:
         ) | self._export_specific_readonly_properties(node, path=path)
 
         # will be used as 'type' arg in 'new'
-        _no_clobber(d, NODE_TYPE, node.rna_type.identifier)
+        _no_clobber(d, NODE_TYPE, node.bl_rna.identifier)
 
         inputs = [
             self._export_node_socket(socket, path=path + [f"Input ({socket.name})"])
@@ -291,7 +291,7 @@ class _Exporter:
         # name is writable, so we already have it
 
         # will be used as 'type' arg in 'new'
-        _no_clobber(d, NODE_TREE_TYPE, node_tree.rna_type.identifier)
+        _no_clobber(d, NODE_TREE_TYPE, node_tree.bl_rna.identifier)
 
         interface = self._export_interface(node_tree.interface, path=path)
         _no_clobber(d, NODE_TREE_INTERFACE, interface)
