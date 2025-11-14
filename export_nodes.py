@@ -115,7 +115,6 @@ class _Exporter:
                 )
             return None
 
-        # is there even a use case for this at the moment?
         if prop.type == "COLLECTION":
             raise RuntimeError(
                 "You have a use case for collection properties in nodes? Please tell use about this:\nhttps://github.com/Algebraic-UG/nodes_as_json/issues/new"
@@ -342,7 +341,7 @@ def export_nodes(
 ):
     exporter = _Exporter(
         skip_built_in_defaults=skip_built_in_defaults,
-        debug_prints=False,
+        debug_prints=True,
     )
 
     if is_material:
