@@ -50,11 +50,13 @@ class _Importer:
             setattr(obj, prop.identifier, attribute)
             return
 
+        # TODO: this might not work
         # wow this is really tricky!
         # the key is the result from `path_from_module` but the value can't be a handle
         # because that might become invalidated as we're modifying the underlying containers?
         if prop.type == "POINTER":
-            setattr(obj, prop.identifier, self.references[attribute]())
+            # setattr(obj, prop.identifier, self.references[attribute]())
+            return
 
         if prop.type == "COLLECTION":
             raise RuntimeError(
@@ -71,7 +73,9 @@ class _Importer:
                 self._import_property(d[prop.identifier], obj, prop)
 
     def _import_node_socket(
-        self, d: dict, sockets: bpy.types.NodeInputs | bpy.types.NodeOutputs
+        self,
+        d: dict,
+        sockets: bpy.types.NodeInputs | bpy.types.NodeOutputs,
     ):
         socket = next(
             (socket for socket in sockets if socket.identifier == d[SOCKET_IDENTIFIER]),
@@ -97,6 +101,9 @@ class _Importer:
             node = node_tree.nodes.new(d[NODE_TYPE])
             self._import_all_writable_properties(d, node)
 
+    def _import_node_sockets(self, l: list, node_tree: bpy.types.NodeTree):
+        for d in l:
+            node = node_tree.nodes[d["name"]]
             for i in d[INPUTS]:
                 self._import_node_socket(i, node.inputs)
             for o in d[OUTPUTS]:
@@ -144,6 +151,10 @@ class _Importer:
 
         self._import_nodes(d[NODE_TREE_NODES], node_tree)
         self._import_node_links(d[NODE_TREE_LINKS], node_tree)
+
+        # the links can affect what default enum values can be set
+        # so we have to do nodes -> links -> sockets
+        self._import_node_sockets(d[NODE_TREE_NODES], node_tree)
 
 
 def _check_version(d: dict):
