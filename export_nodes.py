@@ -2,38 +2,17 @@ from typing import Callable, Self
 import bpy
 
 
-import uuid as uuid_gen
-from functools import wraps
 import tomllib
 import json
 from pathlib import Path
 
 from .common import (
-    IN_OUT,
-    INPUTS,
-    INTERFACE_ITEMS,
-    INTERFACE_ITEMS_ACTIVE,
-    INTERFACE_ITEMS_TREE,
-    INTERFACE_SOCKET_TYPE,
-    MATERIAL_NAME,
-    NODE_TREE_INTERFACE,
-    NODE_TREE_LINKS,
-    NODE_TREE_NODES,
-    NODE_TREE_TYPE,
-    NODE_TYPE,
-    OUTPUTS,
     PROPERTY_TYPES_SIMPLE,
-    SOCKET_IDENTIFIER,
-    SOCKET_TYPE,
     BLENDER_VERSION,
-    FROM_NODE,
-    FROM_SOCKET,
     NODES_AS_JSON_VERSION,
     ROOT,
     SUB_TREES,
-    TO_NODE,
-    TO_SOCKET,
-    USE_MULTI_INPUT,
+    MATERIAL_NAME,
 )
 
 
@@ -43,6 +22,9 @@ class FromRoot:
 
     def add(self, piece: str):
         return FromRoot(self.path + [piece])
+
+    def add_prop(self, prop: bpy.types.Property):
+        return self.add(f"{prop.type} ({prop.name})")
 
     def to_str(self):
         return str(" -> ".join(self.path))
@@ -144,6 +126,41 @@ class Exporter:
             for i, element in enumerate(attribute)
         ]
 
+    def export_all_simple_writable_properties(
+        self,
+        obj: bpy.types.bpy_struct,
+        from_root: FromRoot,
+    ):
+        d = {}
+        for prop in obj.bl_rna.properties:
+            if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
+                continue
+            d_prop = self.export_property_simple(obj, prop, from_root.add_prop(prop))
+            if d_prop is not None:
+                d[prop.identifier] = d_prop
+        return d
+
+    def export_properties_from_list(
+        self,
+        obj: bpy.types.bpy_struct,
+        properties: list,
+        from_root: FromRoot,
+    ):
+        d = {}
+        for prop in [obj.bl_rna.properties[p] for p in properties]:
+            prop_from_root = from_root.add_prop(prop)
+            if prop.type in PROPERTY_TYPES_SIMPLE:
+                d_prop = self.export_property_simple(obj, prop, prop_from_root)
+            elif prop.type == "POINTER":
+                d_prop = self.export_property_pointer(obj, prop, prop_from_root)
+            elif prop.type == "COLLECTION":
+                d_prop = self.export_property_collection(obj, prop, prop_from_root)
+            else:
+                raise RuntimeError(f"Unknown property type: {prop.type}")
+            if d_prop is not None:
+                d[prop.identifier] = d_prop
+        return d
+
     def _export_obj_with_serializer(
         self,
         obj: bpy.types.bpy_struct,
@@ -163,7 +180,7 @@ class Exporter:
     def _export_obj(self, obj: bpy.types.bpy_struct, from_root: FromRoot):
         return self._export_obj_with_serializer(
             obj,
-            self.special_handlers.get(obj.bl_rna.identifier, _default_obj_serializer),
+            self.special_handlers.get(type(obj), _default_obj_serializer),
             from_root,
         )
 
@@ -211,7 +228,7 @@ From root: {prop_from_root.to_str()}"""
 
     d = {}
     for prop in obj.bl_rna.properties:
-        prop_from_root = from_root.add(f"{prop.type} ({prop.name})")
+        prop_from_root = from_root.add_prop(prop)
 
         if prop.type in PROPERTY_TYPES_SIMPLE:
             if prop.is_readonly:
@@ -296,160 +313,3 @@ def export_nodes(
 
     with Path(output_file).open("w", encoding="utf-8") as f:
         f.write(json.dumps(d, indent=4))
-
-
-def _no_clobber(d: dict, key: str, value):
-    if key in d:
-        raise RuntimeError(f"Clobbering '{key}'")
-    d[key] = value
-
-
-#    # we often only need the default_value, which is a writable property
-#    def _export_node_socket(self, socket: bpy.types.NodeSocket, from_root: FromRoot):
-#        if self.debug_prints:
-#            print(from_root.to_str())
-#
-#        d = self._export_all_writable_properties(socket, path=path)
-#
-#        # not sure when one has to add sockets, but the following would be needed
-#        # name is writable, so we already have it
-#
-#        # will be used as 'type' arg in 'new'
-#        _no_clobber(d, SOCKET_TYPE, socket.bl_rna.identifier)
-#        _no_clobber(d, SOCKET_IDENTIFIER, socket.identifier)
-#        # this technically only needed for inputs
-#        _no_clobber(d, USE_MULTI_INPUT, socket.is_multi_input)
-#
-#        return d
-#
-#    @_debug_print()
-#    def _export_node_link(self, link: bpy.types.NodeLink, *, path):
-#        d = self._export_all_writable_properties(link, path=path)
-#
-#        _no_clobber(d, FROM_NODE, link.from_node.name)
-#        _no_clobber(d, FROM_SOCKET, link.from_socket.identifier)
-#        _no_clobber(d, TO_NODE, link.to_node.name)
-#        _no_clobber(d, TO_SOCKET, link.to_socket.identifier)
-#
-#        return d
-#
-#    @_debug_print()
-#    def _export_node(self, node: bpy.types.Node, *, path: list):
-#        d = self._export_all_writable_properties(
-#            node, path=path
-#        ) | self._export_specific_readonly_properties(node, path=path)
-#
-#        # will be used as 'type' arg in 'new'
-#        _no_clobber(d, NODE_TYPE, node.bl_rna.identifier)
-#
-#        inputs = [
-#            self._export_node_socket(socket, path=path + [f"Input ({socket.name})"])
-#            for socket in node.inputs
-#        ]
-#        _no_clobber(d, INPUTS, inputs)
-#        outputs = [
-#            self._export_node_socket(socket, path=path + [f"Output ({socket.name})"])
-#            for socket in node.outputs
-#        ]
-#        _no_clobber(d, OUTPUTS, outputs)
-#
-#        return d
-#
-#    @_debug_print()
-#    def _export_interface_tree_socket(
-#        self,
-#        socket: bpy.types.NodeTreeInterfaceSocket,
-#        *,
-#        path: list,
-#    ):
-#        d = self._export_all_writable_properties(socket, path=path)
-#
-#        # will be used as 'socket_type' arg in 'new_socket'
-#        _no_clobber(d, INTERFACE_SOCKET_TYPE, socket.socket_type)
-#        _no_clobber(d, IN_OUT, socket.in_out)
-#
-#        return d
-#
-#    @_debug_print()
-#    def _export_interface_tree_panel(
-#        self,
-#        panel: bpy.types.NodeTreeInterfacePanel,
-#        *,
-#        path: list,
-#    ):
-#        d = self._export_all_writable_properties(panel, path=path)
-#        items = [
-#            self._export_interface_item(item, path=path)
-#            for item in panel.interface_items
-#        ]
-#        _no_clobber(d, INTERFACE_ITEMS, items)
-#        return d
-#
-#    def _export_interface_item(
-#        self,
-#        item: bpy.types.NodeTreeInterfaceItem,
-#        *,
-#        path: list,
-#    ):
-#        if item.item_type == "SOCKET":
-#            return self._export_interface_tree_socket(
-#                item,
-#                path=path + [f"{item.in_out} Socket ({item.name})"],
-#            )
-#        elif item.item_type == "PANEL":
-#            return self._export_interface_tree_panel(
-#                item,
-#                path=path + [f"Panel ({item.name})"],
-#            )
-#        else:
-#            raise RuntimeError(f"Unknown item type: {item.item_type}")
-#
-#    @_debug_print()
-#    def _export_interface(self, interface: bpy.types.NodeTreeInterface, *, path):
-#        d = self._export_all_writable_properties(interface, path=path)
-#
-#        items = [
-#            self._export_interface_item(item, path=path)
-#            for item in interface.items_tree
-#        ]
-#        _no_clobber(d, INTERFACE_ITEMS_TREE, items)
-#        _no_clobber(d, INTERFACE_ITEMS_ACTIVE, interface.active_index)
-#
-#        return d
-#
-#    @_debug_print()
-#    def export_node_tree(self, node_tree: bpy.types.NodeTree, *, path: list):
-#        self.current_tree = node_tree
-#
-#        # pylint: disable=missing-function-docstring
-#        d = self._export_all_writable_properties(node_tree, path=path)
-#
-#        # name is writable, so we already have it
-#
-#        # will be used as 'type' arg in 'new'
-#        _no_clobber(d, NODE_TREE_TYPE, node_tree.bl_rna.identifier)
-#
-#        interface = self._export_interface(node_tree.interface, path=path)
-#        _no_clobber(d, NODE_TREE_INTERFACE, interface)
-#
-#        nodes = [
-#            self._export_node(node, path=path + [f"Node ({node.name})"])
-#            for node in node_tree.nodes
-#        ]
-#        _no_clobber(d, NODE_TREE_NODES, nodes)
-#
-#        links = [
-#            self._export_node_link(
-#                link,
-#                path=path
-#                + [
-#                    f"Link (from {link.from_node.name}, {link.from_socket.name} to {link.to_node.name}, {link.to_socket.name})"
-#                ],
-#            )
-#            for link in node_tree.links
-#        ]
-#        _no_clobber(d, NODE_TREE_LINKS, links)
-#
-#        self.current_tree = None
-#        return d
-#
