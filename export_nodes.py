@@ -140,7 +140,22 @@ class Exporter:
                 d[prop.identifier] = d_prop
         return d
 
-    def export_properties_from_list(
+    def export_property(
+        self,
+        obj: bpy.types.bpy_struct,
+        prop: bpy.types.Property,
+        from_root: FromRoot,
+    ):
+        if prop.type in PROPERTY_TYPES_SIMPLE:
+            return self.export_property_simple(obj, prop, from_root)
+        elif prop.type == "POINTER":
+            return self.export_property_pointer(obj, prop, from_root)
+        elif prop.type == "COLLECTION":
+            return self.export_property_collection(obj, prop, from_root)
+        else:
+            raise RuntimeError(f"Unknown property type: {prop.type}")
+
+    def export_properties_from_id_list(
         self,
         obj: bpy.types.bpy_struct,
         properties: list,
@@ -148,15 +163,7 @@ class Exporter:
     ):
         d = {}
         for prop in [obj.bl_rna.properties[p] for p in properties]:
-            prop_from_root = from_root.add_prop(prop)
-            if prop.type in PROPERTY_TYPES_SIMPLE:
-                d_prop = self.export_property_simple(obj, prop, prop_from_root)
-            elif prop.type == "POINTER":
-                d_prop = self.export_property_pointer(obj, prop, prop_from_root)
-            elif prop.type == "COLLECTION":
-                d_prop = self.export_property_collection(obj, prop, prop_from_root)
-            else:
-                raise RuntimeError(f"Unknown property type: {prop.type}")
+            d_prop = self.export_property(obj, prop, from_root.add_prop(prop))
             if d_prop is not None:
                 d[prop.identifier] = d_prop
         return d

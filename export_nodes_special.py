@@ -20,7 +20,7 @@ from .common import (
     FROM_SOCKET,
     TO_NODE,
     TO_SOCKET,
-    USE_MULTI_INPUT,
+    IS_MULTI_INPUT,
 )
 
 
@@ -30,13 +30,24 @@ def _no_clobber(d: dict, key: str, value):
     d[key] = value
 
 
+def _export_all_simple_writable_properties_and_list(
+    exporter: Exporter,
+    obj: bpy.types.bpy_struct,
+    additional: list,
+    from_root: FromRoot,
+):
+    return exporter.export_all_simple_writable_properties(
+        obj, from_root
+    ) | exporter.export_properties_from_id_list(obj, additional, from_root)
+
+
 def _node_tree(
     exporter: Exporter,
     node_tree: bpy.types.NodeTree,
     from_root: FromRoot,
 ):
-    d = exporter.export_all_simple_writable_properties(node_tree, from_root)
-    d = d | exporter.export_properties_from_list(
+    d = _export_all_simple_writable_properties_and_list(
+        exporter,
         node_tree,
         [NODE_TREE_INTERFACE, NODE_TREE_NODES, NODE_TREE_LINKS],
         from_root,
@@ -53,10 +64,11 @@ def _node_tree_interface(
     interface: bpy.types.NodeTreeInterface,
     from_root: FromRoot,
 ):
-    return exporter.export_all_simple_writable_properties(
-        interface, from_root
-    ) | exporter.export_properties_from_list(
-        interface, [INTERFACE_ITEMS_TREE], from_root
+    return _export_all_simple_writable_properties_and_list(
+        exporter,
+        interface,
+        [INTERFACE_ITEMS_TREE],
+        from_root,
     )
 
 
@@ -65,13 +77,12 @@ def _interface_tree_socket(
     socket: bpy.types.NodeTreeInterfaceSocket,
     from_root: FromRoot,
 ):
-    d = exporter.export_all_simple_writable_properties(socket, from_root)
-
-    # will be used as 'socket_type' arg in 'new_socket'
-    _no_clobber(d, INTERFACE_SOCKET_TYPE, socket.socket_type)
-    _no_clobber(d, IN_OUT, socket.in_out)
-
-    return d
+    return _export_all_simple_writable_properties_and_list(
+        exporter,
+        socket,
+        [INTERFACE_SOCKET_TYPE, IN_OUT],
+        from_root,
+    )
 
 
 def _interface_tree_panel(
@@ -79,9 +90,12 @@ def _interface_tree_panel(
     panel: bpy.types.NodeTreeInterfacePanel,
     from_root: FromRoot,
 ):
-    return exporter.export_all_simple_writable_properties(
-        panel, from_root
-    ) | exporter.export_properties_from_list(panel, [INTERFACE_ITEMS], from_root)
+    return _export_all_simple_writable_properties_and_list(
+        exporter,
+        panel,
+        [INTERFACE_ITEMS],
+        from_root,
+    )
 
 
 def _node(
@@ -89,9 +103,9 @@ def _node(
     node: bpy.types.Node,
     from_root: FromRoot,
 ):
-    d = exporter.export_all_simple_writable_properties(
-        node, from_root
-    ) | exporter.export_properties_from_list(node, [INPUTS, OUTPUTS], from_root)
+    d = _export_all_simple_writable_properties_and_list(
+        exporter, node, [INPUTS, OUTPUTS], from_root
+    )
 
     # will be used as 'type' arg in 'new'
     _no_clobber(d, NODE_TYPE, node.bl_rna.identifier)
@@ -104,16 +118,15 @@ def _socket(
     socket: bpy.types.NodeSocket,
     from_root: FromRoot,
 ):
-    d = exporter.export_all_simple_writable_properties(socket, from_root)
-
-    # not sure when one has to add sockets, but the following would be needed
-    # name is writable, so we already have it
+    d = _export_all_simple_writable_properties_and_list(
+        exporter,
+        socket,
+        [SOCKET_IDENTIFIER, IS_MULTI_INPUT],
+        from_root,
+    )
 
     # will be used as 'type' arg in 'new'
     _no_clobber(d, SOCKET_TYPE, socket.bl_rna.identifier)
-    _no_clobber(d, SOCKET_IDENTIFIER, socket.identifier)
-    # this technically only needed for inputs
-    _no_clobber(d, USE_MULTI_INPUT, socket.is_multi_input)
 
     return d
 
@@ -138,7 +151,8 @@ BUILT_IN_HANDLERS = {
     bpy.types.NodeTreeInterface: _node_tree_interface,
     bpy.types.NodeTreeInterfaceSocket: _interface_tree_socket,
     bpy.types.NodeTreeInterfacePanel: _interface_tree_panel,
-    bpy.types.Node: _node,
+    bpy.types.NodeGroupInput: _node,
+    bpy.types.NodeGroupOutput: _node,
     bpy.types.NodeSocket: _socket,
     bpy.types.NodeLink: _link,
 }

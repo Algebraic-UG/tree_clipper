@@ -16,7 +16,7 @@ SUB_TREES = "sub_trees"
 
 SOCKET_TYPE = "rna_type"
 SOCKET_IDENTIFIER = "identifier"
-USE_MULTI_INPUT = "use_multi_input"
+IS_MULTI_INPUT = "is_multi_input"
 
 FROM_NODE = "from_node"
 FROM_SOCKET = "from_socket"

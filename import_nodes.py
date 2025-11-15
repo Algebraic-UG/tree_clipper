@@ -29,7 +29,7 @@ from .common import (
     SUB_TREES,
     TO_NODE,
     TO_SOCKET,
-    USE_MULTI_INPUT,
+    IS_MULTI_INPUT,
     INTERFACE_ITEMS_ACTIVE,
 )
 
@@ -91,7 +91,7 @@ class _Importer:
                 name=d["name"],
                 identifier=d[SOCKET_IDENTIFIER],
                 # this technically only needed for inputs
-                use_multi_input=d[USE_MULTI_INPUT],
+                use_multi_input=d[IS_MULTI_INPUT],
             )
         self._import_all_writable_properties(d, socket)
 
