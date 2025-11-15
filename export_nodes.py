@@ -24,7 +24,7 @@ class FromRoot:
         return FromRoot(self.path + [piece])
 
     def add_prop(self, prop: bpy.types.Property):
-        return self.add(f"{prop.type} ({prop.name})")
+        return self.add(f"{prop.type} ({prop.identifier})")
 
     def to_str(self):
         return str(" -> ".join(self.path))
