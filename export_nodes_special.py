@@ -37,7 +37,7 @@ def _no_clobber(d: dict, key: str, value):
     d[key] = value
 
 
-def _geometry_node_tree(
+def _node_tree(
     exporter: Exporter,
     node_tree: bpy.types.NodeTree,
     from_root: FromRoot,
@@ -55,8 +55,24 @@ def _geometry_node_tree(
     return d
 
 
+def _node_tree_interface(
+    exporter: Exporter,
+    interface: bpy.types.NodeTreeInterface,
+    from_root: FromRoot,
+):
+    return exporter.export_all_simple_writable_properties(
+        interface, from_root
+    ) | exporter.export_properties_from_list(
+        interface, [INTERFACE_ITEMS_TREE], from_root
+    )
+
+
 BUILT_IN_HANDLERS = {
-    bpy.types.GeometryNodeTree: _geometry_node_tree,
+    bpy.types.CompositorNodeTree: _node_tree,
+    bpy.types.GeometryNodeTree: _node_tree,
+    bpy.types.ShaderNodeTree: _node_tree,
+    bpy.types.TextureNodeTree: _node_tree,
+    bpy.types.NodeTreeInterface: _node_tree_interface,
 }
 
 #    # we often only need the default_value, which is a writable property
@@ -171,40 +187,3 @@ BUILT_IN_HANDLERS = {
 #        _no_clobber(d, INTERFACE_ITEMS_ACTIVE, interface.active_index)
 #
 #        return d
-#
-#    @_debug_print()
-#    def export_node_tree(self, node_tree: bpy.types.NodeTree, *, path: list):
-#        self.current_tree = node_tree
-#
-#        # pylint: disable=missing-function-docstring
-#        d = self._export_all_writable_properties(node_tree, path=path)
-#
-#        # name is writable, so we already have it
-#
-#        # will be used as 'type' arg in 'new'
-#        _no_clobber(d, NODE_TREE_TYPE, node_tree.bl_rna.identifier)
-#
-#        interface = self._export_interface(node_tree.interface, path=path)
-#        _no_clobber(d, NODE_TREE_INTERFACE, interface)
-#
-#        nodes = [
-#            self._export_node(node, path=path + [f"Node ({node.name})"])
-#            for node in node_tree.nodes
-#        ]
-#        _no_clobber(d, NODE_TREE_NODES, nodes)
-#
-#        links = [
-#            self._export_node_link(
-#                link,
-#                path=path
-#                + [
-#                    f"Link (from {link.from_node.name}, {link.from_socket.name} to {link.to_node.name}, {link.to_socket.name})"
-#                ],
-#            )
-#            for link in node_tree.links
-#        ]
-#        _no_clobber(d, NODE_TREE_LINKS, links)
-#
-#        self.current_tree = None
-#        return d
-#
