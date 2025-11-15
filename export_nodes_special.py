@@ -67,12 +67,29 @@ def _node_tree_interface(
     )
 
 
+def _interface_tree_item(
+    exporter: Exporter,
+    item: bpy.types.NodeTreeInterfaceItem,
+    from_root: FromRoot,
+):
+    return exporter.export_all_simple_writable_properties(item, from_root)
+
+
+def _interface_tree_panel(
+    exporter: Exporter,
+    panel: bpy.types.NodeTreeInterfacePanel,
+    from_root: FromRoot,
+):
+    return exporter.export_all_simple_writable_properties(
+        panel, from_root
+    ) | exporter.export_properties_from_list(panel, [INTERFACE_ITEMS], from_root)
+
+
 BUILT_IN_HANDLERS = {
-    bpy.types.CompositorNodeTree: _node_tree,
-    bpy.types.GeometryNodeTree: _node_tree,
-    bpy.types.ShaderNodeTree: _node_tree,
-    bpy.types.TextureNodeTree: _node_tree,
+    bpy.types.NodeTree: _node_tree,
     bpy.types.NodeTreeInterface: _node_tree_interface,
+    bpy.types.NodeTreeInterfaceItem: _interface_tree_item,
+    bpy.types.NodeTreeInterfacePanel: _interface_tree_panel,
 }
 
 #    # we often only need the default_value, which is a writable property

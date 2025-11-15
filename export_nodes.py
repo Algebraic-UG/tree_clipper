@@ -180,9 +180,20 @@ class Exporter:
         return d
 
     def _export_obj(self, obj: bpy.types.bpy_struct, from_root: FromRoot):
+        t = type(obj)
+        while True:
+            if t in self.special_handlers:
+                break
+            if len(t.__bases__) == 0:
+                break
+            if len(t.__bases__) > 1:
+                raise RuntimeError(
+                    f"multiple inheritence: {type(obj)}, unclear what to choose"
+                )
+            t = t.__bases__[0]
         return self._export_obj_with_serializer(
             obj,
-            self.special_handlers.get(type(obj), _default_obj_serializer),
+            self.special_handlers.get(t, _default_obj_serializer),
             from_root,
         )
 
