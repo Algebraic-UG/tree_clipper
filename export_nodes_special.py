@@ -67,12 +67,18 @@ def _node_tree_interface(
     )
 
 
-def _interface_tree_item(
+def _interface_tree_socket(
     exporter: Exporter,
-    item: bpy.types.NodeTreeInterfaceItem,
+    socket: bpy.types.NodeTreeInterfaceSocket,
     from_root: FromRoot,
 ):
-    return exporter.export_all_simple_writable_properties(item, from_root)
+    d = exporter.export_all_simple_writable_properties(socket, from_root)
+
+    # will be used as 'socket_type' arg in 'new_socket'
+    _no_clobber(d, INTERFACE_SOCKET_TYPE, socket.socket_type)
+    _no_clobber(d, IN_OUT, socket.in_out)
+
+    return d
 
 
 def _interface_tree_panel(
@@ -85,31 +91,49 @@ def _interface_tree_panel(
     ) | exporter.export_properties_from_list(panel, [INTERFACE_ITEMS], from_root)
 
 
+def _node(
+    exporter: Exporter,
+    node: bpy.types.Node,
+    from_root: FromRoot,
+):
+    d = exporter.export_all_simple_writable_properties(
+        node, from_root
+    ) | exporter.export_properties_from_list(node, [INPUTS, OUTPUTS], from_root)
+
+    # will be used as 'type' arg in 'new'
+    _no_clobber(d, NODE_TYPE, node.bl_rna.identifier)
+
+    return d
+
+
+def _socket(
+    exporter: Exporter,
+    socket: bpy.types.NodeSocket,
+    from_root: FromRoot,
+):
+    d = exporter.export_all_simple_writable_properties(socket, from_root)
+
+    # not sure when one has to add sockets, but the following would be needed
+    # name is writable, so we already have it
+
+    # will be used as 'type' arg in 'new'
+    _no_clobber(d, SOCKET_TYPE, socket.bl_rna.identifier)
+    _no_clobber(d, SOCKET_IDENTIFIER, socket.identifier)
+    # this technically only needed for inputs
+    _no_clobber(d, USE_MULTI_INPUT, socket.is_multi_input)
+
+    return d
+
+
 BUILT_IN_HANDLERS = {
     bpy.types.NodeTree: _node_tree,
     bpy.types.NodeTreeInterface: _node_tree_interface,
-    bpy.types.NodeTreeInterfaceItem: _interface_tree_item,
+    bpy.types.NodeTreeInterfaceSocket: _interface_tree_socket,
     bpy.types.NodeTreeInterfacePanel: _interface_tree_panel,
+    bpy.types.Node: _node,
+    bpy.types.NodeSocket: _socket,
 }
 
-#    # we often only need the default_value, which is a writable property
-#    def _export_node_socket(self, socket: bpy.types.NodeSocket, from_root: FromRoot):
-#        if self.debug_prints:
-#            print(from_root.to_str())
-#
-#        d = self._export_all_writable_properties(socket, path=path)
-#
-#        # not sure when one has to add sockets, but the following would be needed
-#        # name is writable, so we already have it
-#
-#        # will be used as 'type' arg in 'new'
-#        _no_clobber(d, SOCKET_TYPE, socket.bl_rna.identifier)
-#        _no_clobber(d, SOCKET_IDENTIFIER, socket.identifier)
-#        # this technically only needed for inputs
-#        _no_clobber(d, USE_MULTI_INPUT, socket.is_multi_input)
-#
-#        return d
-#
 #    @_debug_print()
 #    def _export_node_link(self, link: bpy.types.NodeLink, *, path):
 #        d = self._export_all_writable_properties(link, path=path)
