@@ -86,7 +86,7 @@ def playground():
 
 
 def register():
-    bpy.app.timers.register(playground)
+    # playground()
     for cls in classes:
         bpy.utils.register_class(cls)
 

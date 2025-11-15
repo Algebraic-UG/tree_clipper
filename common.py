@@ -1,3 +1,13 @@
+PROPERTY_TYPES_SIMPLE = set(
+    [
+        "BOOLEAN",
+        "INT",
+        "FLOAT",
+        "STRING",
+        "ENUM",
+    ]
+)
+
 BLENDER_VERSION = "blender_version"
 NODES_AS_JSON_VERSION = "nodes_as_json_version"
 MATERIAL_NAME = "name"

@@ -18,7 +18,7 @@ class SCENE_OT_NodesAsJSON_Panel_Export(bpy.types.Operator):
     name: bpy.props.StringProperty(name="Material/NodeTree")  # type: ignore
     output_file: bpy.props.StringProperty(name="Output File", default=DEFAULT_FILE, subtype="FILE_PATH")  # type: ignore
     export_sub_trees: bpy.props.BoolProperty(name="Export Sub Trees", default=True)  # type: ignore
-    skip_built_in_defaults: bpy.props.BoolProperty(name="Skip Built-in Defaults", default=True)  # type: ignore
+    skip_defaults: bpy.props.BoolProperty(name="Skip Defaults", default=True)  # type: ignore
 
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
@@ -29,7 +29,7 @@ class SCENE_OT_NodesAsJSON_Panel_Export(bpy.types.Operator):
             name=self.name,
             output_file=self.output_file,
             export_sub_trees=True,
-            skip_built_in_defaults=True,
+            skip_defaults=self.skip_defaults,
         )
         return {"FINISHED"}
 
