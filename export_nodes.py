@@ -172,9 +172,11 @@ class Exporter:
 
         if obj.as_pointer() in self.serialized:
             raise RuntimeError(f"Double serialization: {from_root.to_str()}")
+        self.serialized[obj.as_pointer()] = {}
 
         d = serializer(self, obj, from_root)
         self.serialized[obj.as_pointer()] = d
+
         return d
 
     def _export_obj(self, obj: bpy.types.bpy_struct, from_root: FromRoot):
