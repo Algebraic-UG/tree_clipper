@@ -30,7 +30,7 @@ OUTPUTS = "outputs"
 INTERFACE_SOCKET_TYPE = "rna_type"
 IN_OUT = "in_out"
 
-INTERFACE_ITEMS = "items"
+INTERFACE_ITEMS = "interface_items"
 INTERFACE_ITEMS_TREE = "items_tree"
 INTERFACE_ITEMS_ACTIVE = "active"
 
