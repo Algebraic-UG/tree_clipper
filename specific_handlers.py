@@ -9,11 +9,9 @@ from .common import (
     INPUTS,
     INTERFACE_ITEMS,
     INTERFACE_ITEMS_TREE,
-    INTERFACE_SOCKET_TYPE,
     NODE_TREE_INTERFACE,
     NODE_TREE_LINKS,
     NODE_TREE_NODES,
-    NODE_TYPE,
     OUTPUTS,
     SOCKET_IDENTIFIER,
     FROM_NODE,
@@ -77,7 +75,7 @@ def _interface_tree_socket(
         exporter,
         socket,
         bpy.types.NodeTreeInterfaceSocket,
-        [INTERFACE_SOCKET_TYPE, IN_OUT],
+        [IN_OUT],
         from_root,
     )
 
@@ -108,9 +106,6 @@ def _node(
         [INPUTS, OUTPUTS],
         from_root,
     )
-
-    # will be used as 'type' arg in 'new'
-    no_clobber(d, NODE_TYPE, node.bl_rna.identifier)
 
     return d
 

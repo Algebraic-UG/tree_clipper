@@ -21,11 +21,9 @@ FROM_SOCKET = "from_socket"
 TO_NODE = "to_node"
 TO_SOCKET = "to_socket"
 
-NODE_TYPE = "rna_type"
 INPUTS = "inputs"
 OUTPUTS = "outputs"
 
-INTERFACE_SOCKET_TYPE = "rna_type"
 IN_OUT = "in_out"
 
 INTERFACE_ITEMS = "interface_items"

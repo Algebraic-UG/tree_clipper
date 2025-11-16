@@ -11,13 +11,11 @@ from .common import (
     INPUTS,
     INTERFACE_ITEMS,
     INTERFACE_ITEMS_TREE,
-    INTERFACE_SOCKET_TYPE,
     MATERIAL_NAME,
     NODE_TREE_INTERFACE,
     NODE_TREE_LINKS,
     NODE_TREE_NODES,
     NODE_TREE_TYPE,
-    NODE_TYPE,
     OUTPUTS,
     SOCKET_IDENTIFIER,
     BLENDER_VERSION,
@@ -98,7 +96,7 @@ class _Importer:
     def _import_nodes(self, l: list, node_tree: bpy.types.NodeTree):
         node_tree.nodes.clear()
         for d in l:
-            node = node_tree.nodes.new(d[NODE_TYPE])
+            node = node_tree.nodes.new(d["bl_idname"])
             self._import_all_writable_properties(d, node)
 
     def _import_node_sockets(self, l: list, node_tree: bpy.types.NodeTree):
