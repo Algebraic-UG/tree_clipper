@@ -38,3 +38,9 @@ NODE_TREE_TYPE = "rna_type"
 NODE_TREE_INTERFACE = "interface"
 NODE_TREE_LINKS = "links"
 NODE_TREE_NODES = "nodes"
+
+
+def no_clobber(d: dict, key: str, value):
+    if key in d:
+        raise RuntimeError(f"Clobbering '{key}'")
+    d[key] = value

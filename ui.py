@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 
 from .export_nodes import export_nodes
-from .export_nodes_special import BUILT_IN_HANDLERS
+from .export_nodes_specific import BUILT_IN_HANDLERS
 from .import_nodes import import_nodes
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
@@ -29,7 +29,7 @@ class SCENE_OT_NodesAsJSON_Panel_Export(bpy.types.Operator):
             is_material=self.is_material,
             name=self.name,
             output_file=self.output_file,
-            special_handlers=BUILT_IN_HANDLERS,
+            specific_handlers=BUILT_IN_HANDLERS,
             export_sub_trees=self.export_sub_trees,
             skip_defaults=self.skip_defaults,
         )
