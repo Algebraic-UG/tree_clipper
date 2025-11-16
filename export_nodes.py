@@ -277,7 +277,9 @@ From root: {prop_from_root.to_str()}"""
             else []
         )
         unhandled_properties = [
-            p for p in obj.bl_rna.properties if p.identifier not in handled_prop_ids
+            p
+            for p in obj.bl_rna.properties
+            if p.identifier not in handled_prop_ids and p.identifier not in ["rna_type"]
         ]
 
         def _serializer(exporter: Self, obj: bpy.types.bpy_struct, from_root: FromRoot):
