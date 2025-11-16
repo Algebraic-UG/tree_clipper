@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 
 from .export_nodes import export_nodes
-from .export_nodes_specific import BUILT_IN_HANDLERS
+from .specific_handlers import BUILT_IN_HANDLERS
 from .import_nodes import import_nodes
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
