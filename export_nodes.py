@@ -62,7 +62,9 @@ class Exporter:
             print(from_root.to_str())
 
         assert prop.type in PROPERTY_TYPES_SIMPLE
-        assert prop.identifier in [p.identifier for p in assumed_type.bl_rna.properties]
+        assert any(
+            prop.identifier == p.identifier for p in assumed_type.bl_rna.properties
+        )
 
         attribute = getattr(obj, prop.identifier)
 
@@ -87,7 +89,9 @@ class Exporter:
             print(from_root.to_str())
 
         assert prop.type == "POINTER"
-        assert prop.identifier in [p.identifier for p in assumed_type.bl_rna.properties]
+        assert any(
+            prop.identifier == p.identifier for p in assumed_type.bl_rna.properties
+        )
 
         attribute = getattr(obj, prop.identifier)
 
@@ -118,7 +122,9 @@ class Exporter:
             print(from_root.to_str())
 
         assert prop.type == "COLLECTION"
-        assert prop.identifier in [p.identifier for p in assumed_type.bl_rna.properties]
+        assert any(
+            prop.identifier == p.identifier for p in assumed_type.bl_rna.properties
+        )
 
         attribute = getattr(obj, prop.identifier)
 
