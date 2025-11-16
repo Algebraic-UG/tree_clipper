@@ -1,5 +1,6 @@
-from types import NoneType
 import bpy
+
+from types import NoneType
 
 from .export_nodes import Exporter
 
@@ -27,7 +28,7 @@ def _export_all_simple_writable_properties_and_list(
     exporter: Exporter,
     obj: bpy.types.bpy_struct,
     assumed_type: type,
-    additional: list,
+    additional: list[str],
     from_root: FromRoot,
 ):
     return exporter.export_all_simple_writable_properties(

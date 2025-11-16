@@ -173,7 +173,7 @@ class Exporter:
         self,
         obj: bpy.types.bpy_struct,
         assumed_type: type,
-        properties: list,
+        properties: list[str],
         from_root: FromRoot,
     ):
         d = {}
@@ -192,7 +192,7 @@ class Exporter:
     # internals
     ################################################################################
 
-    def _attempt_default_serialization_for_prop(
+    def _attempt_export_property(
         self,
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
@@ -280,7 +280,7 @@ From root: {prop_from_root.to_str()}"""
             d = specific_handler(exporter, obj, from_root)
             for prop in unhandled_properties:
                 # pylint: disable=protected-access
-                prop_d = exporter._attempt_default_serialization_for_prop(
+                prop_d = exporter._attempt_export_property(
                     obj, prop, from_root.add_prop(prop)
                 )
                 if prop_d is not None:
@@ -303,7 +303,7 @@ From root: {prop_from_root.to_str()}"""
 
 def _collect_sub_trees(
     current: bpy.types.NodeTree,
-    trees: list,
+    trees: list[(bpy.types.NodeTree, FromRoot)],
     from_root: FromRoot,
 ):
     for node in current.nodes:
