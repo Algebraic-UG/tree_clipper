@@ -41,7 +41,7 @@ class Exporter:
         debug_prints: bool,
     ):
         self.specific_handlers = specific_handlers
-        self.skip_defaults = (skip_defaults,)
+        self.skip_defaults = skip_defaults
         self.debug_prints = debug_prints
         self.pointers = {}
         self.serialized = {}
@@ -310,7 +310,7 @@ def _collect_sub_trees(
         if hasattr(node, "node_tree"):
             tree = node.node_tree
             if all(tree != already_in[0] for already_in in trees):
-                sub_root = from_root.add("Group ({node.name})")
+                sub_root = from_root.add(f"Group ({node.name})")
                 trees.append((tree, sub_root))
                 _collect_sub_trees(tree, trees, sub_root)
 
