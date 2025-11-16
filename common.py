@@ -14,7 +14,6 @@ MATERIAL_NAME = "name"
 ROOT = "root"
 SUB_TREES = "sub_trees"
 
-SOCKET_TYPE = "rna_type"
 SOCKET_IDENTIFIER = "identifier"
 IS_MULTI_INPUT = "is_multi_input"
 

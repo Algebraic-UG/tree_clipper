@@ -16,7 +16,6 @@ from .common import (
     NODE_TYPE,
     OUTPUTS,
     SOCKET_IDENTIFIER,
-    SOCKET_TYPE,
     FROM_NODE,
     FROM_SOCKET,
     TO_NODE,
@@ -128,9 +127,6 @@ def _socket(
         [SOCKET_IDENTIFIER, IS_MULTI_INPUT],
         from_root,
     )
-
-    # will be used as 'type' arg in 'new'
-    no_clobber(d, SOCKET_TYPE, socket.bl_rna.identifier)
 
     return d
 

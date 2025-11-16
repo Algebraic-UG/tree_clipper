@@ -20,7 +20,6 @@ from .common import (
     NODE_TYPE,
     OUTPUTS,
     SOCKET_IDENTIFIER,
-    SOCKET_TYPE,
     BLENDER_VERSION,
     FROM_NODE,
     FROM_SOCKET,
@@ -87,7 +86,7 @@ class _Importer:
                 file=sys.stderr,
             )
             socket = sockets.new(
-                type=d[SOCKET_TYPE],
+                type=d["bl_idname"],
                 name=d["name"],
                 identifier=d[SOCKET_IDENTIFIER],
                 # this technically only needed for inputs
