@@ -24,8 +24,7 @@ from .common import (
     FROM_NODE,
     FROM_SOCKET,
     NODES_AS_JSON_VERSION,
-    ROOT,
-    SUB_TREES,
+    TREES,
     TO_NODE,
     TO_SOCKET,
     IS_MULTI_INPUT,
@@ -34,9 +33,11 @@ from .common import (
 
 
 class _Importer:
-    def __init__(self, references: dict, overwrite: bool):
+    def __init__(
+        self,
+        references: dict,
+    ):
         self.references = references
-        self.overwrite = overwrite
 
     def _import_property(
         self,
@@ -121,11 +122,11 @@ class _Importer:
             link = node_tree.links.new(input=from_socket, output=to_socket)
             self._import_all_writable_properties(d, link)
 
-    def import_node_tree(self, d: dict, material_name: str = None):
+    def import_node_tree(self, d: dict, overwrite: bool, material_name: str = None):
         original_name = d["name"]
 
         if material_name is None:
-            if self.overwrite and original_name in bpy.data.node_groups:
+            if overwrite and original_name in bpy.data.node_groups:
                 node_tree = bpy.data.node_groups[original_name]
             else:
                 node_tree = bpy.data.node_groups.new(
@@ -134,7 +135,7 @@ class _Importer:
                 )
         else:
             # this can only happen for the top level
-            if self.overwrite:
+            if overwrite:
                 mat = bpy.data.materials[material_name]
             else:
                 mat = bpy.data.materials.new(material_name)
@@ -185,7 +186,7 @@ def import_nodes(
         lookup = reference.path_from_module()
         references[lookup] = functools.partial(eval, lookup)
 
-    importer = _Importer(references=references, overwrite=overwrite)
+    importer = _Importer(references=references)
 
     with Path(input_file).open("r", encoding="utf-8") as f:
         d = json.load(f)
@@ -198,8 +199,5 @@ def import_nodes(
             raise RuntimeError(version_mismatch)
 
     # important to construct in reverse order
-    if SUB_TREES in d:
-        for sub_tree in reversed(d[SUB_TREES]):
-            importer.import_node_tree(sub_tree)
-
-    importer.import_node_tree(d[ROOT], d.get(MATERIAL_NAME))
+    for tree in reversed(d[TREES]):
+        importer.import_node_tree(tree, overwrite)

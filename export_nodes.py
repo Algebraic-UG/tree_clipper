@@ -11,9 +11,8 @@ from .common import (
     PROPERTY_TYPES_SIMPLE,
     BLENDER_VERSION,
     NODES_AS_JSON_VERSION,
-    ROOT,
-    SUB_TREES,
     MATERIAL_NAME,
+    TREES,
     no_clobber,
 )
 
@@ -307,23 +306,17 @@ From root: {prop_from_root.to_str()}"""
 
 
 def _collect_sub_trees(
-    node_tree: bpy.types.NodeTree,
-    tree_names_and_paths: list,
+    current: bpy.types.NodeTree,
+    trees: list,
     from_root: FromRoot,
 ):
-    for node in node_tree.nodes:
+    for node in current.nodes:
         if hasattr(node, "node_tree"):
-            if all(
-                tree_name != node.node_tree.name
-                for (tree_name, _) in tree_names_and_paths
-            ):
+            tree = node.node_tree
+            if all(tree != already_in[0] for already_in in trees):
                 sub_root = from_root.add("Group ({node.name})")
-                tree_names_and_paths.append((node.node_tree.name, sub_root))
-                _collect_sub_trees(
-                    node.node_tree,
-                    tree_names_and_paths,
-                    sub_root,
-                )
+                trees.append((tree, sub_root))
+                _collect_sub_trees(tree, trees, sub_root)
 
 
 ################################################################################
@@ -353,6 +346,10 @@ def export_nodes(
         from_root = FromRoot([f"Root ({name})"])
         root = bpy.data.node_groups[name]
 
+    trees = [(root, from_root)]
+    if export_sub_trees:
+        _collect_sub_trees(root, trees, from_root)
+
     manifest_path = Path(__file__).parent / "blender_manifest.toml"
     with manifest_path.open("rb") as f:
         blender_manifest = tomllib.load(f)
@@ -361,20 +358,15 @@ def export_nodes(
         BLENDER_VERSION: bpy.app.version_string,
         NODES_AS_JSON_VERSION: blender_manifest["version"],
         # pylint: disable=protected-access
-        ROOT: exporter._export_node_tree(root, from_root),
+        TREES: [
+            # pylint: disable=protected-access
+            exporter._export_node_tree(tree, from_root)
+            for (tree, from_root) in trees
+        ],
     }
 
     if is_material:
         d[MATERIAL_NAME] = name
-
-    if export_sub_trees:
-        tree_names_and_paths = []
-        _collect_sub_trees(root, tree_names_and_paths, from_root)
-        d[SUB_TREES] = [
-            # pylint: disable=protected-access
-            exporter._export_node_tree(bpy.data.node_groups[tree_name], sub_root)
-            for (tree_name, sub_root) in tree_names_and_paths
-        ]
 
     with Path(output_file).open("w", encoding="utf-8") as f:
         f.write(json.dumps(d, indent=4))

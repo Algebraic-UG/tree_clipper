@@ -11,8 +11,7 @@ PROPERTY_TYPES_SIMPLE = set(
 BLENDER_VERSION = "blender_version"
 NODES_AS_JSON_VERSION = "nodes_as_json_version"
 MATERIAL_NAME = "name"
-ROOT = "root"
-SUB_TREES = "sub_trees"
+TREES = "node_trees"
 
 SOCKET_IDENTIFIER = "identifier"
 IS_MULTI_INPUT = "is_multi_input"
