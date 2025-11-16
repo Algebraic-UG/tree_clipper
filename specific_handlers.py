@@ -1,7 +1,7 @@
 from types import NoneType
 import bpy
 
-from .export_nodes import Exporter, FromRoot
+from .export_nodes import Exporter
 
 from .common import (
     no_clobber,
@@ -19,6 +19,7 @@ from .common import (
     TO_NODE,
     TO_SOCKET,
     IS_MULTI_INPUT,
+    FromRoot,
 )
 
 

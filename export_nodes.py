@@ -15,21 +15,8 @@ from .common import (
     MATERIAL_NAME,
     TREES,
     no_clobber,
+    FromRoot,
 )
-
-
-class FromRoot:
-    def __init__(self, path: list):
-        self.path = path
-
-    def add(self, piece: str):
-        return FromRoot(self.path + [piece])
-
-    def add_prop(self, prop: bpy.types.Property):
-        return self.add(f"{prop.type} ({prop.identifier})")
-
-    def to_str(self):
-        return str(" -> ".join(self.path))
 
 
 class Pointer:
