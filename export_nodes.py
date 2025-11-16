@@ -1,5 +1,6 @@
 import bpy
 
+from uuid import uuid4
 from types import NoneType
 from typing import Callable, Self
 
@@ -55,7 +56,7 @@ class Exporter:
         self.specific_handlers = specific_handlers
         self.skip_defaults = (skip_defaults,)
         self.debug_prints = debug_prints
-        self.pointers = []
+        self.pointers = {}
         self.serialized = {}
         self.current_tree = None
 
@@ -110,7 +111,7 @@ class Exporter:
             return self._export_obj(attribute, from_root)
         else:
             d = {}
-            self.pointers.append(
+            self.pointers.setdefault(attribute.as_pointer(), []).append(
                 Pointer(
                     from_root=from_root,
                     in_serialization=d,
@@ -369,6 +370,16 @@ def export_nodes(
 
     if is_material:
         d[MATERIAL_NAME] = name
+
+    for ptr, pointers_to_same in exporter.pointers.items():
+        if ptr in exporter.serialized:
+            uuid = str(uuid4())
+            exporter.serialized[ptr]["nodes_as_json_uuid"] = uuid
+            for pointer in pointers_to_same:
+                pointer.in_serialization["serialized_as"] = uuid
+        else:
+            # TODO
+            pass
 
     with Path(output_file).open("w", encoding="utf-8") as f:
         f.write(json.dumps(d, indent=4))
