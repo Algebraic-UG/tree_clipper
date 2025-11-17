@@ -152,6 +152,43 @@ class _Importer:
         else:
             raise RuntimeError(f"Unknown property type: {prop.type}")
 
+    def import_all_simple_writable_properties(
+        self,
+        obj: bpy.types.bpy_struct,
+        serialization: dict,
+        assumed_type: type,
+        from_root: FromRoot,
+    ):
+        for prop in assumed_type.bl_rna.properties:
+            if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
+                continue
+            self.import_property_simple(
+                obj,
+                prop,
+                serialization[prop.identifier],
+                from_root.add_prop(prop),
+            )
+
+    def import_properties_from_id_list(
+        self,
+        obj: bpy.types.bpy_struct,
+        getter: GETTER,
+        serialization: dict,
+        properties: list[str],
+        from_root: FromRoot,
+    ):
+        def make_getter(identifier: str):
+            return lambda: getattr(getter(), identifier)
+
+        for prop in [obj.bl_rna.properties[p] for p in properties]:
+            self.import_property(
+                obj,
+                make_getter(prop.identifier),
+                prop,
+                serialization[prop.identifier],
+                from_root.add_prop(prop),
+            )
+
     ################################################################################
     # internals
     ################################################################################
