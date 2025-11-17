@@ -121,7 +121,7 @@ class _Importer:
             )
 
         def make_getter(i: int):
-            return lambda: getattr(getter(), prop.identifier)[i]
+            return lambda: getter()[i]
 
         for i, item in enumerate(attribute):
             self._import_obj(
