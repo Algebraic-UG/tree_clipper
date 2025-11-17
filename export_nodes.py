@@ -21,7 +21,7 @@ from .common import (
 )
 
 
-class UnresolvedPointer:
+class Pointer:
     def __init__(
         self,
         *,
@@ -30,6 +30,7 @@ class UnresolvedPointer:
     ):
         self.from_root = from_root
         self.points_to = points_to
+        self.id = None
 
 
 class Exporter:
@@ -44,6 +45,7 @@ class Exporter:
         self.specific_handlers = specific_handlers
         self.skip_defaults = skip_defaults
         self.debug_prints = debug_prints
+        self.pointers = {}
         self.serialized = {}
         self.current_tree = None
 
@@ -103,7 +105,9 @@ class Exporter:
         if attribute.id_data == self.current_tree and prop.is_readonly:
             return self._export_obj(attribute, from_root)
         else:
-            return UnresolvedPointer(from_root=from_root, points_to=attribute)
+            pointer = Pointer(from_root=from_root, points_to=attribute)
+            self.pointers.setdefault(attribute.as_pointer(), []).append(pointer)
+            return pointer
 
     def export_property_collection(
         self,
@@ -242,17 +246,16 @@ From root: {prop_from_root.to_str()}"""
         if self.debug_prints:
             print(from_root.to_str())
 
-        d = {ID: self.next_id}
+        this_id = self.next_id
         self.next_id += 1
 
         # if an obj has no as_pointer but can still be pointed to via PointerProperty we might be in trouble
         if hasattr(obj, "as_pointer"):
             if obj.as_pointer() in self.serialized:
                 raise RuntimeError(f"Double serialization: {from_root.to_str()}")
-            self.serialized[obj.as_pointer()] = d
+            self.serialized[obj.as_pointer()] = this_id
 
-        d[DATA] = serializer(self, obj, from_root)
-        return d
+        return {ID: this_id, DATA: serializer(self, obj, from_root)}
 
     def _export_obj(self, obj: bpy.types.bpy_struct, from_root: FromRoot):
         # edge case for things like bpy_prop_collection that aren't real RNA types?
@@ -313,31 +316,6 @@ def _collect_sub_trees(
                 _collect_sub_trees(tree, trees, sub_root)
 
 
-def _collect_unresolved_pointers(d, setter: Callable[[int], None] = None):
-    if isinstance(d, UnresolvedPointer):
-        assert setter is not None
-        return [(setter, d)]
-
-    def make_setter(k: str | int):
-        def setter(reference: int):
-            d[k] = reference
-
-        return setter
-
-    if isinstance(d, list):
-        to_check = enumerate(d)
-    elif isinstance(d, dict):
-        to_check = d.items()
-    else:
-        to_check = []
-
-    found = []
-    for k, e in to_check:
-        found.extend(_collect_unresolved_pointers(e, make_setter(k)))
-
-    return found
-
-
 ################################################################################
 # entry point
 ################################################################################
@@ -387,14 +365,19 @@ def export_nodes(
     if is_material:
         d[MATERIAL_NAME] = name
 
-    for setter, unresolved_pointer in _collect_unresolved_pointers(d):
-        ptr = unresolved_pointer.points_to.as_pointer()
+    for ptr, pointers in exporter.pointers.items():
         if ptr in exporter.serialized:
-            setter(exporter.serialized[ptr][ID])
+            for pointer in pointers:
+                pointer.id = exporter.serialized[ptr]
         else:
             # TODO
-            setter("external and TODO")
             pass
 
+    class Encoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, Pointer):
+                return obj.id
+            return super().default(obj)
+
     with Path(output_file).open("w", encoding="utf-8") as f:
-        f.write(json.dumps(d, indent=4))
+        f.write(json.dumps(d, cls=Encoder, indent=4))
