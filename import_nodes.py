@@ -244,9 +244,10 @@ From root: {from_root.to_str()}"""
             importer: Self,
             obj: bpy.types.bpy_struct,
             getter: GETTER,
+            serialization: dict,
             from_root: FromRoot,
         ):
-            specific_handler(importer, obj, getter, from_root)
+            specific_handler(importer, obj, getter, serialization, from_root)
 
             def make_getter(identifier: str):
                 return lambda: getattr(getter(), identifier)

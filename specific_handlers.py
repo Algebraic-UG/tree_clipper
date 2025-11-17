@@ -158,5 +158,5 @@ BUILT_IN_SERIALIZERS = {
 
 # TODO: make sure that they use a matching type in the hint
 BUILT_IN_DESERIALIZERS = {
-    NoneType: lambda _exporter, _obj, _from_root: {},
+    NoneType: lambda _importer, _obj, _getter, _serialization, _from_root: {},
 }
