@@ -41,8 +41,8 @@ NODE_TREE_LINKS = "links"
 NODE_TREE_NODES = "nodes"
 
 REFERENCE = "nodes_as_json_reference"
-ID = "nodes_as_json_id"
-DATA = "nodes_as_json_data"
+ID = "id"
+DATA = "data"
 
 
 def no_clobber(d: dict, key: str, value):

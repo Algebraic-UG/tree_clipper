@@ -1,6 +1,5 @@
 import bpy
 
-from uuid import uuid4
 from types import NoneType
 from typing import Callable, Self
 
@@ -15,7 +14,6 @@ from .common import (
     BLENDER_VERSION,
     NODES_AS_JSON_VERSION,
     MATERIAL_NAME,
-    REFERENCE,
     TREES,
     most_specific_type_handled,
     no_clobber,
@@ -42,6 +40,7 @@ class Exporter:
         skip_defaults: bool,
         debug_prints: bool,
     ):
+        self.next_id = 0
         self.specific_handlers = specific_handlers
         self.skip_defaults = skip_defaults
         self.debug_prints = debug_prints
@@ -129,7 +128,7 @@ class Exporter:
             self._export_obj(element, from_root.add(f"[{i}]"))
             for i, element in enumerate(attribute)
         ]
-        no_clobber(d, "items", items)
+        no_clobber(d[DATA], "items", items)
 
         return d
 
@@ -243,7 +242,8 @@ From root: {prop_from_root.to_str()}"""
         if self.debug_prints:
             print(from_root.to_str())
 
-        d = {ID: str(uuid4())}
+        d = {ID: self.next_id}
+        self.next_id += 1
 
         # if an obj has no as_pointer but can still be pointed to via PointerProperty we might be in trouble
         if hasattr(obj, "as_pointer"):
@@ -257,7 +257,9 @@ From root: {prop_from_root.to_str()}"""
     def _export_obj(self, obj: bpy.types.bpy_struct, from_root: FromRoot):
         # edge case for things like bpy_prop_collection that aren't real RNA types?
         if not hasattr(obj, "bl_rna"):
-            return {}
+            return self._export_obj_with_serializer(
+                obj, self.specific_handlers[NoneType], from_root
+            )
 
         assumed_type = most_specific_type_handled(self.specific_handlers, type(obj))
         specific_handler = self.specific_handlers[assumed_type]
@@ -311,13 +313,13 @@ def _collect_sub_trees(
                 _collect_sub_trees(tree, trees, sub_root)
 
 
-def _collect_unresolved_pointers(d, setter: Callable[[str], None] = None):
+def _collect_unresolved_pointers(d, setter: Callable[[int], None] = None):
     if isinstance(d, UnresolvedPointer):
         assert setter is not None
         return [(setter, d)]
 
     def make_setter(k: str | int):
-        def setter(reference: str):
+        def setter(reference: int):
             d[k] = reference
 
         return setter
