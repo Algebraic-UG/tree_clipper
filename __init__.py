@@ -86,6 +86,7 @@ def playground():
 
 
 def register():
+    print("reloaded")
     # playground()
     for cls in classes:
         bpy.utils.register_class(cls)
