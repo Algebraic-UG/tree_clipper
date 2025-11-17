@@ -64,7 +64,7 @@ class Exporter:
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(from_root.to_str())
+            print(f"{from_root.to_str()}: exporting")
 
         assert prop.type in PROPERTY_TYPES_SIMPLE
 
@@ -73,10 +73,14 @@ class Exporter:
         if prop.type in ["BOOLEAN", "INT", "FLOAT"]:
             if prop.is_array:
                 if self.skip_defaults and prop.default_array == attribute:
+                    if self.debug_prints:
+                        print(f"{from_root.to_str()}: skipping default")
                     return None
                 return list(attribute)
         else:
             if self.skip_defaults and prop.default == attribute:
+                if self.debug_prints:
+                    print(f"{from_root.to_str()}: skipping default")
                 return None
             return attribute
 
@@ -87,13 +91,15 @@ class Exporter:
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(from_root.to_str())
+            print(f"{from_root.to_str()}: exporting")
 
         assert prop.type == "POINTER"
 
         attribute = getattr(obj, prop.identifier)
 
         if attribute is None:
+            if self.debug_prints:
+                print(f"{from_root.to_str()}: skipping not set")
             return None
 
         if attribute.id_data == self.current_tree and prop.is_readonly:
@@ -110,7 +116,7 @@ class Exporter:
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(from_root.to_str())
+            print(f"{from_root.to_str()}: exporting")
 
         assert prop.type == "COLLECTION"
 

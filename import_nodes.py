@@ -50,7 +50,7 @@ class Importer:
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(from_root.to_str())
+            print(f"{from_root.to_str()}: importing")
 
         assert prop.type in PROPERTY_TYPES_SIMPLE
         assert not prop.is_readonly
@@ -67,7 +67,7 @@ class Importer:
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(from_root.to_str())
+            print(f"{from_root.to_str()}: importing")
 
         assert prop.type == "POINTER"
 
@@ -78,6 +78,8 @@ class Importer:
                 raise RuntimeError(
                     f"Id {serialization} not deserialized or provided yet"
                 )
+            if self.debug_prints:
+                print(f"{from_root.to_str()}: resolving {serialization}")
             setattr(obj, self.getters[serialization]())
         else:
             attribute = getattr(obj, prop.identifier)
@@ -99,7 +101,7 @@ class Importer:
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(from_root.to_str())
+            print(f"{from_root.to_str()}: importing")
 
         assert prop.type == "COLLECTION"
         assert "items" in serialization
@@ -165,7 +167,7 @@ class Importer:
             if prop.identifier not in serialization:
                 if self.debug_prints:
                     print(
-                        f"{from_root.add_prop(prop).to_str()}: Missing. Assuming default"
+                        f"{from_root.add_prop(prop).to_str()}: missing, assuming default"
                     )
                 continue
             self.import_property_simple(
@@ -217,10 +219,18 @@ From root: {from_root.to_str()}"""
 
         if prop.type in PROPERTY_TYPES_SIMPLE:
             if prop.is_readonly:
+                if self.debug_prints:
+                    print(f"{from_root.as_str()}: skipping readonly")
                 return
 
         if prop.identifier not in obj_serialization:
+            if prop.type in PROPERTY_TYPES_SIMPLE:
+                if self.debug_prints:
+                    print(f"{from_root.as_str()}: missing, assume default")
+                return
             if prop.type == "POINTER" and not prop.is_readonly:
+                if self.debug_prints:
+                    print(f"{from_root.as_str()}: missing, assume not set")
                 return
             error_out("missing property in serialization")
 
@@ -244,6 +254,7 @@ From root: {from_root.to_str()}"""
                 error_out(
                     "collection with function that requires args isn't specifically handled"
                 )
+            self.import_property_collection(obj, getter, prop, serialization, from_root)
 
     def _import_obj_with_deserializer(
         self,
@@ -254,7 +265,7 @@ From root: {from_root.to_str()}"""
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(from_root.to_str())
+            print(f"{from_root.to_str()}: importing")
 
         if serialization[ID] in self.getters:
             raise RuntimeError(f"Double deserialization: {from_root.to_str()}")
