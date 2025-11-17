@@ -111,7 +111,7 @@ def _import_nodes(
             nodes.active = n
 
 
-def _node_tree_interface(
+def _export_node_tree_interface(
     exporter: Exporter,
     interface: bpy.types.NodeTreeInterface,
     from_root: FromRoot,
@@ -125,7 +125,7 @@ def _node_tree_interface(
     )
 
 
-def _interface_tree_socket(
+def _export_interface_tree_socket(
     exporter: Exporter,
     socket: bpy.types.NodeTreeInterfaceSocket,
     from_root: FromRoot,
@@ -139,7 +139,7 @@ def _interface_tree_socket(
     )
 
 
-def _interface_tree_panel(
+def _export_interface_tree_panel(
     exporter: Exporter,
     panel: bpy.types.NodeTreeInterfacePanel,
     from_root: FromRoot,
@@ -153,7 +153,7 @@ def _interface_tree_panel(
     )
 
 
-def _node(
+def _export_node(
     exporter: Exporter,
     node: bpy.types.Node,
     from_root: FromRoot,
@@ -169,7 +169,7 @@ def _node(
     return d
 
 
-def _socket(
+def _export_socket(
     exporter: Exporter,
     socket: bpy.types.NodeSocket,
     from_root: FromRoot,
@@ -185,7 +185,7 @@ def _socket(
     return d
 
 
-def _link(
+def _export_link(
     exporter: Exporter,
     link: bpy.types.NodeLink,
     from_root: FromRoot,
@@ -206,12 +206,12 @@ def _link(
 BUILT_IN_SERIALIZERS = {
     NoneType: lambda _exporter, _obj, _from_root: {},
     bpy.types.NodeTree: _export_node_tree,
-    bpy.types.NodeTreeInterface: _node_tree_interface,
-    bpy.types.NodeTreeInterfaceSocket: _interface_tree_socket,
-    bpy.types.NodeTreeInterfacePanel: _interface_tree_panel,
-    bpy.types.Node: _node,
-    bpy.types.NodeSocket: _socket,
-    bpy.types.NodeLink: _link,
+    bpy.types.NodeTreeInterface: _export_node_tree_interface,
+    bpy.types.NodeTreeInterfaceSocket: _export_interface_tree_socket,
+    bpy.types.NodeTreeInterfacePanel: _export_interface_tree_panel,
+    bpy.types.Node: _export_node,
+    bpy.types.NodeSocket: _export_socket,
+    bpy.types.NodeLink: _export_link,
 }
 
 
