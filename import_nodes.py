@@ -395,7 +395,7 @@ def import_nodes(
     input_file: str,
     specific_handlers: dict[type, DESERIALIZER],
     allow_version_mismatch=False,
-    getters: dict[int, GETTER] = {},
+    getters: dict[int, GETTER],
     overwrite=False,
 ):
     importer = Importer(

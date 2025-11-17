@@ -53,6 +53,7 @@ class SCENE_OT_NodesAsJSON_Panel_Import(bpy.types.Operator):
             input_file=self.input_file,
             specific_handlers=BUILT_IN_DESERIALIZERS,
             allow_version_mismatch=self.allow_version_mismatch,
+            getters={},
             overwrite=self.overwrite,
         )
         return {"FINISHED"}
