@@ -65,7 +65,26 @@ class FromRoot:
         return str(" -> ".join(self.path))
 
 
-def most_specific_type_handled(specific_handlers: dict[type, Callable], t: type):
+def most_specific_type_handled(
+    specific_handlers: dict[type, Callable],
+    obj: bpy.types.bpy_struct,
+):
+    # collections are too weird, this is False:
+    # type(bpy.data.node_groups['Geometry Nodes'].nodes) == bpy.types.Nodes
+    if isinstance(obj, bpy.types.bpy_prop_collection):
+        # weird edge case NodeTreeInterface.items_tree falls in here
+        if not hasattr(obj, "bl_rna"):
+            return NoneType
+        return next(
+            (
+                t
+                for t in specific_handlers.keys()
+                if t != NoneType and t.bl_rna.identifier == obj.bl_rna.identifier
+            ),
+            NoneType,
+        )
+
+    t = type(obj)
     while True:
         if t in specific_handlers:
             return t

@@ -6,6 +6,8 @@ from .import_nodes import GETTER, Importer
 from .export_nodes import Exporter
 
 from .common import (
+    DATA,
+    ID,
     no_clobber,
     IN_OUT,
     INPUTS,
@@ -78,7 +80,7 @@ def _export_node_tree(
 
 
 def _import_node_tree(
-    importer: Exporter,
+    importer: Importer,
     node_tree: bpy.types.NodeTree,
     getter: GETTER,
     serialization: dict,
@@ -93,6 +95,20 @@ def _import_node_tree(
         [NODE_TREE_NODES, NODE_TREE_LINKS, NODE_TREE_INTERFACE],
         from_root,
     )
+
+
+def _import_nodes(
+    _importer: Importer,
+    nodes: bpy.types.Nodes,
+    _getter: GETTER,
+    serialization: dict,
+    _from_root: FromRoot,
+):
+    active_id = serialization["active"]
+    for node in serialization["items"]:
+        n = nodes.new(node[DATA]["bl_idname"])
+        if node[ID] == active_id:
+            nodes.active = n
 
 
 def _node_tree_interface(
@@ -203,4 +219,5 @@ BUILT_IN_SERIALIZERS = {
 BUILT_IN_DESERIALIZERS = {
     NoneType: lambda _importer, _obj, _getter, _serialization, _from_root: {},
     bpy.types.NodeTree: _import_node_tree,
+    bpy.types.Nodes: _import_nodes,
 }

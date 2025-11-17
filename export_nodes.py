@@ -256,7 +256,7 @@ From root: {from_root.to_str()}"""
                 obj, self.specific_handlers[NoneType], from_root
             )
 
-        assumed_type = most_specific_type_handled(self.specific_handlers, type(obj))
+        assumed_type = most_specific_type_handled(self.specific_handlers, obj)
         specific_handler = self.specific_handlers[assumed_type]
         handled_prop_ids = (
             [p.identifier for p in assumed_type.bl_rna.properties]
