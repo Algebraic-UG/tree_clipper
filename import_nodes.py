@@ -201,6 +201,14 @@ class Importer:
     # internals
     ################################################################################
 
+    def _error_out(self, obj: bpy.types.bpy_struct, reason: str, from_root: FromRoot):
+        raise RuntimeError(
+            f"""\
+More specific handler needed for type: {type(obj)}
+Reason: {reason}
+From root: {from_root.to_str()}"""
+        )
+
     def _attempt_import_property(
         self,
         obj: bpy.types.bpy_struct,
@@ -209,14 +217,6 @@ class Importer:
         obj_serialization: dict,
         from_root: FromRoot,
     ):
-        def error_out(reason: str):
-            raise RuntimeError(
-                f"""\
-More specific handler needed for type: {type(obj)}
-Reason: {reason}
-From root: {from_root.to_str()}"""
-            )
-
         if prop.type in PROPERTY_TYPES_SIMPLE:
             if prop.is_readonly:
                 if self.debug_prints:
@@ -232,29 +232,15 @@ From root: {from_root.to_str()}"""
                 if self.debug_prints:
                     print(f"{from_root.to_str()}: missing, assume not set")
                 return
-            error_out("missing property in serialization")
+            self._error_out(obj, "missing property in serialization", from_root)
 
-        serialization = obj_serialization[prop.identifier]
-
-        if prop.type in PROPERTY_TYPES_SIMPLE:
-            return self.import_property_simple(obj, prop, serialization, from_root)
-
-        if prop.type == "POINTER":
-            return self.import_property_pointer(
-                obj, getter, prop, serialization, from_root
-            )
-
-        attribute = getattr(obj, prop.identifier)
-        if prop.type == "COLLECTION":
-            if (
-                hasattr(attribute, "bl_rna")
-                and any(len(f.parameters) != 0 for f in attribute.bl_rna.functions)
-                and type(attribute) not in self.specific_handlers
-            ):
-                error_out(
-                    "collection with function that requires args isn't specifically handled"
-                )
-            self.import_property_collection(obj, getter, prop, serialization, from_root)
+        self.import_property(
+            obj,
+            getter,
+            prop,
+            obj_serialization[prop.identifier],
+            from_root,
+        )
 
     def _import_obj_with_deserializer(
         self,
@@ -280,6 +266,14 @@ From root: {from_root.to_str()}"""
         serialization: dict,
         from_root: FromRoot,
     ):
+        if (
+            isinstance(obj, bpy.types.bpy_prop_collection)
+            and type(obj) not in self.specific_handlers
+        ):
+            self._error_out(
+                obj, "collections must be handled *specifically*", from_root
+            )
+
         assumed_type = most_specific_type_handled(self.specific_handlers, type(obj))
         specific_handler = self.specific_handlers[assumed_type]
         handled_prop_ids = (
