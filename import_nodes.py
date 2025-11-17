@@ -162,6 +162,12 @@ class Importer:
         for prop in assumed_type.bl_rna.properties:
             if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
                 continue
+            if prop.identifier not in serialization:
+                if self.debug_prints:
+                    print(
+                        f"{from_root.add_prop(prop).to_str()}: Missing. Assuming default"
+                    )
+                continue
             self.import_property_simple(
                 obj,
                 prop,
