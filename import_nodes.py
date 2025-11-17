@@ -23,7 +23,7 @@ from .common import (
 GETTER = Callable[[], bpy.types.bpy_struct]
 
 
-# Any is actually the exporter below
+# Any is actually the importer below
 DESERIALIZER = Callable[[Any, bpy.types.bpy_struct, GETTER, dict, FromRoot], None]
 
 
