@@ -50,7 +50,7 @@ class Importer:
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(f"{from_root.to_str()}: importing")
+            print(f"{from_root.to_str()}: importing simple")
 
         assert prop.type in PROPERTY_TYPES_SIMPLE
         assert not prop.is_readonly
@@ -67,7 +67,7 @@ class Importer:
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(f"{from_root.to_str()}: importing")
+            print(f"{from_root.to_str()}: importing pointer")
 
         assert prop.type == "POINTER"
 
@@ -101,7 +101,7 @@ class Importer:
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(f"{from_root.to_str()}: importing")
+            print(f"{from_root.to_str()}: importing collection")
 
         assert prop.type == "COLLECTION"
         assert "items" in serialization
@@ -354,6 +354,9 @@ From root: {from_root.to_str()}"""
 
             from_root = FromRoot([f"Material ({mat.name})"])
             getter = lambda: bpy.data.materials[mat.name].node_tree
+
+        if self.debug_prints:
+            print(f"{from_root.to_str()}: entering")
 
         self._import_obj(
             node_tree,

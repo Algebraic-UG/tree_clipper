@@ -64,7 +64,7 @@ class Exporter:
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(f"{from_root.to_str()}: exporting")
+            print(f"{from_root.to_str()}: exporting simple")
 
         assert prop.type in PROPERTY_TYPES_SIMPLE
 
@@ -91,7 +91,7 @@ class Exporter:
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(f"{from_root.to_str()}: exporting")
+            print(f"{from_root.to_str()}: exporting pointer")
 
         assert prop.type == "POINTER"
 
@@ -107,6 +107,8 @@ class Exporter:
         else:
             pointer = Pointer(from_root=from_root, points_to=attribute)
             self.pointers.setdefault(attribute.as_pointer(), []).append(pointer)
+            if self.debug_prints:
+                print(f"{from_root.to_str()}: deferring")
             return pointer
 
     def export_property_collection(
@@ -116,7 +118,7 @@ class Exporter:
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(f"{from_root.to_str()}: exporting")
+            print(f"{from_root.to_str()}: exporting collection")
 
         assert prop.type == "COLLECTION"
 
@@ -234,7 +236,7 @@ From root: {from_root.to_str()}"""
         from_root: FromRoot,
     ):
         if self.debug_prints:
-            print(from_root.to_str())
+            print(f"{from_root.to_str()}: exporting")
 
         this_id = self.next_id
         self.next_id += 1
@@ -283,7 +285,7 @@ From root: {from_root.to_str()}"""
 
     def _export_node_tree(self, node_tree: bpy.types.NodeTree, from_root: FromRoot):
         if self.debug_prints:
-            print(from_root.to_str())
+            print(f"{from_root.to_str()}: entering")
 
         self.current_tree = node_tree
         d = self._export_obj(node_tree, from_root)
