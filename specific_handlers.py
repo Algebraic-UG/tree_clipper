@@ -98,15 +98,18 @@ def _import_node_tree(
 
 
 def _import_nodes(
-    _importer: Importer,
+    importer: Importer,
     nodes: bpy.types.Nodes,
     _getter: GETTER,
     serialization: dict,
-    _from_root: FromRoot,
+    from_root: FromRoot,
 ):
     active_id = serialization.get("active", None)
     for node in serialization["items"]:
-        n = nodes.new(node[DATA]["bl_idname"])
+        bl_idname = node[DATA]["bl_idname"]
+        if importer.debug_prints:
+            print(f"{from_root.to_str()}: adding {bl_idname}")
+        n = nodes.new(type=bl_idname)
         if node[ID] == active_id:
             nodes.active = n
 
