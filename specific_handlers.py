@@ -104,7 +104,7 @@ def _import_nodes(
     serialization: dict,
     _from_root: FromRoot,
 ):
-    active_id = serialization["active"]
+    active_id = serialization.get("active", None)
     for node in serialization["items"]:
         n = nodes.new(node[DATA]["bl_idname"])
         if node[ID] == active_id:
