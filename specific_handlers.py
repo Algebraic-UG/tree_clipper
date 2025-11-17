@@ -33,9 +33,7 @@ def _export_all_simple_writable_properties_and_list(
 ):
     return exporter.export_all_simple_writable_properties(
         obj, assumed_type, from_root
-    ) | exporter.export_properties_from_id_list(
-        obj, assumed_type, additional, from_root
-    )
+    ) | exporter.export_properties_from_id_list(obj, additional, from_root)
 
 
 def _node_tree(
@@ -145,7 +143,8 @@ def _link(
     return d
 
 
-BUILT_IN_HANDLERS = {
+# TODO: make sure that they use a matching type in the hint
+BUILT_IN_SERIALIZERS = {
     NoneType: lambda _exporter, _obj, _from_root: {},
     bpy.types.NodeTree: _node_tree,
     bpy.types.NodeTreeInterface: _node_tree_interface,
@@ -154,4 +153,10 @@ BUILT_IN_HANDLERS = {
     bpy.types.Node: _node,
     bpy.types.NodeSocket: _socket,
     bpy.types.NodeLink: _link,
+}
+
+
+# TODO: make sure that they use a matching type in the hint
+BUILT_IN_DESERIALIZERS = {
+    NoneType: lambda _exporter, _obj, _from_root: {},
 }

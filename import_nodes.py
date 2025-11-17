@@ -1,6 +1,7 @@
+from types import NoneType
 import bpy
 
-from typing import Callable, Self
+from typing import Any, Callable, Self
 
 import functools
 import sys
@@ -9,44 +10,34 @@ import json
 from pathlib import Path
 
 from .common import (
+    DATA,
     ID,
-    IN_OUT,
-    INPUTS,
-    INTERFACE_ITEMS,
-    INTERFACE_ITEMS_TREE,
     MATERIAL_NAME,
-    NODE_TREE_INTERFACE,
-    NODE_TREE_LINKS,
-    NODE_TREE_NODES,
-    NODE_TREE_TYPE,
-    OUTPUTS,
     PROPERTY_TYPES_SIMPLE,
-    REFERENCE,
-    SOCKET_IDENTIFIER,
     BLENDER_VERSION,
-    FROM_NODE,
-    FROM_SOCKET,
     NODES_AS_JSON_VERSION,
     TREES,
-    TO_NODE,
-    TO_SOCKET,
-    IS_MULTI_INPUT,
-    INTERFACE_ITEMS_ACTIVE,
     FromRoot,
     most_specific_type_handled,
 )
+
+GETTER = Callable[[], bpy.types.bpy_struct]
+
+
+# Any is actually the exporter below
+DESERIALIZER = Callable[[Any, bpy.types.bpy_struct, GETTER, dict, FromRoot], None]
 
 
 class _Importer:
     def __init__(
         self,
-        references: dict[Callable[[], bpy.types.bpy_struct]],
+        specific_handlers: dict[type, DESERIALIZER],
+        getters: dict[int, GETTER],
         debug_prints: bool,
     ):
-        self.references = references
+        self.specific_handlers = specific_handlers
+        self.getters = getters
         self.debug_prints = debug_prints
-        self.deserialzed = {}
-        self.unresolved = {}
 
     ################################################################################
     # helper functions to be used in specific handlers
@@ -55,77 +46,267 @@ class _Importer:
     def import_property_simple(
         self,
         obj: bpy.types.bpy_struct,
-        assumed_type: type,
         prop: bpy.types.Property,
-        attribute,
+        serialization: int | str,
         from_root: FromRoot,
     ):
         if self.debug_prints:
             print(from_root.to_str())
 
         assert prop.type in PROPERTY_TYPES_SIMPLE
-        assert prop.identifier in [p.identifier for p in assumed_type.bl_rna.properties]
+        assert not prop.is_readonly
 
         # should just work^tm
-        setattr(obj, prop.identifier, attribute)
+        setattr(obj, prop.identifier, serialization)
 
     def import_property_pointer(
         self,
         obj: bpy.types.bpy_struct,
-        assumed_type: type,
+        getter: GETTER,
         prop: bpy.types.PointerProperty,
-        attribute: dict,
+        serialization: dict | int,
         from_root: FromRoot,
     ):
         if self.debug_prints:
             print(from_root.to_str())
 
         assert prop.type == "POINTER"
-        assert prop.identifier in [p.identifier for p in assumed_type.bl_rna.properties]
 
-        if REFERENCE in attribute:
-            id = attribute[REFERENCE]
-            if id not in self.references:
+        if isinstance(serialization, int):
+            if prop.is_readonly:
+                raise RuntimeError("Readonly pointer can't deferred in json")
+            if serialization not in self.getters:
                 raise RuntimeError(
-                    f"{id} must be constructed before {from_root.to_str()}"
+                    f"Id {serialization} not deserialized or provided yet"
                 )
-            self.references[id]()
+            setattr(obj, self.getters[serialization]())
         else:
-            self.references
+            attribute = getattr(obj, prop.identifier)
+            if attribute is None:
+                raise RuntimeError("None pointer without deferring doesn't work")
+            self._import_obj(
+                attribute,
+                getter,
+                serialization,
+                from_root,
+            )
+
+    def import_property_collection(
+        self,
+        obj: bpy.types.bpy_struct,
+        getter: GETTER,
+        prop: bpy.types.CollectionProperty,
+        serialization: dict,
+        from_root: FromRoot,
+    ):
+        if self.debug_prints:
+            print(from_root.to_str())
+
+        assert prop.type == "COLLECTION"
+        assert "items" in serialization
+
+        attribute = getattr(obj, prop.identifier)
+
+        self._import_obj(
+            attribute,
+            getter,
+            serialization,
+            from_root,
+        )
+
+        serialized_items = serialization["items"]
+
+        if len(serialized_items) != len(attribute):
+            raise RuntimeError(
+                f"expected {len(serialized_items)} to be ready but only deserialized {len(attribute)}"
+            )
+
+        def make_getter(i: int):
+            return lambda: getattr(getter(), prop.identifier)[i]
+
+        for i, item in enumerate(attribute):
+            self._import_obj(
+                item,
+                make_getter(i),
+                serialized_items[i],
+                from_root.add(f"[{i}]"),
+            )
+
+    def import_property(
+        self,
+        obj: bpy.types.bpy_struct,
+        getter: GETTER,
+        prop: bpy.types.CollectionProperty,
+        serialization: dict,
+        from_root: FromRoot,
+    ):
+        if prop.type in PROPERTY_TYPES_SIMPLE:
+            return self.import_property_simple(obj, prop, serialization, from_root)
+        elif prop.type == "POINTER":
+            return self.import_property_pointer(
+                obj, getter, prop, serialization, from_root
+            )
+        elif prop.type == "COLLECTION":
+            return self.import_property_collection(
+                obj, getter, prop, serialization, from_root
+            )
+        else:
+            raise RuntimeError(f"Unknown property type: {prop.type}")
 
     ################################################################################
     # internals
     ################################################################################
 
+    def _attempt_import_property(
+        self,
+        obj: bpy.types.bpy_struct,
+        getter: GETTER,
+        prop: bpy.types.CollectionProperty,
+        obj_serialization: dict,
+        from_root: FromRoot,
+    ):
+        def error_out(reason: str):
+            raise RuntimeError(
+                f"""\
+More specific handler needed for type: {type(obj)}
+Reason: {reason}
+From root: {from_root.to_str()}"""
+            )
+
+        if prop.type in PROPERTY_TYPES_SIMPLE:
+            if prop.is_readonly:
+                return
+
+        if prop.identifier not in obj_serialization:
+            if prop.type == "POINTER" and not prop.is_readonly:
+                return
+            error_out("missing property in serialization")
+
+        serialization = obj_serialization[prop.identifier]
+
+        if prop.type in PROPERTY_TYPES_SIMPLE:
+            return self.import_property_simple(obj, prop, serialization, from_root)
+
+        if prop.type == "POINTER":
+            return self.import_property_pointer(
+                obj, getter, prop, serialization, from_root
+            )
+
+        attribute = getattr(obj, prop.identifier)
+        if prop.type == "COLLECTION":
+            if (
+                hasattr(attribute, "bl_rna")
+                and any(len(f.parameters) != 0 for f in attribute.bl_rna.functions)
+                and type(attribute) not in self.specific_handlers
+            ):
+                error_out(
+                    "collection with function that requires args isn't specifically handled"
+                )
+
     def _import_obj_with_deserializer(
         self,
-        accessor: Callable[[], bpy.types.bpy_struct],
-        parent: bpy.types.bpy_struct,
-        d: dict,
-        deserializer: Callable[
-            [Self, bpy.types.bpy_struct, dict, FromRoot], bpy.types.bpy_struct
-        ],
+        obj: bpy.types.bpy_struct,
+        getter: GETTER,
+        serialization: dict,
+        deserializer: DESERIALIZER,
         from_root: FromRoot,
     ):
         if self.debug_prints:
             print(from_root.to_str())
-        if ID in d:
-            if d[ID] in self.deserialzed:
-                raise RuntimeError(f"Double deserialization: {from_root.to_str()}")
-            self.deserialzed[d[ID]] = accessor
 
-            return deserializer(self, accessor, parent, d, from_root)
+        if serialization[ID] in self.getters:
+            raise RuntimeError(f"Double deserialization: {from_root.to_str()}")
+        self.getters[serialization[ID]] = getter
+
+        deserializer(self, obj, getter, serialization[DATA], from_root)
 
     def _import_obj(
         self,
-        accessor: Callable[[], bpy.types.bpy_struct],
-        parent: bpy.types.bpy_struct,
-        d: dict,
+        obj: bpy.types.bpy_struct,
+        getter: GETTER,
+        serialization: dict,
         from_root: FromRoot,
     ):
         assumed_type = most_specific_type_handled(self.specific_handlers, type(obj))
         specific_handler = self.specific_handlers[assumed_type]
-        pass
+        handled_prop_ids = (
+            [p.identifier for p in assumed_type.bl_rna.properties]
+            if assumed_type is not NoneType
+            else []
+        )
+        unhandled_properties = [
+            p
+            for p in obj.bl_rna.properties
+            if p.identifier not in handled_prop_ids and p.identifier not in ["rna_type"]
+        ]
+
+        def _deserializer(
+            importer: Self,
+            obj: bpy.types.bpy_struct,
+            getter: GETTER,
+            from_root: FromRoot,
+        ):
+            specific_handler(importer, obj, getter, from_root)
+
+            def make_getter(identifier: str):
+                return lambda: getattr(getter(), identifier)
+
+            for prop in unhandled_properties:
+                # pylint: disable=protected-access
+                importer._attempt_import_property(
+                    obj,
+                    make_getter(prop.identifier),
+                    prop,
+                    serialization,
+                    from_root.add_prop(prop),
+                )
+
+        self._import_obj_with_deserializer(
+            obj,
+            getter,
+            serialization,
+            _deserializer,
+            from_root,
+        )
+
+    def _import_node_tree(
+        self,
+        serialization: dict,
+        overwrite: bool,
+        material_name: str = None,
+    ):
+        original_name = serialization[DATA]["name"]
+
+        if material_name is None:
+            if overwrite and original_name in bpy.data.node_groups:
+                node_tree = bpy.data.node_groups[original_name]
+            else:
+                node_tree = bpy.data.node_groups.new(
+                    type=serialization[DATA]["bl_idname"],
+                    name=original_name,
+                )
+
+            from_root = FromRoot([f"Tree ({node_tree.name})"])
+            getter = lambda: bpy.data.node_groups[node_tree.name]
+        else:
+            # this can only happen for the top level
+            if overwrite:
+                mat = bpy.data.materials[material_name]
+            else:
+                mat = bpy.data.materials.new(material_name)
+
+            mat.use_nodes = True
+            node_tree = mat.node_tree
+
+            from_root = FromRoot([f"Material ({mat.name})"])
+            getter = lambda: bpy.data.materials[mat.name].node_tree
+
+        self._import_obj(
+            node_tree,
+            getter,
+            serialization,
+            from_root,
+        )
 
 
 def _check_version(d: dict):
@@ -146,19 +327,15 @@ def _check_version(d: dict):
 
 
 def import_nodes(
+    *,
     input_file: str,
-    to_reference: set,
+    specific_handlers: dict[type, DESERIALIZER],
     allow_version_mismatch=False,
     overwrite=False,
 ):
-
-    references = {}
-    for reference in to_reference:
-        lookup = reference.path_from_module()
-        references[lookup] = functools.partial(eval, lookup)
-
     importer = _Importer(
-        references=references,
+        specific_handlers=specific_handlers,
+        getters={},
         debug_prints=True,
     )
 
@@ -173,8 +350,17 @@ def import_nodes(
             raise RuntimeError(version_mismatch)
 
     # important to construct in reverse order
-    for tree in reversed(d[TREES]):
-        importer.import_node_tree(tree, overwrite)
+    for tree in reversed(d[TREES][1:]):
+        # pylint: disable=protected-access
+        importer._import_node_tree(tree, overwrite)
+
+    # root tree needs special treatment, might be material
+    # pylint: disable=protected-access
+    importer._import_node_tree(
+        d[TREES][0],
+        overwrite,
+        None if MATERIAL_NAME not in d else d[MATERIAL_NAME],
+    )
 
 
 #    def _import_property(

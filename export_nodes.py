@@ -1,7 +1,7 @@
 import bpy
 
 from types import NoneType
-from typing import Callable, Self
+from typing import Any, Callable, Self
 
 import tomllib
 import json
@@ -33,11 +33,15 @@ class Pointer:
         self.id = None
 
 
+# Any is actually the exporter below
+SERIALIZER = Callable[[Any, bpy.types.bpy_struct, FromRoot], dict]
+
+
 class Exporter:
     def __init__(
         self,
         *,
-        specific_handlers: dict,
+        specific_handlers: dict[type, SERIALIZER],
         skip_defaults: bool,
         debug_prints: bool,
     ):
@@ -56,7 +60,6 @@ class Exporter:
     def export_property_simple(
         self,
         obj: bpy.types.bpy_struct,
-        assumed_type: type,
         prop: bpy.types.Property,
         from_root: FromRoot,
     ):
@@ -64,10 +67,6 @@ class Exporter:
             print(from_root.to_str())
 
         assert prop.type in PROPERTY_TYPES_SIMPLE
-        if hasattr(assumed_type, "bl_rna"):
-            assert any(
-                prop.identifier == p.identifier for p in assumed_type.bl_rna.properties
-            )
 
         attribute = getattr(obj, prop.identifier)
 
@@ -84,7 +83,6 @@ class Exporter:
     def export_property_pointer(
         self,
         obj: bpy.types.bpy_struct,
-        assumed_type: type,
         prop: bpy.types.PointerProperty,
         from_root: FromRoot,
     ):
@@ -92,10 +90,6 @@ class Exporter:
             print(from_root.to_str())
 
         assert prop.type == "POINTER"
-        if hasattr(assumed_type, "bl_rna"):
-            assert any(
-                prop.identifier == p.identifier for p in assumed_type.bl_rna.properties
-            )
 
         attribute = getattr(obj, prop.identifier)
 
@@ -112,7 +106,6 @@ class Exporter:
     def export_property_collection(
         self,
         obj: bpy.types.bpy_struct,
-        assumed_type: type,
         prop: bpy.types.CollectionProperty,
         from_root: FromRoot,
     ):
@@ -120,10 +113,6 @@ class Exporter:
             print(from_root.to_str())
 
         assert prop.type == "COLLECTION"
-        if hasattr(assumed_type, "bl_rna"):
-            assert any(
-                prop.identifier == p.identifier for p in assumed_type.bl_rna.properties
-            )
 
         attribute = getattr(obj, prop.identifier)
 
@@ -148,7 +137,6 @@ class Exporter:
                 continue
             d_prop = self.export_property_simple(
                 obj,
-                assumed_type,
                 prop,
                 from_root.add_prop(prop),
             )
@@ -159,23 +147,21 @@ class Exporter:
     def export_property(
         self,
         obj: bpy.types.bpy_struct,
-        assumed_type: type,
         prop: bpy.types.Property,
         from_root: FromRoot,
     ):
         if prop.type in PROPERTY_TYPES_SIMPLE:
-            return self.export_property_simple(obj, assumed_type, prop, from_root)
+            return self.export_property_simple(obj, prop, from_root)
         elif prop.type == "POINTER":
-            return self.export_property_pointer(obj, assumed_type, prop, from_root)
+            return self.export_property_pointer(obj, prop, from_root)
         elif prop.type == "COLLECTION":
-            return self.export_property_collection(obj, assumed_type, prop, from_root)
+            return self.export_property_collection(obj, prop, from_root)
         else:
             raise RuntimeError(f"Unknown property type: {prop.type}")
 
     def export_properties_from_id_list(
         self,
         obj: bpy.types.bpy_struct,
-        assumed_type: type,
         properties: list[str],
         from_root: FromRoot,
     ):
@@ -183,7 +169,6 @@ class Exporter:
         for prop in [obj.bl_rna.properties[p] for p in properties]:
             d_prop = self.export_property(
                 obj,
-                assumed_type,
                 prop,
                 from_root.add_prop(prop),
             )
@@ -201,18 +186,18 @@ class Exporter:
         prop: bpy.types.Property,
         from_root,
     ):
-        def error_out(reason: str, prop_from_root: FromRoot):
+        def error_out(reason: str):
             raise RuntimeError(
                 f"""\
 More specific handler needed for type: {type(obj)}
 Reason: {reason}
-From root: {prop_from_root.to_str()}"""
+From root: {from_root.to_str()}"""
             )
 
         if prop.type in PROPERTY_TYPES_SIMPLE:
             if prop.is_readonly:
                 return None
-            return self.export_property_simple(obj, type(obj), prop, from_root)
+            return self.export_property_simple(obj, prop, from_root)
 
         attribute = getattr(obj, prop.identifier)
         if attribute is None:
@@ -220,8 +205,8 @@ From root: {prop_from_root.to_str()}"""
 
         if prop.type == "POINTER":
             if prop.is_readonly and attribute.id_data != self.current_tree:
-                error_out("readonly pointer to external", from_root)
-            return self.export_property_pointer(obj, type(obj), prop, from_root)
+                error_out("readonly pointer to external")
+            return self.export_property_pointer(obj, prop, from_root)
 
         if prop.type == "COLLECTION":
             if (
@@ -230,17 +215,16 @@ From root: {prop_from_root.to_str()}"""
                 and type(prop.fixed_type) not in self.specific_handlers
             ):
                 error_out(
-                    "collection with function that requires args and the elements aren't specifically handled",
-                    from_root,
+                    "collection with function that requires args and the elements aren't specifically handled"
                 )
-            return self.export_property_collection(obj, type(obj), prop, from_root)
+            return self.export_property_collection(obj, prop, from_root)
 
         raise RuntimeError(f"Unknown property type: {prop.type}")
 
     def _export_obj_with_serializer(
         self,
         obj: bpy.types.bpy_struct,
-        serializer: Callable[[Self, bpy.types.bpy_struct, FromRoot], dict],
+        serializer: SERIALIZER,
         from_root: FromRoot,
     ):
         if self.debug_prints:
@@ -326,7 +310,7 @@ def export_nodes(
     is_material: bool,
     name: str,
     output_file: str,
-    specific_handlers: dict = {},
+    specific_handlers: dict[type, SERIALIZER],
     export_sub_trees: bool = True,
     skip_defaults: bool = True,
 ):
@@ -354,7 +338,6 @@ def export_nodes(
     d = {
         BLENDER_VERSION: bpy.app.version_string,
         NODES_AS_JSON_VERSION: blender_manifest["version"],
-        # pylint: disable=protected-access
         TREES: [
             # pylint: disable=protected-access
             exporter._export_node_tree(tree, from_root)

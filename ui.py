@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 
 from .export_nodes import export_nodes
-from .specific_handlers import BUILT_IN_HANDLERS
+from .specific_handlers import BUILT_IN_DESERIALIZERS, BUILT_IN_SERIALIZERS
 from .import_nodes import import_nodes
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
@@ -29,7 +29,7 @@ class SCENE_OT_NodesAsJSON_Panel_Export(bpy.types.Operator):
             is_material=self.is_material,
             name=self.name,
             output_file=self.output_file,
-            specific_handlers=BUILT_IN_HANDLERS,
+            specific_handlers=BUILT_IN_SERIALIZERS,
             export_sub_trees=self.export_sub_trees,
             skip_defaults=self.skip_defaults,
         )
@@ -51,7 +51,7 @@ class SCENE_OT_NodesAsJSON_Panel_Import(bpy.types.Operator):
     def execute(self, _context):
         import_nodes(
             input_file=self.input_file,
-            to_reference=set(),  # TODO
+            specific_handlers=BUILT_IN_DESERIALIZERS,
             allow_version_mismatch=self.allow_version_mismatch,
             overwrite=self.overwrite,
         )
