@@ -104,7 +104,7 @@ class Importer:
             print(f"{from_root.to_str()}: importing collection")
 
         assert prop.type == "COLLECTION"
-        assert "items" in serialization
+        assert "items" in serialization[DATA]
 
         attribute = getattr(obj, prop.identifier)
 
@@ -115,7 +115,7 @@ class Importer:
             from_root,
         )
 
-        serialized_items = serialization["items"]
+        serialized_items = serialization[DATA]["items"]
 
         if len(serialized_items) != len(attribute):
             raise RuntimeError(
@@ -220,17 +220,17 @@ From root: {from_root.to_str()}"""
         if prop.type in PROPERTY_TYPES_SIMPLE:
             if prop.is_readonly:
                 if self.debug_prints:
-                    print(f"{from_root.as_str()}: skipping readonly")
+                    print(f"{from_root.to_str()}: skipping readonly")
                 return
 
         if prop.identifier not in obj_serialization:
             if prop.type in PROPERTY_TYPES_SIMPLE:
                 if self.debug_prints:
-                    print(f"{from_root.as_str()}: missing, assume default")
+                    print(f"{from_root.to_str()}: missing, assume default")
                 return
             if prop.type == "POINTER" and not prop.is_readonly:
                 if self.debug_prints:
-                    print(f"{from_root.as_str()}: missing, assume not set")
+                    print(f"{from_root.to_str()}: missing, assume not set")
                 return
             error_out("missing property in serialization")
 
