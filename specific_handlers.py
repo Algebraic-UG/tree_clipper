@@ -2,6 +2,7 @@ import bpy
 
 from types import NoneType
 
+from .import_nodes import GETTER, Importer
 from .export_nodes import Exporter
 
 from .common import (
@@ -36,7 +37,31 @@ def _export_all_simple_writable_properties_and_list(
     ) | exporter.export_properties_from_id_list(obj, additional, from_root)
 
 
-def _node_tree(
+def _import_all_simple_writable_properties_and_list(
+    importer: Importer,
+    obj: bpy.types.bpy_struct,
+    getter: GETTER,
+    serialization: dict,
+    assumed_type: type,
+    additional: list[str],
+    from_root: FromRoot,
+):
+    importer.import_all_simple_writable_properties(
+        obj,
+        serialization,
+        assumed_type,
+        from_root,
+    )
+    importer.import_properties_from_id_list(
+        obj,
+        getter,
+        serialization,
+        additional,
+        from_root,
+    )
+
+
+def _export_node_tree(
     exporter: Exporter,
     node_tree: bpy.types.NodeTree,
     from_root: FromRoot,
@@ -50,6 +75,24 @@ def _node_tree(
     )
 
     return d
+
+
+def _import_node_tree(
+    importer: Exporter,
+    node_tree: bpy.types.NodeTree,
+    getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    _import_all_simple_writable_properties_and_list(
+        importer,
+        node_tree,
+        getter,
+        serialization,
+        bpy.types.NodeTree,
+        [NODE_TREE_NODES, NODE_TREE_LINKS, NODE_TREE_INTERFACE],
+        from_root,
+    )
 
 
 def _node_tree_interface(
@@ -146,7 +189,7 @@ def _link(
 # TODO: make sure that they use a matching type in the hint
 BUILT_IN_SERIALIZERS = {
     NoneType: lambda _exporter, _obj, _from_root: {},
-    bpy.types.NodeTree: _node_tree,
+    bpy.types.NodeTree: _export_node_tree,
     bpy.types.NodeTreeInterface: _node_tree_interface,
     bpy.types.NodeTreeInterfaceSocket: _interface_tree_socket,
     bpy.types.NodeTreeInterfacePanel: _interface_tree_panel,
@@ -159,4 +202,5 @@ BUILT_IN_SERIALIZERS = {
 # TODO: make sure that they use a matching type in the hint
 BUILT_IN_DESERIALIZERS = {
     NoneType: lambda _importer, _obj, _getter, _serialization, _from_root: {},
+    bpy.types.NodeTree: _import_node_tree,
 }

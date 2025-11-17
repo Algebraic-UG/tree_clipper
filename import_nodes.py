@@ -27,7 +27,7 @@ GETTER = Callable[[], bpy.types.bpy_struct]
 DESERIALIZER = Callable[[Any, bpy.types.bpy_struct, GETTER, dict, FromRoot], None]
 
 
-class _Importer:
+class Importer:
     def __init__(
         self,
         specific_handlers: dict[type, DESERIALIZER],
@@ -376,7 +376,7 @@ def import_nodes(
     getters: dict[int, GETTER] = {},
     overwrite=False,
 ):
-    importer = _Importer(
+    importer = Importer(
         specific_handlers=specific_handlers,
         getters=getters,
         debug_prints=True,
