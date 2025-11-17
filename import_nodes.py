@@ -327,6 +327,11 @@ def _check_version(d: dict):
         return f"{name} version mismatch. File version: {exporter_node_as_json_version}, but running {importer_node_as_json_version}"
 
 
+################################################################################
+# entry point
+################################################################################
+
+
 def import_nodes(
     *,
     input_file: str,
