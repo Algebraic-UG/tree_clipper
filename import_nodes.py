@@ -3,7 +3,6 @@ import bpy
 
 from typing import Any, Callable, Self
 
-import functools
 import sys
 import tomllib
 import json
@@ -337,11 +336,12 @@ def import_nodes(
     input_file: str,
     specific_handlers: dict[type, DESERIALIZER],
     allow_version_mismatch=False,
+    getters: dict[int, GETTER] = {},
     overwrite=False,
 ):
     importer = _Importer(
         specific_handlers=specific_handlers,
-        getters={},
+        getters=getters,
         debug_prints=True,
     )
 
