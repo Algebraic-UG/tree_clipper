@@ -198,6 +198,28 @@ def _import_node_inputs(
         )
 
 
+def _import_node_outputs(
+    importer: Importer,
+    outputs: bpy.types.NodeOutputs,
+    _getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    existing_identifiers = [i.identifier for i in outputs]
+    for output_sockets in serialization["items"]:
+        data = output_sockets[DATA]
+        identifier = data["identifier"]
+        if identifier in existing_identifiers:
+            continue
+        if importer.debug_prints:
+            print(f"{from_root}: adding {identifier}")
+        outputs.new(
+            type=data["bl_idname"],
+            name=data["name"],
+            identifier=identifier,
+        )
+
+
 def _export_socket(
     exporter: Exporter,
     socket: bpy.types.NodeSocket,
@@ -250,4 +272,5 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.NodeTree: _import_node_tree,
     bpy.types.Nodes: _import_nodes,
     bpy.types.NodeInputs: _import_node_inputs,
+    bpy.types.NodeOutputs: _import_node_outputs,
 }
