@@ -266,15 +266,23 @@ From root: {from_root.to_str()}"""
         serialization: dict,
         from_root: FromRoot,
     ):
-        if (
-            isinstance(obj, bpy.types.bpy_prop_collection)
-            and type(obj) not in self.specific_handlers
-        ):
+        # edge case for things like bpy_prop_collection that aren't real RNA types?
+        if not hasattr(obj, "bl_rna"):
+            assert isinstance(obj, bpy.types.bpy_prop_collection)
+            return self._import_obj_with_deserializer(
+                obj,
+                getter,
+                serialization,
+                self.specific_handlers[NoneType],
+                from_root,
+            )
+
+        assumed_type = most_specific_type_handled(self.specific_handlers, obj)
+        if isinstance(obj, bpy.types.bpy_prop_collection) and assumed_type is NoneType:
             self._error_out(
                 obj, "collections must be handled *specifically*", from_root
             )
 
-        assumed_type = most_specific_type_handled(self.specific_handlers, obj)
         specific_handler = self.specific_handlers[assumed_type]
         handled_prop_ids = (
             [p.identifier for p in assumed_type.bl_rna.properties]

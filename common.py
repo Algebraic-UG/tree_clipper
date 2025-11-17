@@ -72,9 +72,6 @@ def most_specific_type_handled(
     # collections are too weird, this is False:
     # type(bpy.data.node_groups['Geometry Nodes'].nodes) == bpy.types.Nodes
     if isinstance(obj, bpy.types.bpy_prop_collection):
-        # weird edge case NodeTreeInterface.items_tree falls in here
-        if not hasattr(obj, "bl_rna"):
-            return NoneType
         return next(
             (
                 t
