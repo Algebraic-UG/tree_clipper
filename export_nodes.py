@@ -9,26 +9,28 @@ import json
 from pathlib import Path
 
 from .common import (
+    DATA,
+    ID,
     PROPERTY_TYPES_SIMPLE,
     BLENDER_VERSION,
     NODES_AS_JSON_VERSION,
     MATERIAL_NAME,
+    REFERENCE,
     TREES,
+    most_specific_type_handled,
     no_clobber,
     FromRoot,
 )
 
 
-class Pointer:
+class UnresolvedPointer:
     def __init__(
         self,
         *,
         from_root: FromRoot,
-        in_serialization: dict,
         points_to: bpy.types.bpy_struct,
     ):
         self.from_root = from_root
-        self.in_serialization = in_serialization
         self.points_to = points_to
 
 
@@ -43,7 +45,6 @@ class Exporter:
         self.specific_handlers = specific_handlers
         self.skip_defaults = skip_defaults
         self.debug_prints = debug_prints
-        self.pointers = {}
         self.serialized = {}
         self.current_tree = None
 
@@ -62,9 +63,10 @@ class Exporter:
             print(from_root.to_str())
 
         assert prop.type in PROPERTY_TYPES_SIMPLE
-        assert any(
-            prop.identifier == p.identifier for p in assumed_type.bl_rna.properties
-        )
+        if hasattr(assumed_type, "bl_rna"):
+            assert any(
+                prop.identifier == p.identifier for p in assumed_type.bl_rna.properties
+            )
 
         attribute = getattr(obj, prop.identifier)
 
@@ -89,27 +91,20 @@ class Exporter:
             print(from_root.to_str())
 
         assert prop.type == "POINTER"
-        assert any(
-            prop.identifier == p.identifier for p in assumed_type.bl_rna.properties
-        )
+        if hasattr(assumed_type, "bl_rna"):
+            assert any(
+                prop.identifier == p.identifier for p in assumed_type.bl_rna.properties
+            )
 
         attribute = getattr(obj, prop.identifier)
 
         if attribute is None:
             return None
 
-        if attribute.id_data == self.current_tree:
+        if attribute.id_data == self.current_tree and prop.is_readonly:
             return self._export_obj(attribute, from_root)
         else:
-            d = {}
-            self.pointers.setdefault(attribute.as_pointer(), []).append(
-                Pointer(
-                    from_root=from_root,
-                    in_serialization=d,
-                    points_to=attribute,
-                )
-            )
-            return d
+            return UnresolvedPointer(from_root=from_root, points_to=attribute)
 
     def export_property_collection(
         self,
@@ -122,16 +117,21 @@ class Exporter:
             print(from_root.to_str())
 
         assert prop.type == "COLLECTION"
-        assert any(
-            prop.identifier == p.identifier for p in assumed_type.bl_rna.properties
-        )
+        if hasattr(assumed_type, "bl_rna"):
+            assert any(
+                prop.identifier == p.identifier for p in assumed_type.bl_rna.properties
+            )
 
         attribute = getattr(obj, prop.identifier)
 
-        return [
+        d = self._export_obj(attribute, from_root)
+        items = [
             self._export_obj(element, from_root.add(f"[{i}]"))
             for i, element in enumerate(attribute)
         ]
+        no_clobber(d, "items", items)
+
+        return d
 
     def export_all_simple_writable_properties(
         self,
@@ -243,27 +243,23 @@ From root: {prop_from_root.to_str()}"""
         if self.debug_prints:
             print(from_root.to_str())
 
-        if obj.as_pointer() in self.serialized:
-            raise RuntimeError(f"Double serialization: {from_root.to_str()}")
-        self.serialized[obj.as_pointer()] = {}
+        d = {ID: str(uuid4())}
 
-        d = serializer(self, obj, from_root)
-        self.serialized[obj.as_pointer()] = d
+        # if an obj has no as_pointer but can still be pointed to via PointerProperty we might be in trouble
+        if hasattr(obj, "as_pointer"):
+            if obj.as_pointer() in self.serialized:
+                raise RuntimeError(f"Double serialization: {from_root.to_str()}")
+            self.serialized[obj.as_pointer()] = d
 
+        d[DATA] = serializer(self, obj, from_root)
         return d
 
-    def _most_specific_type_handled(self, t: type):
-        while True:
-            if t in self.specific_handlers:
-                return t
-            if len(t.__bases__) == 0:
-                return NoneType
-            if len(t.__bases__) > 1:
-                raise RuntimeError(f"multiple inheritence {t}, unclear what to choose")
-            t = t.__bases__[0]
-
     def _export_obj(self, obj: bpy.types.bpy_struct, from_root: FromRoot):
-        assumed_type = self._most_specific_type_handled(type(obj))
+        # edge case for things like bpy_prop_collection that aren't real RNA types?
+        if not hasattr(obj, "bl_rna"):
+            return {}
+
+        assumed_type = most_specific_type_handled(self.specific_handlers, type(obj))
         specific_handler = self.specific_handlers[assumed_type]
         handled_prop_ids = (
             [p.identifier for p in assumed_type.bl_rna.properties]
@@ -315,6 +311,31 @@ def _collect_sub_trees(
                 _collect_sub_trees(tree, trees, sub_root)
 
 
+def _collect_unresolved_pointers(d, setter: Callable[[str], None] = None):
+    if isinstance(d, UnresolvedPointer):
+        assert setter is not None
+        return [(setter, d)]
+
+    def make_setter(k: str | int):
+        def setter(reference: str):
+            d[k] = reference
+
+        return setter
+
+    if isinstance(d, list):
+        to_check = enumerate(d)
+    elif isinstance(d, dict):
+        to_check = d.items()
+    else:
+        to_check = []
+
+    found = []
+    for k, e in to_check:
+        found.extend(_collect_unresolved_pointers(e, make_setter(k)))
+
+    return found
+
+
 ################################################################################
 # entry point
 ################################################################################
@@ -364,14 +385,13 @@ def export_nodes(
     if is_material:
         d[MATERIAL_NAME] = name
 
-    for ptr, pointers_to_same in exporter.pointers.items():
+    for setter, unresolved_pointer in _collect_unresolved_pointers(d):
+        ptr = unresolved_pointer.points_to.as_pointer()
         if ptr in exporter.serialized:
-            uuid = str(uuid4())
-            exporter.serialized[ptr]["nodes_as_json_uuid"] = uuid
-            for pointer in pointers_to_same:
-                pointer.in_serialization["serialized_as"] = uuid
+            setter(exporter.serialized[ptr][ID])
         else:
             # TODO
+            setter("external and TODO")
             pass
 
     with Path(output_file).open("w", encoding="utf-8") as f:
