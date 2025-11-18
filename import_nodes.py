@@ -329,8 +329,6 @@ From root: {from_root.to_str()}"""
             serialization: dict,
             from_root: FromRoot,
         ):
-            specific_handler(importer, obj, getter, serialization, from_root)
-
             def make_getter(identifier: str):
                 return lambda: getattr(getter(), identifier)
 
@@ -343,6 +341,8 @@ From root: {from_root.to_str()}"""
                     serialization,
                     from_root.add_prop(prop),
                 )
+
+            specific_handler(importer, obj, getter, serialization, from_root)
 
         self._import_obj_with_deserializer(
             obj,
