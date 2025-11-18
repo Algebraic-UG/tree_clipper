@@ -679,6 +679,28 @@ def _import_repeat_items(
         items.new(socket_type=socket_type, name=name)
 
 
+def _export_index_item(
+    _exporter: Exporter,
+    _node: bpy.types.IndexSwitchItem,
+    _from_root: FromRoot,
+):
+    return {}
+
+
+def _import_index_items(
+    importer: Importer,
+    items: bpy.types.NodeIndexSwitchItems,
+    _getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    items.clear()
+    for _ in serialization["items"]:
+        if importer.debug_prints:
+            print(f"{from_root.to_str()}: adding index")
+        items.new()
+
+
 # TODO: make sure that they use a matching type in the hint
 BUILT_IN_SERIALIZERS = {
     NoneType: lambda _exporter, _obj, _from_root: {},
@@ -693,6 +715,7 @@ BUILT_IN_SERIALIZERS = {
     bpy.types.GeometryNodeCaptureAttribute: _export_capture_attr,
     bpy.types.GeometryNodeRepeatInput: _export_repeat_input,
     bpy.types.GeometryNodeRepeatOutput: _export_repeat_output,
+    bpy.types.IndexSwitchItem: _export_index_item,
 }
 
 
@@ -717,4 +740,5 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.GeometryNodeRepeatInput: _import_repeat_input,
     bpy.types.GeometryNodeRepeatOutput: _import_repeat_output,
     bpy.types.NodeGeometryRepeatOutputItems: _import_repeat_items,
+    bpy.types.NodeIndexSwitchItems: _import_index_items,
 }
