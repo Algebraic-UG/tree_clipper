@@ -43,7 +43,7 @@ class SCENE_OT_NodesAsJSON_Panel_Import(bpy.types.Operator):
 
     input_file: bpy.props.StringProperty(name="Input File", default=DEFAULT_FILE, subtype="FILE_PATH")  # type: ignore
     allow_version_mismatch: bpy.props.BoolProperty(name="Ignore Version", default=False)  # type: ignore
-    overwrite: bpy.props.BoolProperty(name="Overwrite", default=False)  # type: ignore
+    overwrite: bpy.props.BoolProperty(name="Overwrite", default=True)  # type: ignore
 
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
