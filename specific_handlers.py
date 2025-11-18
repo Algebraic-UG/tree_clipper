@@ -793,5 +793,6 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.GeometryNodeRepeatOutput: _import_repeat_output,
     bpy.types.NodeGeometryRepeatOutputItems: _import_repeat_items,
     bpy.types.NodeIndexSwitchItems: _import_index_items,
+    bpy.types.GeometryNodeViewer: _import_viewer,
     bpy.types.NodeGeometryViewerItems: _import_view_items,
 }
