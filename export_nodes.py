@@ -1,5 +1,8 @@
 import bpy
 
+import base64
+import gzip
+
 from types import NoneType
 from typing import Any, Callable, Self
 
@@ -373,3 +376,9 @@ def export_nodes(
 
     with Path(output_file).open("w", encoding="utf-8") as f:
         f.write(json.dumps(d, cls=Encoder, indent=4))
+
+        # json_str = json.dumps(d, cls=Encoder)
+        # gzipped = gzip.compress(json_str.encode("utf-8"))
+        # base64_str = base64.b64encode(gzipped).decode("utf-8")
+
+        # f.write(base64_str)
