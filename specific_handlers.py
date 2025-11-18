@@ -701,6 +701,57 @@ def _import_index_items(
         items.new()
 
 
+def _export_viewer(
+    exporter: Exporter,
+    node: bpy.types.GeometryNodeViewer,
+    from_root: FromRoot,
+):
+    return _export_all_simple_writable_properties_and_list(
+        exporter,
+        node,
+        bpy.types.GeometryNodeViewer,
+        [INPUTS, OUTPUTS, "viewer_items"],
+        from_root,
+    )
+
+
+def _import_viewer(
+    importer: Importer,
+    node: bpy.types.GeometryNodeViewer,
+    getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    _import_all_simple_writable_properties_and_list(
+        importer,
+        node,
+        getter,
+        serialization,
+        bpy.types.GeometryNodeViewer,
+        ["viewer_items", INPUTS, OUTPUTS],
+        from_root,
+    )
+
+
+def _import_view_items(
+    importer: Importer,
+    items: bpy.types.NodeGeometryViewerItems,
+    _getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    items.clear()
+    for item in serialization["items"]:
+        data = item[DATA]
+        name = _or_default(data, bpy.types.NodeGeometryViewerItem, "name")
+        socket_type = _or_default(data, bpy.types.NodeGeometryViewerItem, "socket_type")
+
+        if importer.debug_prints:
+            print(f"{from_root.to_str()}: adding item {name} {socket_type}")
+
+        items.new(socket_type=socket_type, name=name)
+
+
 # TODO: make sure that they use a matching type in the hint
 BUILT_IN_SERIALIZERS = {
     NoneType: lambda _exporter, _obj, _from_root: {},
@@ -716,6 +767,7 @@ BUILT_IN_SERIALIZERS = {
     bpy.types.GeometryNodeRepeatInput: _export_repeat_input,
     bpy.types.GeometryNodeRepeatOutput: _export_repeat_output,
     bpy.types.IndexSwitchItem: _export_index_item,
+    bpy.types.GeometryNodeViewer: _export_viewer,
 }
 
 
@@ -741,4 +793,5 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.GeometryNodeRepeatOutput: _import_repeat_output,
     bpy.types.NodeGeometryRepeatOutputItems: _import_repeat_items,
     bpy.types.NodeIndexSwitchItems: _import_index_items,
+    bpy.types.NodeGeometryViewerItems: _import_view_items,
 }
