@@ -127,8 +127,21 @@ def _import_node_tree(
             # the nodes and their sockets must exist in order to be linked up
             NODE_TREE_INTERFACE,
             NODE_TREE_NODES,
-            NODE_TREE_LINKS,
         ],
+        from_root,
+    )
+
+    # one thing that requires this is the repeat zone
+    # after this more sockets are available for linking
+    for f in importer.create_special_node_connections:
+        f()
+    importer.create_special_node_connections.clear()
+
+    importer.import_properties_from_id_list(
+        node_tree,
+        getter,
+        serialization,
+        [NODE_TREE_LINKS],
         from_root,
     )
 
@@ -566,6 +579,106 @@ def _import_catpure_attr_items(
         items.new(socket_type=socket_type, name=name)
 
 
+def _export_repeat_input(
+    exporter: Exporter,
+    node: bpy.types.GeometryNodeRepeatInput,
+    from_root: FromRoot,
+):
+    d = _export_all_simple_writable_properties_and_list(
+        exporter,
+        node,
+        bpy.types.GeometryNodeRepeatInput,
+        [INPUTS, OUTPUTS],
+        from_root,
+    )
+    if node.paired_output is None:
+        raise RuntimeError("Having no paired output for repeat nodes isn't supported")
+    no_clobber(d, "paired_output", node.paired_output.name)
+
+    return d
+
+
+def _import_repeat_input(
+    importer: Importer,
+    node: bpy.types.GeometryNodeRepeatInput,
+    getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    importer.import_all_simple_writable_properties(
+        node,
+        getter,
+        serialization,
+        bpy.types.GeometryNodeRepeatInput,
+        from_root,
+    )
+
+    output = serialization["paired_output"]
+
+    def deferred():
+        if not getter().pair_with_output(importer.current_tree.nodes[output]):
+            raise RuntimeError(f"{from_root.to_str()}: failed to pair with {output}")
+        importer.import_properties_from_id_list(
+            node,
+            getter,
+            serialization,
+            [INPUTS, OUTPUTS],
+            from_root,
+        )
+
+    # defer connection until we've created the output node
+    # only then, import the sockets
+    importer.create_special_node_connections.append(deferred)
+
+
+def _export_repeat_output(
+    exporter: Exporter,
+    node: bpy.types.GeometryNodeRepeatOutput,
+    from_root: FromRoot,
+):
+    return _export_all_simple_writable_properties_and_list(
+        exporter,
+        node,
+        bpy.types.GeometryNodeRepeatOutput,
+        [INPUTS, OUTPUTS, "repeat_items"],
+        from_root,
+    )
+
+
+def _import_repeat_output(
+    importer: Importer,
+    node: bpy.types.GeometryNodeRepeatOutput,
+    getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    _import_all_simple_writable_properties_and_list(
+        importer,
+        node,
+        getter,
+        serialization,
+        bpy.types.GeometryNodeRepeatOutput,
+        ["repeat_items", INPUTS, OUTPUTS],
+        from_root,
+    )
+
+
+def _import_repeat_items(
+    importer: Importer,
+    items: bpy.types.NodeGeometryRepeatOutputItems,
+    _getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    items.clear()
+    for item in serialization["items"]:
+        name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
+        socket_type = _or_default(item[DATA], bpy.types.RepeatItem, "socket_type")
+        if importer.debug_prints:
+            print(f"{from_root.to_str()}: adding item {name} {socket_type}")
+        items.new(socket_type=socket_type, name=name)
+
+
 # TODO: make sure that they use a matching type in the hint
 BUILT_IN_SERIALIZERS = {
     NoneType: lambda _exporter, _obj, _from_root: {},
@@ -578,6 +691,8 @@ BUILT_IN_SERIALIZERS = {
     bpy.types.NodeLink: _export_link,
     bpy.types.GeometryNodeMenuSwitch: _export_menu_switch,
     bpy.types.GeometryNodeCaptureAttribute: _export_capture_attr,
+    bpy.types.GeometryNodeRepeatInput: _export_repeat_input,
+    bpy.types.GeometryNodeRepeatOutput: _export_repeat_output,
 }
 
 
@@ -599,4 +714,7 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.NodeMenuSwitchItems: _import_menu_switch_items,
     bpy.types.GeometryNodeCaptureAttribute: _import_capture_attr,
     bpy.types.NodeGeometryCaptureAttributeItems: _import_catpure_attr_items,
+    bpy.types.GeometryNodeRepeatInput: _import_repeat_input,
+    bpy.types.GeometryNodeRepeatOutput: _import_repeat_output,
+    bpy.types.NodeGeometryRepeatOutputItems: _import_repeat_items,
 }
