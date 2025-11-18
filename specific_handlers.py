@@ -143,7 +143,7 @@ def _export_node_tree_interface(
     )
 
 
-def _imprt_node_tree_interface(
+def _import_node_tree_interface(
     importer: Importer,
     interface: bpy.types.NodeTreeInterface,
     getter: GETTER,
@@ -342,7 +342,7 @@ BUILT_IN_SERIALIZERS = {
 BUILT_IN_DESERIALIZERS = {
     NoneType: lambda _importer, _obj, _getter, _serialization, _from_root: {},
     bpy.types.NodeTree: _import_node_tree,
-    bpy.types.NodeTreeInterface: _imprt_node_tree_interface,
+    bpy.types.NodeTreeInterface: _import_node_tree_interface,
     bpy.types.Nodes: _import_nodes,
     bpy.types.NodeInputs: _import_node_inputs,
     bpy.types.NodeOutputs: _import_node_outputs,
