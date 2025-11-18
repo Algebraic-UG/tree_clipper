@@ -309,48 +309,25 @@ def _export_node(
 
 
 def _import_node_inputs(
-    importer: Importer,
+    _importer: Importer,
     inputs: bpy.types.NodeInputs,
     _getter: GETTER,
     serialization: dict,
-    from_root: FromRoot,
+    _from_root: FromRoot,
 ):
-    existing_identifiers = [i.identifier for i in inputs]
-    for input_socket in serialization["items"]:
-        data = input_socket[DATA]
-        identifier = data["identifier"]
-        if identifier in existing_identifiers:
-            continue
-        if importer.debug_prints:
-            print(f"{from_root.to_str()}: adding {identifier}")
-        inputs.new(
-            type=data["bl_idname"],
-            name=data["name"],
-            identifier=identifier,
-            use_multi_input=_or_default(data, bpy.types.NodeSocket, "is_multi_input"),
-        )
+    if len(inputs) != len(serialization["items"]):
+        raise RuntimeError("We currently don't support creating sockets")
 
 
 def _import_node_outputs(
-    importer: Importer,
+    _importer: Importer,
     outputs: bpy.types.NodeOutputs,
     _getter: GETTER,
     serialization: dict,
-    from_root: FromRoot,
+    _from_root: FromRoot,
 ):
-    existing_identifiers = [i.identifier for i in outputs]
-    for output_sockets in serialization["items"]:
-        data = output_sockets[DATA]
-        identifier = data["identifier"]
-        if identifier in existing_identifiers:
-            continue
-        if importer.debug_prints:
-            print(f"{from_root.to_str()}: adding {identifier}")
-        outputs.new(
-            type=data["bl_idname"],
-            name=data["name"],
-            identifier=identifier,
-        )
+    if len(outputs) != len(serialization["items"]):
+        raise RuntimeError("We currently don't support creating sockets")
 
 
 def _export_socket(
@@ -358,15 +335,27 @@ def _export_socket(
     socket: bpy.types.NodeSocket,
     from_root: FromRoot,
 ):
-    d = _export_all_simple_writable_properties_and_list(
-        exporter,
+    return exporter.export_all_simple_writable_properties(
         socket,
         bpy.types.NodeSocket,
-        [SOCKET_IDENTIFIER, IS_MULTI_INPUT],
         from_root,
     )
 
-    return d
+
+def _import_socket(
+    importer: Importer,
+    socket: bpy.types.NodeSocket,
+    getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    importer.import_all_simple_writable_properties(
+        socket,
+        getter,
+        serialization,
+        bpy.types.NodeSocket,
+        from_root,
+    )
 
 
 def _export_link(
@@ -425,4 +414,5 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.Nodes: _import_nodes,
     bpy.types.NodeInputs: _import_node_inputs,
     bpy.types.NodeOutputs: _import_node_outputs,
+    bpy.types.NodeSocket: _import_socket,
 }
