@@ -38,6 +38,10 @@ class Importer:
         self.getters = getters
         self.debug_prints = debug_prints
 
+        # for sockets' default enum values we need to defer
+        # first, we link everything up, then set the default values
+        self.set_socket_enum_defaults = []
+
     ################################################################################
     # helper functions to be used in specific handlers
     ################################################################################
@@ -45,6 +49,7 @@ class Importer:
     def import_property_simple(
         self,
         obj: bpy.types.bpy_struct,
+        getter: GETTER,
         prop: bpy.types.Property,
         serialization: int | str,
         from_root: FromRoot,
@@ -54,6 +59,21 @@ class Importer:
 
         assert prop.type in PROPERTY_TYPES_SIMPLE
         assert not prop.is_readonly
+
+        if (
+            (
+                isinstance(obj, bpy.types.NodeSocket)
+                or isinstance(obj, bpy.types.NodeTreeInterfaceSocket)
+            )
+            and prop.type == "ENUM"
+            and prop.identifier == "default"
+        ):
+            if self.debug_prints:
+                print(f"{from_root.to_str()}: skipping enum default for now")
+            self.set_socket_enum_defaults.append(
+                lambda: setattr(getter(), prop.identifier, serialization)
+            )
+            return
 
         # should just work^tm
         setattr(obj, prop.identifier, serialization)
@@ -142,7 +162,9 @@ class Importer:
         from_root: FromRoot,
     ):
         if prop.type in PROPERTY_TYPES_SIMPLE:
-            return self.import_property_simple(obj, prop, serialization, from_root)
+            return self.import_property_simple(
+                obj, getter, prop, serialization, from_root
+            )
         elif prop.type == "POINTER":
             return self.import_property_pointer(
                 obj, getter, prop, serialization, from_root
@@ -157,6 +179,7 @@ class Importer:
     def import_all_simple_writable_properties(
         self,
         obj: bpy.types.bpy_struct,
+        getter: GETTER,
         serialization: dict,
         assumed_type: type,
         from_root: FromRoot,
@@ -172,6 +195,7 @@ class Importer:
                 continue
             self.import_property_simple(
                 obj,
+                getter,
                 prop,
                 serialization[prop.identifier],
                 from_root.add_prop(prop),
@@ -366,6 +390,10 @@ From root: {from_root.to_str()}"""
             serialization,
             from_root,
         )
+
+        for f in self.set_socket_enum_defaults:
+            f()
+        self.set_socket_enum_defaults.clear()
 
 
 def _check_version(d: dict):

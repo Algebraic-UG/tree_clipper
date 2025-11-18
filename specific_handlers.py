@@ -50,6 +50,7 @@ def _import_all_simple_writable_properties_and_list(
 ):
     importer.import_all_simple_writable_properties(
         obj,
+        getter,
         serialization,
         assumed_type,
         from_root,
@@ -92,7 +93,12 @@ def _import_node_tree(
         getter,
         serialization,
         bpy.types.NodeTree,
-        [NODE_TREE_NODES, NODE_TREE_LINKS, NODE_TREE_INTERFACE],
+        [
+            # the order here is important
+            NODE_TREE_INTERFACE,
+            NODE_TREE_NODES,
+            NODE_TREE_LINKS,
+        ],
         from_root,
     )
 
