@@ -160,45 +160,70 @@ def _import_node_tree_interface(
 
     interface.clear()
 
-    uid_map = {}
-    for item in serialization["items_tree"][DATA]["items"]:
-        data = item[DATA]
-        item_type = data["item_type"]
+    def get_type(data: dict):
+        item_type = _or_default(data, bpy.types.NodeTreeInterfaceItem, "item_type")
         if item_type == "SOCKET":
-            t = bpy.types.NodeTreeInterfaceSocket
+            return bpy.types.NodeTreeInterfaceSocket
+        if item_type == "PANEL":
+            return bpy.types.NodeTreeInterfacePanel
+        raise RuntimeError(f"item_type neither SOCKET nor PANEL but {item_type}")
+
+    items = serialization["items_tree"][DATA]["items"]
+    uid_map = {}
+    for i, item in enumerate(items):
+        data = item[DATA]
+        t = get_type(data)
+        if t == bpy.types.NodeTreeInterfaceSocket:
             interface.new_socket(
-                name=_or_default(data, t, "name"),
+                name=str(i),
                 description=_or_default(data, t, "description"),
                 in_out=_or_default(data, t, "in_out"),
                 socket_type=data["socket_type"],
                 parent=None,
             )
-        elif item_type == "PANEL":
-            t = bpy.types.NodeTreeInterfacePanel
-            uid_map[data["persistent_uid"]] = interface.new_panel(
-                name=_or_default(data, t, "name"),
+        else:
+            uid_map[data["persistent_uid"]] = i
+            interface.new_panel(
+                name=str(i),
                 description=_or_default(data, t, "description"),
                 default_closed=_or_default(data, t, "default_closed"),
-            ).persistent_uid
-        else:
-            raise RuntimeError(f"item_type neither SOCKET nor PANEL but {item_type}")
+            )
 
     def parent(uid):
         if uid not in uid_map:
             return None
-        return next(
-            p
-            for p in interface.items_tree
-            if getattr(p, "persistent_uid", None) == uid_map[uid]
-        )
+        return interface.items_tree[str(uid_map[uid])]
 
-    for i, item in enumerate(serialization["items_tree"][DATA]["items"]):
+    for i, item in enumerate(items):
         data = item[DATA]
         interface.move_to_parent(
-            item=interface.items_tree[i],
+            item=interface.items_tree[str(i)],
             parent=parent(data["parent"]),
-            to_position=_or_default(data, bpy.types.NodeTreeInterfaceItem, "position"),
+            # this doesn't matter because we move below
+            to_position=0,
         )
+
+    # we assume that the order in the serialization matches the one in original memory
+    # but the one displayed is something else, stored in 'index'
+    # we need to be careful how we move the items, hence the sorting
+    sorted_items = list(enumerate(items))
+    sorted_items.sort(
+        key=lambda index_and_item: _or_default(
+            index_and_item[1][DATA], bpy.types.NodeTreeInterfaceItem, "index"
+        )
+    )
+    for i, item in sorted_items:
+        interface.move(
+            interface.items_tree[str(i)],
+            _or_default(item[DATA], bpy.types.NodeTreeInterfaceItem, "index"),
+        )
+
+    # this should be fine, we're not modifying the container anymore
+    sorted_objs = [interface.items_tree[str(i)] for i in range(len(items))]
+    assert len(sorted_objs) == len(items)
+    for obj, item in zip(sorted_objs, items):
+        data = item[DATA]
+        obj.name = _or_default(data, get_type(data), "name")
 
 
 def _export_interface_tree_socket(
@@ -210,7 +235,7 @@ def _export_interface_tree_socket(
         exporter,
         socket,
         bpy.types.NodeTreeInterfaceSocket,
-        ["item_type", "position", IN_OUT],
+        ["item_type", "index", IN_OUT],
         from_root,
     )
     no_clobber(d, "parent", socket.parent.persistent_uid)
@@ -226,7 +251,7 @@ def _export_interface_tree_panel(
         exporter,
         panel,
         bpy.types.NodeTreeInterfacePanel,
-        ["item_type", "position", "persistent_uid"],
+        ["item_type", "index", "persistent_uid"],
         from_root,
     )
     no_clobber(d, "parent", panel.parent.persistent_uid)
