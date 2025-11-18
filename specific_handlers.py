@@ -225,7 +225,7 @@ def _export_interface_tree_panel(
     d = _export_all_simple_writable_properties_and_list(
         exporter,
         panel,
-        bpy.types.NodeTreeInterfaceSocket,
+        bpy.types.NodeTreeInterfacePanel,
         ["item_type", "position", "persistent_uid"],
         from_root,
     )
