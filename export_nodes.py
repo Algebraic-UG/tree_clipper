@@ -80,12 +80,12 @@ class Exporter:
                         print(f"{from_root.to_str()}: skipping default")
                     return None
                 return list(attribute)
-        else:
-            if self.skip_defaults and prop.default == attribute:
-                if self.debug_prints:
-                    print(f"{from_root.to_str()}: skipping default")
-                return None
-            return attribute
+
+        if self.skip_defaults and prop.default == attribute:
+            if self.debug_prints:
+                print(f"{from_root.to_str()}: skipping default")
+            return None
+        return attribute
 
     def export_property_pointer(
         self,
