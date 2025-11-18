@@ -461,6 +461,39 @@ def _export_menu_switch(
     )
 
 
+def _import_menu_switch(
+    importer: Importer,
+    node: bpy.types.GeometryNodeMenuSwitch,
+    getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    _import_all_simple_writable_properties_and_list(
+        importer,
+        node,
+        getter,
+        serialization,
+        bpy.types.GeometryNodeMenuSwitch,
+        # ordering is important, the enum_items implicitly create sockets
+        ["enum_items", INPUTS, OUTPUTS],
+        from_root,
+    )
+
+
+def _import_menu_switch_items(
+    _importer: Importer,
+    items: bpy.types.NodeMenuSwitchItems,
+    _getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    items.clear()
+    for item in serialization["items"]:
+        name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
+        print(f"{from_root.to_str()}: adding item {name}")
+        items.new(name)
+
+
 # TODO: make sure that they use a matching type in the hint
 BUILT_IN_SERIALIZERS = {
     NoneType: lambda _exporter, _obj, _from_root: {},
@@ -489,4 +522,6 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.NodeSocket: _import_socket,
     bpy.types.NodeLinks: _import_links,
     bpy.types.NodeLink: _import_link,
+    bpy.types.GeometryNodeMenuSwitch: _import_menu_switch,
+    bpy.types.NodeMenuSwitchItems: _import_menu_switch_items,
 }
