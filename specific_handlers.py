@@ -308,6 +308,24 @@ def _export_node(
     )
 
 
+def _import_node(
+    importer: Importer,
+    node: bpy.types.Node,
+    getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    _import_all_simple_writable_properties_and_list(
+        importer,
+        node,
+        getter,
+        serialization,
+        bpy.types.Node,
+        [INPUTS, OUTPUTS],
+        from_root,
+    )
+
+
 def _import_node_inputs(
     _importer: Importer,
     inputs: bpy.types.NodeInputs,
@@ -412,6 +430,7 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.NodeTreeInterfaceItem: _import_interface_tree_item,
     bpy.types.NodeTreeInterfacePanel: _import_interface_tree_panel,
     bpy.types.Nodes: _import_nodes,
+    bpy.types.Node: _import_node,
     bpy.types.NodeInputs: _import_node_inputs,
     bpy.types.NodeOutputs: _import_node_outputs,
     bpy.types.NodeSocket: _import_socket,
