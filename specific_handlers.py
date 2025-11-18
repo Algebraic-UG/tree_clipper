@@ -38,9 +38,12 @@ def _export_all_simple_writable_properties_and_list(
     additional: list[str],
     from_root: FromRoot,
 ):
-    return exporter.export_all_simple_writable_properties(
-        obj, assumed_type, from_root
-    ) | exporter.export_properties_from_id_list(obj, additional, from_root)
+    d = exporter.export_all_simple_writable_properties(obj, assumed_type, from_root)
+    for identifier, data in exporter.export_properties_from_id_list(
+        obj, additional, from_root
+    ).items():
+        no_clobber(d, identifier, data)
+    return d
 
 
 def _import_all_simple_writable_properties_and_list(
