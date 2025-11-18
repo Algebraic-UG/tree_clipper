@@ -42,6 +42,9 @@ class Importer:
         # first, we link everything up, then set the default values
         self.set_socket_enum_defaults = []
 
+        # we need to lookup nodes and their sockets for linking them
+        self.current_tree = None
+
     ################################################################################
     # helper functions to be used in specific handlers
     ################################################################################
@@ -384,12 +387,14 @@ From root: {from_root.to_str()}"""
         if self.debug_prints:
             print(f"{from_root.to_str()}: entering")
 
+        self.current_tree = node_tree
         self._import_obj(
             node_tree,
             getter,
             serialization,
             from_root,
         )
+        self.current_tree = None
 
         for f in self.set_socket_enum_defaults:
             f()

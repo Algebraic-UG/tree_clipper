@@ -409,6 +409,44 @@ def _export_link(
     return d
 
 
+def _import_links(
+    importer: Importer,
+    links: bpy.types.NodeLinks,
+    _getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    for link in serialization["items"]:
+        data = link[DATA]
+        from_node = data["from_node"]
+        from_socket = data["from_socket"]
+        to_node = data["to_node"]
+        to_socket = data["to_socket"]
+        if importer.debug_prints:
+            print(
+                f"{from_root.to_str()}: linking {from_node}, {from_socket} to {to_node}, {to_socket}"
+            )
+        source = importer.current_tree.nodes[from_node].outputs[from_socket]
+        target = importer.current_tree.nodes[to_node].inputs[to_socket]
+        links.new(source, target)
+
+
+def _import_link(
+    importer: Importer,
+    link: bpy.types.NodeLink,
+    getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    importer.import_all_simple_writable_properties(
+        link,
+        getter,
+        serialization,
+        bpy.types.NodeLink,
+        from_root,
+    )
+
+
 # TODO: make sure that they use a matching type in the hint
 BUILT_IN_SERIALIZERS = {
     NoneType: lambda _exporter, _obj, _from_root: {},
@@ -434,4 +472,6 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.NodeInputs: _import_node_inputs,
     bpy.types.NodeOutputs: _import_node_outputs,
     bpy.types.NodeSocket: _import_socket,
+    bpy.types.NodeLinks: _import_links,
+    bpy.types.NodeLink: _import_link,
 }
