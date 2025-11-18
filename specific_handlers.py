@@ -31,6 +31,25 @@ def _or_default(serialization: dict, t: type, identifier: str):
     return serialization.get(identifier, t.bl_rna.properties[identifier].default)
 
 
+# TODO this is incomplete?
+def _map_attribute_type_to_socket_type(attr_type: str):
+    return {
+        "FLOAT": "FLOAT",
+        "INT": "INT",
+        "BOOLEAN": "BOOLEAN",
+        "FLOAT_VECTOR": "VECTOR",
+        "FLOAT_COLOR": "RGBA",
+        # "QUATERNION": ???
+        "FLOAT4X4": "MATRIX",
+        "STRING": "STRING",
+        "INT8": "INT",
+        # "INT16_2D": ???
+        # "INT32_2D": ???
+        # "FLOAT2":???
+        # "BYTE_COLOR":???
+    }[attr_type]
+
+
 def _export_all_simple_writable_properties_and_list(
     exporter: Exporter,
     obj: bpy.types.bpy_struct,
@@ -481,7 +500,7 @@ def _import_menu_switch(
 
 
 def _import_menu_switch_items(
-    _importer: Importer,
+    importer: Importer,
     items: bpy.types.NodeMenuSwitchItems,
     _getter: GETTER,
     serialization: dict,
@@ -490,8 +509,61 @@ def _import_menu_switch_items(
     items.clear()
     for item in serialization["items"]:
         name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
-        print(f"{from_root.to_str()}: adding item {name}")
+        if importer.debug_prints:
+            print(f"{from_root.to_str()}: adding item {name}")
         items.new(name)
+
+
+def _export_capture_attr(
+    exporter: Exporter,
+    node: bpy.types.GeometryNodeCaptureAttribute,
+    from_root: FromRoot,
+):
+    return _export_all_simple_writable_properties_and_list(
+        exporter,
+        node,
+        bpy.types.GeometryNodeCaptureAttribute,
+        [INPUTS, OUTPUTS, "capture_items"],
+        from_root,
+    )
+
+
+def _import_capture_attr(
+    importer: Importer,
+    node: bpy.types.GeometryNodeCaptureAttribute,
+    getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    _import_all_simple_writable_properties_and_list(
+        importer,
+        node,
+        getter,
+        serialization,
+        bpy.types.GeometryNodeCaptureAttribute,
+        ["capture_items", INPUTS, OUTPUTS],
+        from_root,
+    )
+
+
+def _import_catpure_attr_items(
+    importer: Importer,
+    items: bpy.types.NodeGeometryCaptureAttributeItems,
+    _getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    items.clear()
+    for item in serialization["items"]:
+        name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
+        data_type = _map_attribute_type_to_socket_type(
+            _or_default(
+                item[DATA], bpy.types.NodeGeometryCaptureAttributeItem, "data_type"
+            )
+        )
+        if importer.debug_prints:
+            print(f"{from_root.to_str()}: adding item {name} {data_type}")
+        items.new(data_type, name)
 
 
 # TODO: make sure that they use a matching type in the hint
@@ -505,6 +577,7 @@ BUILT_IN_SERIALIZERS = {
     bpy.types.NodeSocket: _export_socket,
     bpy.types.NodeLink: _export_link,
     bpy.types.GeometryNodeMenuSwitch: _export_menu_switch,
+    bpy.types.GeometryNodeCaptureAttribute: _export_capture_attr,
 }
 
 
@@ -524,4 +597,6 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.NodeLink: _import_link,
     bpy.types.GeometryNodeMenuSwitch: _import_menu_switch,
     bpy.types.NodeMenuSwitchItems: _import_menu_switch_items,
+    bpy.types.GeometryNodeCaptureAttribute: _import_capture_attr,
+    bpy.types.NodeGeometryCaptureAttributeItems: _import_catpure_attr_items,
 }
