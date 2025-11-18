@@ -379,9 +379,25 @@ def _export_link(
     )
 
     no_clobber(d, FROM_NODE, link.from_node.name)
-    no_clobber(d, FROM_SOCKET, link.from_socket.identifier)
+    no_clobber(
+        d,
+        FROM_SOCKET,
+        next(
+            i
+            for i, s in enumerate(link.from_node.outputs)
+            if s.identifier == link.from_socket.identifier
+        ),
+    )
     no_clobber(d, TO_NODE, link.to_node.name)
-    no_clobber(d, TO_SOCKET, link.to_socket.identifier)
+    no_clobber(
+        d,
+        TO_SOCKET,
+        next(
+            i
+            for i, s in enumerate(link.to_node.inputs)
+            if s.identifier == link.to_socket.identifier
+        ),
+    )
 
     return d
 
