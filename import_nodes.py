@@ -139,7 +139,7 @@ class Importer:
 
         if len(serialized_items) != len(attribute):
             raise RuntimeError(
-                f"expected {len(serialized_items)} to be ready but only deserialized {len(attribute)}"
+                f"expected {len(serialized_items)} to be ready but deserialized {len(attribute)}"
             )
 
         def make_getter(i: int):

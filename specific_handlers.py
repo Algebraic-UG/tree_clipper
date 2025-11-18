@@ -94,6 +94,8 @@ def _import_node_tree(
     serialization: dict,
     from_root: FromRoot,
 ):
+    node_tree.links.clear()
+    node_tree.nodes.clear()
     _import_all_simple_writable_properties_and_list(
         importer,
         node_tree,
@@ -105,8 +107,8 @@ def _import_node_tree(
             # the interface creates sockets on the group input/output nodes that can't be created otherwise
             # the nodes and their sockets must exist in order to be linked up
             NODE_TREE_INTERFACE,
-            # NODE_TREE_NODES,
-            # NODE_TREE_LINKS,
+            NODE_TREE_NODES,
+            NODE_TREE_LINKS,
         ],
         from_root,
     )
@@ -320,7 +322,7 @@ def _import_node_inputs(
         if identifier in existing_identifiers:
             continue
         if importer.debug_prints:
-            print(f"{from_root}: adding {identifier}")
+            print(f"{from_root.to_str()}: adding {identifier}")
         inputs.new(
             type=data["bl_idname"],
             name=data["name"],
@@ -343,7 +345,7 @@ def _import_node_outputs(
         if identifier in existing_identifiers:
             continue
         if importer.debug_prints:
-            print(f"{from_root}: adding {identifier}")
+            print(f"{from_root.to_str()}: adding {identifier}")
         outputs.new(
             type=data["bl_idname"],
             name=data["name"],
