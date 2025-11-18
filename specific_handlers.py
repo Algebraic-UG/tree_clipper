@@ -150,14 +150,6 @@ def _import_node_tree_interface(
     serialization: dict,
     from_root: FromRoot,
 ):
-    importer.import_all_simple_writable_properties(
-        interface,
-        getter,
-        serialization,
-        bpy.types.NodeTreeInterface,
-        from_root,
-    )
-
     interface.clear()
 
     def get_type(data: dict):
@@ -225,6 +217,16 @@ def _import_node_tree_interface(
         data = item[DATA]
         obj.name = _or_default(data, get_type(data), "name")
 
+    _import_all_simple_writable_properties_and_list(
+        importer,
+        interface,
+        getter,
+        serialization,
+        bpy.types.NodeTreeInterface,
+        ["items_tree"],
+        from_root,
+    )
+
 
 def _export_interface_tree_socket(
     exporter: Exporter,
@@ -256,6 +258,38 @@ def _export_interface_tree_panel(
     )
     no_clobber(d, "parent", panel.parent.persistent_uid)
     return d
+
+
+def _import_interface_tree_item(
+    importer: Importer,
+    item: bpy.types.NodeTreeInterfaceItem,
+    getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    importer.import_all_simple_writable_properties(
+        item,
+        getter,
+        serialization,
+        bpy.types.NodeTreeInterfaceItem,
+        from_root,
+    )
+
+
+def _import_interface_tree_panel(
+    importer: Importer,
+    item: bpy.types.NodeTreeInterfaceItem,
+    getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    importer.import_all_simple_writable_properties(
+        item,
+        getter,
+        serialization,
+        bpy.types.NodeTreeInterfaceItem,
+        from_root,
+    )
 
 
 def _export_node(
@@ -368,6 +402,8 @@ BUILT_IN_DESERIALIZERS = {
     NoneType: lambda _importer, _obj, _getter, _serialization, _from_root: {},
     bpy.types.NodeTree: _import_node_tree,
     bpy.types.NodeTreeInterface: _import_node_tree_interface,
+    bpy.types.NodeTreeInterfaceItem: _import_interface_tree_item,
+    bpy.types.NodeTreeInterfacePanel: _import_interface_tree_panel,
     bpy.types.Nodes: _import_nodes,
     bpy.types.NodeInputs: _import_node_inputs,
     bpy.types.NodeOutputs: _import_node_outputs,
