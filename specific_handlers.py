@@ -27,6 +27,10 @@ from .common import (
 )
 
 
+def _or_default(serialization: dict, t: type, identifier: str):
+    return serialization.get(identifier, t.bl_rna.properties[identifier].default)
+
+
 def _export_all_simple_writable_properties_and_list(
     exporter: Exporter,
     obj: bpy.types.bpy_struct,
@@ -95,9 +99,11 @@ def _import_node_tree(
         bpy.types.NodeTree,
         [
             # the order here is important
+            # the interface creates sockets on the group input/output nodes that can't be created otherwise
+            # the nodes and their sockets must exist in order to be linked up
             NODE_TREE_INTERFACE,
-            NODE_TREE_NODES,
-            NODE_TREE_LINKS,
+            # NODE_TREE_NODES,
+            # NODE_TREE_LINKS,
         ],
         from_root,
     )
@@ -134,18 +140,78 @@ def _export_node_tree_interface(
     )
 
 
+def _imprt_node_tree_interface(
+    importer: Importer,
+    interface: bpy.types.NodeTreeInterface,
+    getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    importer.import_all_simple_writable_properties(
+        interface,
+        getter,
+        serialization,
+        bpy.types.NodeTreeInterface,
+        from_root,
+    )
+
+    interface.clear()
+
+    uid_map = {}
+    for item in serialization["items_tree"][DATA]["items"]:
+        data = item[DATA]
+        item_type = data["item_type"]
+        if item_type == "SOCKET":
+            t = bpy.types.NodeTreeInterfaceSocket
+            interface.new_socket(
+                name=_or_default(data, t, "name"),
+                description=_or_default(data, t, "description"),
+                in_out=_or_default(data, t, "in_out"),
+                socket_type=data["socket_type"],
+                parent=None,
+            )
+        elif item_type == "PANEL":
+            t = bpy.types.NodeTreeInterfacePanel
+            uid_map[data["persistent_uid"]] = interface.new_panel(
+                name=_or_default(data, t, "name"),
+                description=_or_default(data, t, "description"),
+                default_closed=_or_default(data, t, "default_closed"),
+            ).persistent_uid
+        else:
+            raise RuntimeError(f"item_type neither SOCKET nor PANEL but {item_type}")
+
+    def parent(uid):
+        if uid not in uid_map:
+            return None
+        return next(
+            p
+            for p in interface.items_tree
+            if getattr(p, "persistent_uid", None) == uid_map[uid]
+        )
+
+    for i, item in enumerate(serialization["items_tree"][DATA]["items"]):
+        data = item[DATA]
+        interface.move_to_parent(
+            item=interface.items_tree[i],
+            parent=parent(data["parent"]),
+            to_position=_or_default(data, bpy.types.NodeTreeInterfaceItem, "position"),
+        )
+
+
 def _export_interface_tree_socket(
     exporter: Exporter,
     socket: bpy.types.NodeTreeInterfaceSocket,
     from_root: FromRoot,
 ):
-    return _export_all_simple_writable_properties_and_list(
+    d = _export_all_simple_writable_properties_and_list(
         exporter,
         socket,
         bpy.types.NodeTreeInterfaceSocket,
-        [IN_OUT],
+        ["item_type", "position", IN_OUT],
         from_root,
     )
+    no_clobber(d, "parent", socket.parent.persistent_uid)
+    return d
 
 
 def _export_interface_tree_panel(
@@ -153,13 +219,15 @@ def _export_interface_tree_panel(
     panel: bpy.types.NodeTreeInterfacePanel,
     from_root: FromRoot,
 ):
-    return _export_all_simple_writable_properties_and_list(
+    d = _export_all_simple_writable_properties_and_list(
         exporter,
         panel,
-        bpy.types.NodeTreeInterfacePanel,
-        [INTERFACE_ITEMS],
+        bpy.types.NodeTreeInterfaceSocket,
+        ["item_type", "position", "persistent_uid"],
         from_root,
     )
+    no_clobber(d, "parent", panel.parent.persistent_uid)
+    return d
 
 
 def _export_node(
@@ -167,15 +235,13 @@ def _export_node(
     node: bpy.types.Node,
     from_root: FromRoot,
 ):
-    d = _export_all_simple_writable_properties_and_list(
+    return _export_all_simple_writable_properties_and_list(
         exporter,
         node,
         bpy.types.Node,
         [INPUTS, OUTPUTS],
         from_root,
     )
-
-    return d
 
 
 def _import_node_inputs(
@@ -197,10 +263,7 @@ def _import_node_inputs(
             type=data["bl_idname"],
             name=data["name"],
             identifier=identifier,
-            use_multi_input=data.get(
-                "is_multi_input",
-                bpy.types.NodeSocket.bl_rna.properties["is_multi_input"].default,
-            ),
+            use_multi_input=_or_default(data, bpy.types.NodeSocket, "is_multi_input"),
         )
 
 
@@ -276,6 +339,7 @@ BUILT_IN_SERIALIZERS = {
 BUILT_IN_DESERIALIZERS = {
     NoneType: lambda _importer, _obj, _getter, _serialization, _from_root: {},
     bpy.types.NodeTree: _import_node_tree,
+    bpy.types.NodeTreeInterface: _imprt_node_tree_interface,
     bpy.types.Nodes: _import_nodes,
     bpy.types.NodeInputs: _import_node_inputs,
     bpy.types.NodeOutputs: _import_node_outputs,
