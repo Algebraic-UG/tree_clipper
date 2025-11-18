@@ -447,6 +447,20 @@ def _import_link(
     )
 
 
+def _export_menu_switch(
+    exporter: Exporter,
+    node: bpy.types.GeometryNodeMenuSwitch,
+    from_root: FromRoot,
+):
+    return _export_all_simple_writable_properties_and_list(
+        exporter,
+        node,
+        bpy.types.GeometryNodeMenuSwitch,
+        [INPUTS, OUTPUTS, "enum_items"],
+        from_root,
+    )
+
+
 # TODO: make sure that they use a matching type in the hint
 BUILT_IN_SERIALIZERS = {
     NoneType: lambda _exporter, _obj, _from_root: {},
@@ -457,6 +471,7 @@ BUILT_IN_SERIALIZERS = {
     bpy.types.Node: _export_node,
     bpy.types.NodeSocket: _export_socket,
     bpy.types.NodeLink: _export_link,
+    bpy.types.GeometryNodeMenuSwitch: _export_menu_switch,
 }
 
 
