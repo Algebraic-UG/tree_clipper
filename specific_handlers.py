@@ -445,9 +445,9 @@ def _import_links(
             print(
                 f"{from_root.to_str()}: linking {from_node}, {from_socket} to {to_node}, {to_socket}"
             )
-        source = importer.current_tree.nodes[from_node].outputs[from_socket]
-        target = importer.current_tree.nodes[to_node].inputs[to_socket]
-        links.new(source, target)
+        input = importer.current_tree.nodes[from_node].outputs[from_socket]
+        output = importer.current_tree.nodes[to_node].inputs[to_socket]
+        links.new(input=input, output=output)
 
 
 def _import_link(
@@ -511,7 +511,7 @@ def _import_menu_switch_items(
         name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
         if importer.debug_prints:
             print(f"{from_root.to_str()}: adding item {name}")
-        items.new(name)
+        items.new(name=name)
 
 
 def _export_capture_attr(
@@ -556,14 +556,14 @@ def _import_catpure_attr_items(
     items.clear()
     for item in serialization["items"]:
         name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
-        data_type = _map_attribute_type_to_socket_type(
+        socket_type = _map_attribute_type_to_socket_type(
             _or_default(
                 item[DATA], bpy.types.NodeGeometryCaptureAttributeItem, "data_type"
             )
         )
         if importer.debug_prints:
-            print(f"{from_root.to_str()}: adding item {name} {data_type}")
-        items.new(data_type, name)
+            print(f"{from_root.to_str()}: adding item {name} {socket_type}")
+        items.new(socket_type=socket_type, name=name)
 
 
 # TODO: make sure that they use a matching type in the hint
