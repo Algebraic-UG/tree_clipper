@@ -307,7 +307,7 @@ def _collect_sub_trees(
         if hasattr(node, "node_tree"):
             tree = node.node_tree
             if all(tree != already_in[0] for already_in in trees):
-                sub_root = from_root.add(f"Group ({node.name})")
+                sub_root = from_root.add(f"Group ({node.name}, {tree.name})")
                 trees.append((tree, sub_root))
                 _collect_sub_trees(tree, trees, sub_root)
 
@@ -325,11 +325,12 @@ def export_nodes(
     specific_handlers: dict[type, SERIALIZER],
     export_sub_trees: bool = True,
     skip_defaults: bool = True,
+    debug_prints: bool
 ):
     exporter = Exporter(
         specific_handlers=specific_handlers,
         skip_defaults=skip_defaults,
-        debug_prints=True,
+        debug_prints=debug_prints,
     )
 
     if is_material:

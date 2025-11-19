@@ -441,14 +441,15 @@ def import_nodes(
     *,
     input_file: str,
     specific_handlers: dict[type, DESERIALIZER],
-    allow_version_mismatch=False,
+    allow_version_mismatch: bool,
     getters: dict[int, GETTER],
-    overwrite=False,
+    overwrite: bool,
+    debug_prints: bool,
 ):
     importer = Importer(
         specific_handlers=specific_handlers,
         getters=getters,
-        debug_prints=True,
+        debug_prints=debug_prints,
     )
 
     with Path(input_file).open("r", encoding="utf-8") as f:
