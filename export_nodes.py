@@ -371,7 +371,6 @@ def export_nodes(
     *,
     is_material: bool,
     name: str,
-    output_file: str,
     specific_handlers: dict[type, SERIALIZER],
     export_sub_trees: bool = True,
     skip_defaults: bool = True,
@@ -419,17 +418,4 @@ def export_nodes(
             # TODO
             pass
 
-    class Encoder(json.JSONEncoder):
-        def default(self, o):
-            if isinstance(o, Pointer):
-                return o.id
-            return super().default(o)
-
-    with Path(output_file).open("w", encoding="utf-8") as f:
-        f.write(json.dumps(d, cls=Encoder, indent=4))
-
-        # json_str = json.dumps(d, cls=Encoder)
-        # gzipped = gzip.compress(json_str.encode("utf-8"))
-        # base64_str = base64.b64encode(gzipped).decode("utf-8")
-
-        # f.write(base64_str)
+    return d

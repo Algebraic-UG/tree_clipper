@@ -5,7 +5,6 @@ from typing import Self
 
 import sys
 import tomllib
-import json
 from pathlib import Path
 
 from .common import (
@@ -469,7 +468,7 @@ def _check_version(d: dict):
 
 def import_nodes(
     *,
-    input_file: str,
+    d: dict,
     specific_handlers: dict[type, DESERIALIZER],
     allow_version_mismatch: bool,
     getters: dict[int, GETTER],
@@ -481,9 +480,6 @@ def import_nodes(
         getters=getters,
         debug_prints=debug_prints,
     )
-
-    with Path(input_file).open("r", encoding="utf-8") as f:
-        d = json.load(f)
 
     version_mismatch = _check_version(d)
     if version_mismatch is not None:

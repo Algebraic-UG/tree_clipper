@@ -1,9 +1,10 @@
 import bpy
 
 from pathlib import Path
+import json
 import tempfile
 
-from .export_nodes import export_nodes
+from .export_nodes import Pointer, export_nodes
 from .specific_handlers import (
     BUILT_IN_EXPORTER,
     BUILT_IN_IMPORTER,
@@ -33,15 +34,30 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
-        export_nodes(
+        data = export_nodes(
             is_material=self.is_material,
             name=self.name,
-            output_file=self.output_file,
             specific_handlers=BUILT_IN_EXPORTER,
             export_sub_trees=self.export_sub_trees,
             skip_defaults=self.skip_defaults,
             debug_prints=self.debug_prints,
         )
+
+        class Encoder(json.JSONEncoder):
+            def default(self, o):
+                if isinstance(o, Pointer):
+                    return o.id
+                return super().default(o)
+
+        with Path(self.output_file).open("w", encoding="utf-8") as f:
+            f.write(json.dumps(data, cls=Encoder, indent=4))
+
+            # json_str = json.dumps(d, cls=Encoder)
+            # gzipped = gzip.compress(json_str.encode("utf-8"))
+            # base64_str = base64.b64encode(gzipped).decode("utf-8")
+
+            # f.write(base64_str)
+
         return {"FINISHED"}
 
 
@@ -63,14 +79,18 @@ class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
+        with Path(self.input_file).open("r", encoding="utf-8") as f:
+            data = json.load(f)
+
         import_nodes(
-            input_file=self.input_file,
+            d=data,
             specific_handlers=BUILT_IN_IMPORTER,
             allow_version_mismatch=self.allow_version_mismatch,
             getters={},
             overwrite=self.overwrite,
             debug_prints=self.debug_prints,
         )
+
         return {"FINISHED"}
 
 
