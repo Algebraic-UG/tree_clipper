@@ -4,7 +4,7 @@ import bpy
 
 from types import NoneType
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, ClassVar, Type, cast
+from typing import Generic, TypeVar, ClassVar, Type
 
 
 from .common import FromRoot, no_clobber
