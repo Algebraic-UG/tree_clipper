@@ -1,7 +1,7 @@
 from types import NoneType
 import bpy
 
-from typing import Any, Callable, Self
+from typing import Self
 
 import sys
 import tomllib
@@ -19,12 +19,6 @@ from .common import (
     FromRoot,
     most_specific_type_handled,
 )
-
-GETTER = Callable[[], bpy.types.bpy_struct]
-
-
-# Any is actually the importer below
-DESERIALIZER = Callable[[Any, bpy.types.bpy_struct, GETTER, dict, FromRoot], None]
 
 
 class Importer:

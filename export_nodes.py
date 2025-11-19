@@ -1,26 +1,23 @@
-import bpy
-
-import base64
-import gzip
-
-from types import NoneType
-from typing import Any, Callable, Self
-
-import tomllib
 import json
 from pathlib import Path
+from types import NoneType
+from typing import Self
+
+import bpy
+import tomllib
 
 from .common import (
+    BLENDER_VERSION,
     DATA,
     ID,
-    PROPERTY_TYPES_SIMPLE,
-    BLENDER_VERSION,
-    TREE_CLIPPER_VERSION,
     MATERIAL_NAME,
+    PROPERTY_TYPES_SIMPLE,
+    SERIALIZER,
+    TREE_CLIPPER_VERSION,
     TREES,
+    FromRoot,
     most_specific_type_handled,
     no_clobber,
-    FromRoot,
 )
 
 
@@ -32,10 +29,6 @@ class Pointer:
     ):
         self.from_root = from_root
         self.id = None
-
-
-# Any is actually the exporter below
-SERIALIZER = Callable[[Any, bpy.types.bpy_struct, FromRoot], dict]
 
 
 class Exporter:

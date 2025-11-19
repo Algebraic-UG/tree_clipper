@@ -1,7 +1,11 @@
 import bpy
 
 from types import NoneType
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .export_nodes import Exporter
+    from .import_nodes import Importer
 
 PROPERTY_TYPES_SIMPLE = set(
     [
@@ -89,3 +93,8 @@ def most_specific_type_handled(
         if len(t.__bases__) > 1:
             raise RuntimeError(f"multiple inheritence {t}, unclear what to choose")
         t = t.__bases__[0]
+
+
+GETTER = Callable[[], bpy.types.bpy_struct]
+SERIALIZER = Callable[[Exporter, bpy.types.bpy_struct, FromRoot], dict]
+DESERIALIZER = Callable[[Importer, bpy.types.bpy_struct, GETTER, dict, FromRoot], None]
