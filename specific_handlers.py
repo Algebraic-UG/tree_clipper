@@ -365,8 +365,12 @@ def _import_node_inputs(
     serialization: dict,
     _from_root: FromRoot,
 ):
-    if len(inputs) != len(serialization["items"]):
-        raise RuntimeError("We currently don't support creating sockets")
+    expected = len(serialization["items"])
+    current = len(inputs)
+    if current != expected:
+        raise RuntimeError(
+            f"expected {expected} in-sockets but found {current}, we currently don't support creating sockets"
+        )
 
 
 def _import_node_outputs(
@@ -376,8 +380,12 @@ def _import_node_outputs(
     serialization: dict,
     _from_root: FromRoot,
 ):
-    if len(outputs) != len(serialization["items"]):
-        raise RuntimeError("We currently don't support creating sockets")
+    expected = len(serialization["items"])
+    current = len(outputs)
+    if current != expected:
+        raise RuntimeError(
+            f"expected {expected} out-sockets but found {current}, we currently don't support creating sockets"
+        )
 
 
 def _export_socket(
