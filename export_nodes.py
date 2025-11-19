@@ -314,7 +314,9 @@ From root: {from_root.to_str()}"""
             for prop in unhandled_properties:
                 # pylint: disable=protected-access
                 prop_d = exporter._attempt_export_property(
-                    obj, prop, from_root.add_prop(prop)
+                    obj=obj,
+                    prop=prop,
+                    from_root=from_root.add_prop(prop),
                 )
                 if prop_d is not None:
                     no_clobber(d, prop.identifier, prop_d)
