@@ -1,13 +1,14 @@
+from __future__ import annotations
+
 import bpy
 
 from types import NoneType
-from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, ClassVar, Type, cast
 
-from export_nodes import Exporter
 
 from .common import FromRoot, no_clobber
+from .export_nodes import Exporter
 from .import_nodes import GETTER, Importer
 
 
@@ -15,10 +16,10 @@ T = TypeVar("T", bound=bpy.types.bpy_struct)
 
 
 # these are filled either manually, or by defining subclasses of the abstract ones below
-BUILT_IN_EXPORTER = {
+_BUILT_IN_EXPORTER = {
     NoneType: lambda _exporter, _obj, _from_root: {},
 }
-BUILT_IN_IMPORTER = {
+_BUILT_IN_IMPORTER = {
     NoneType: lambda _importer, _obj, _getter, _serialization, _from_root: {},
 }
 
@@ -36,7 +37,7 @@ class SpecificExporter(Generic[T], ABC):
         from_root: FromRoot,
     ):
         ...
-    no_clobber(BUILT_IN_EXPORTER, bpy.types.NodeTree, _export_node_tree)
+    no_clobber(_BUILT_IN_EXPORTER, bpy.types.NodeTree, _export_node_tree)
     ```
 
     or this:
@@ -54,25 +55,25 @@ class SpecificExporter(Generic[T], ABC):
     # this does three things
     # 1. fetch the type we want to treat and store it in `assumed_type`
     # 2. wrap the class construction and call to serialize
-    # 3. register in BUILT_IN_EXPORTER
+    # 3. register in _BUILT_IN_EXPORTER
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
         # 1.
-        # Infer T from: class Foo(SpecificExport[SomeType]):
+        # Infer T from: class Foo(SpecificExporter[SomeType]):
         # it's a bit complicated to allow for multiple base classes
         # (if you wanted that for some reason)
         t_arg: Type[bpy.types.bpy_struct] | None = None
         for base in getattr(cls, "__orig_bases__", ()):
             origin = getattr(base, "__origin__", None)
-            if origin is SpecificImporter:
+            if origin is SpecificExporter:
                 (t_arg,) = base.__args__
                 break
 
         if t_arg is None:
             raise TypeError(
                 f"{cls.__name__} must specify a type parameter, "
-                "e.g. class NodeTreeExport(SpecificExport[bpy.types.NodeTree])"
+                "e.g. class NodeTreeExport(SpecificExporter[bpy.types.NodeTree])"
             )
 
         cls.assumed_type = t_arg
@@ -93,7 +94,7 @@ class SpecificExporter(Generic[T], ABC):
 
         # 3.
         # This also makes sure that we register as the correct type, DRY!
-        no_clobber(BUILT_IN_EXPORTER, t_arg, wrapper)
+        no_clobber(_BUILT_IN_EXPORTER, t_arg, wrapper)
 
     # this is only called in the wrapper
     def __init__(
@@ -106,6 +107,26 @@ class SpecificExporter(Generic[T], ABC):
         self.exporter = exporter
         self.obj = obj
         self.from_root = from_root
+
+    def export_all_simple_writable_properties(self):
+        return self.exporter.export_all_simple_writable_properties(
+            self.obj,
+            self.assumed_type,
+            self.from_root,
+        )
+
+    def export_properties_from_id_list(self, id_list: list[str]):
+        return self.exporter.export_properties_from_id_list(
+            self.obj,
+            id_list,
+            self.from_root,
+        )
+
+    def export_all_simple_writable_properties_and_list(self, id_list: list[str]):
+        d = self.export_all_simple_writable_properties()
+        for identifier, data in self.export_properties_from_id_list(id_list).items():
+            no_clobber(d, identifier, data)
+        return d
 
     @abstractmethod
     def serialize(self) -> None:
@@ -127,7 +148,7 @@ class SpecificImporter(Generic[T], ABC):
         from_root: FromRoot,
     ):
         ...
-    no_clobber(BUILT_IN_IMPORTER, bpy.types.NodeTree, _import_node_tree)
+    no_clobber(_BUILT_IN_IMPORTER, bpy.types.NodeTree, _import_node_tree)
     ```
 
     or this:
@@ -145,12 +166,12 @@ class SpecificImporter(Generic[T], ABC):
     # this does three things
     # 1. fetch the type we want to treat and store it in `assumed_type`
     # 2. wrap the class construction and call to deserialize
-    # 3. register in BUILT_IN_IMPORTER
+    # 3. register in _BUILT_IN_IMPORTER
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
         # 1.
-        # Infer T from: class Foo(SpecificImport[SomeType]):
+        # Infer T from: class Foo(SpecificImporter[SomeType]):
         # it's a bit complicated to allow for multiple base classes
         # (if you wanted that for some reason)
         t_arg: Type[bpy.types.bpy_struct] | None = None
@@ -163,7 +184,7 @@ class SpecificImporter(Generic[T], ABC):
         if t_arg is None:
             raise TypeError(
                 f"{cls.__name__} must specify a type parameter, "
-                "e.g. class NodeTreeImport(SpecificImport[bpy.types.NodeTree])"
+                "e.g. class NodeTreeImport(SpecificImporter[bpy.types.NodeTree])"
             )
 
         cls.assumed_type = t_arg
@@ -188,7 +209,7 @@ class SpecificImporter(Generic[T], ABC):
 
         # 3.
         # This also makes sure that we register as the correct type, DRY!
-        no_clobber(BUILT_IN_IMPORTER, t_arg, wrapper)
+        no_clobber(_BUILT_IN_IMPORTER, t_arg, wrapper)
 
     # this is only called in the wrapper
     def __init__(
@@ -205,6 +226,27 @@ class SpecificImporter(Generic[T], ABC):
         self.getter = getter
         self.serialization = serialization
         self.from_root = from_root
+
+    def import_all_simple_writable_properties(self):
+        self.importer.import_all_simple_writable_properties(
+            self.obj,
+            self.getter,
+            self.serialization,
+            self.assumed_type,
+            self.from_root,
+        )
+
+    def import_properties_from_id_list(self, id_list: list[str]):
+        self.importer.import_properties_from_id_list(
+            self.obj,
+            self.getter,
+            id_list,
+            self.from_root,
+        )
+
+    def import_all_simple_writable_properties_and_list(self, id_list: list[str]):
+        self.import_all_simple_writable_properties()
+        self.import_properties_from_id_list(id_list)
 
     @abstractmethod
     def deserialize(self) -> None:

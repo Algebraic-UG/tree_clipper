@@ -4,7 +4,10 @@ from pathlib import Path
 import tempfile
 
 from .export_nodes import export_nodes
-from .specific_handlers import BUILT_IN_DESERIALIZERS, BUILT_IN_SERIALIZERS
+from .specific_handlers import (
+    BUILT_IN_EXPORTER,
+    BUILT_IN_IMPORTER,
+)
 from .import_nodes import import_nodes
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
@@ -30,10 +33,10 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
             is_material=self.is_material,
             name=self.name,
             output_file=self.output_file,
-            specific_handlers=BUILT_IN_SERIALIZERS,
+            specific_handlers=BUILT_IN_EXPORTER,
             export_sub_trees=self.export_sub_trees,
             skip_defaults=self.skip_defaults,
-            debug_prints= self.debug_prints,
+            debug_prints=self.debug_prints,
         )
         return {"FINISHED"}
 
@@ -54,11 +57,11 @@ class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
     def execute(self, _context):
         import_nodes(
             input_file=self.input_file,
-            specific_handlers=BUILT_IN_DESERIALIZERS,
+            specific_handlers=BUILT_IN_IMPORTER,
             allow_version_mismatch=self.allow_version_mismatch,
             getters={},
             overwrite=self.overwrite,
-            debug_prints= self.debug_prints,
+            debug_prints=self.debug_prints,
         )
         return {"FINISHED"}
 

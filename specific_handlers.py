@@ -1,9 +1,11 @@
 import bpy
 
-from types import NoneType
-
-from .import_nodes import GETTER, Importer
-from .export_nodes import Exporter
+from .specific_abstract import (
+    _BUILT_IN_EXPORTER,
+    _BUILT_IN_IMPORTER,
+    SpecificExporter,
+    SpecificImporter,
+)
 
 from .common import (
     DATA,
@@ -11,19 +13,15 @@ from .common import (
     no_clobber,
     IN_OUT,
     INPUTS,
-    INTERFACE_ITEMS,
     INTERFACE_ITEMS_TREE,
     NODE_TREE_INTERFACE,
     NODE_TREE_LINKS,
     NODE_TREE_NODES,
     OUTPUTS,
-    SOCKET_IDENTIFIER,
     FROM_NODE,
     FROM_SOCKET,
     TO_NODE,
     TO_SOCKET,
-    IS_MULTI_INPUT,
-    FromRoot,
 )
 
 
@@ -50,819 +48,449 @@ def _map_attribute_type_to_socket_type(attr_type: str):
     }[attr_type]
 
 
-def _export_all_simple_writable_properties_and_list(
-    exporter: Exporter,
-    obj: bpy.types.bpy_struct,
-    assumed_type: type,
-    additional: list[str],
-    from_root: FromRoot,
-):
-    d = exporter.export_all_simple_writable_properties(obj, assumed_type, from_root)
-    for identifier, data in exporter.export_properties_from_id_list(
-        obj, additional, from_root
-    ).items():
-        no_clobber(d, identifier, data)
-    return d
+class NodeTreeExporter(SpecificExporter[bpy.types.NodeTree]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties_and_list(
+            [NODE_TREE_INTERFACE, NODE_TREE_NODES, NODE_TREE_LINKS]
+        )
 
 
-def _import_all_simple_writable_properties_and_list(
-    importer: Importer,
-    obj: bpy.types.bpy_struct,
-    getter: GETTER,
-    serialization: dict,
-    assumed_type: type,
-    additional: list[str],
-    from_root: FromRoot,
-):
-    importer.import_all_simple_writable_properties(
-        obj,
-        getter,
-        serialization,
-        assumed_type,
-        from_root,
-    )
-    importer.import_properties_from_id_list(
-        obj,
-        getter,
-        serialization,
-        additional,
-        from_root,
-    )
+class NodeTreeImporter(SpecificImporter[bpy.types.NodeTree]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            [NODE_TREE_INTERFACE, NODE_TREE_NODES]
+        )
+
+        # one thing that requires this is the repeat zone
+        # after this more sockets are available for linking
+        for f in self.importer.create_special_node_connections:
+            f()
+        self.importer.create_special_node_connections.clear()
+
+        self.import_properties_from_id_list([NODE_TREE_LINKS])
+
+        # now that the links exist they won't be removed immediately
+        for f in self.importer.set_auto_remove:
+            f()
+        self.importer.set_auto_remove.clear()
 
 
-def _export_node_tree(
-    exporter: Exporter,
-    node_tree: bpy.types.NodeTree,
-    from_root: FromRoot,
-):
-    d = _export_all_simple_writable_properties_and_list(
-        exporter,
-        node_tree,
-        bpy.types.NodeTree,
-        [NODE_TREE_INTERFACE, NODE_TREE_NODES, NODE_TREE_LINKS],
-        from_root,
-    )
-
-    return d
+class NodesImporter(SpecificImporter[bpy.types.Nodes]):
+    def deserialize(self):
+        self.obj.clear()
+        active_id = self.serialization.get("active", None)
+        for node in self.serialization["items"]:
+            bl_idname = node[DATA]["bl_idname"]
+            if self.importer.debug_prints:
+                print(f"{self.from_root.to_str()}: adding {bl_idname}")
+            n = self.obj.new(type=bl_idname)
+            if node[ID] == active_id:
+                self.obj.active = n
 
 
-def _import_node_tree(
-    importer: Importer,
-    node_tree: bpy.types.NodeTree,
-    getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    node_tree.links.clear()
-    node_tree.nodes.clear()
-    _import_all_simple_writable_properties_and_list(
-        importer,
-        node_tree,
-        getter,
-        serialization,
-        bpy.types.NodeTree,
-        [
-            # the order here is important
-            # the interface creates sockets on the group input/output nodes that can't be created otherwise
-            # the nodes and their sockets must exist in order to be linked up
-            NODE_TREE_INTERFACE,
-            NODE_TREE_NODES,
-        ],
-        from_root,
-    )
-
-    # one thing that requires this is the repeat zone
-    # after this more sockets are available for linking
-    for f in importer.create_special_node_connections:
-        f()
-    importer.create_special_node_connections.clear()
-
-    importer.import_properties_from_id_list(
-        node_tree,
-        getter,
-        serialization,
-        [NODE_TREE_LINKS],
-        from_root,
-    )
-
-    # now that the links exist they won't be removed immediately
-    for f in importer.set_auto_remove:
-        f()
-    importer.set_auto_remove.clear()
+class InterfaceExporter(SpecificExporter[bpy.types.NodeTreeInterface]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties_and_list(
+            [INTERFACE_ITEMS_TREE]
+        )
 
 
-def _import_nodes(
-    importer: Importer,
-    nodes: bpy.types.Nodes,
-    _getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    active_id = serialization.get("active", None)
-    for node in serialization["items"]:
-        bl_idname = node[DATA]["bl_idname"]
-        if importer.debug_prints:
-            print(f"{from_root.to_str()}: adding {bl_idname}")
-        n = nodes.new(type=bl_idname)
-        if node[ID] == active_id:
-            nodes.active = n
+class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
+    def deserialize(self):
+        self.obj.clear()
 
+        def get_type(data: dict):
+            item_type = _or_default(data, bpy.types.NodeTreeInterfaceItem, "item_type")
+            if item_type == "SOCKET":
+                return bpy.types.NodeTreeInterfaceSocket
+            if item_type == "PANEL":
+                return bpy.types.NodeTreeInterfacePanel
+            raise RuntimeError(f"item_type neither SOCKET nor PANEL but {item_type}")
 
-def _export_node_tree_interface(
-    exporter: Exporter,
-    interface: bpy.types.NodeTreeInterface,
-    from_root: FromRoot,
-):
-    return _export_all_simple_writable_properties_and_list(
-        exporter,
-        interface,
-        bpy.types.NodeTreeInterface,
-        [INTERFACE_ITEMS_TREE],
-        from_root,
-    )
+        items = self.serialization["items_tree"][DATA]["items"]
+        uid_map = {}
+        for i, item in enumerate(items):
+            data = item[DATA]
+            t = get_type(data)
+            if t == bpy.types.NodeTreeInterfaceSocket:
+                self.obj.new_socket(
+                    name=str(i),
+                    description=_or_default(data, t, "description"),
+                    in_out=_or_default(data, t, "in_out"),
+                    socket_type=data["socket_type"],
+                    parent=None,
+                )
+            else:
+                uid_map[data["persistent_uid"]] = i
+                self.obj.new_panel(
+                    name=str(i),
+                    description=_or_default(data, t, "description"),
+                    default_closed=_or_default(data, t, "default_closed"),
+                )
 
+        def parent(uid):
+            if uid not in uid_map:
+                return None
+            return self.obj.items_tree[str(uid_map[uid])]
 
-def _import_node_tree_interface(
-    importer: Importer,
-    interface: bpy.types.NodeTreeInterface,
-    getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    interface.clear()
-
-    def get_type(data: dict):
-        item_type = _or_default(data, bpy.types.NodeTreeInterfaceItem, "item_type")
-        if item_type == "SOCKET":
-            return bpy.types.NodeTreeInterfaceSocket
-        if item_type == "PANEL":
-            return bpy.types.NodeTreeInterfacePanel
-        raise RuntimeError(f"item_type neither SOCKET nor PANEL but {item_type}")
-
-    items = serialization["items_tree"][DATA]["items"]
-    uid_map = {}
-    for i, item in enumerate(items):
-        data = item[DATA]
-        t = get_type(data)
-        if t == bpy.types.NodeTreeInterfaceSocket:
-            interface.new_socket(
-                name=str(i),
-                description=_or_default(data, t, "description"),
-                in_out=_or_default(data, t, "in_out"),
-                socket_type=data["socket_type"],
-                parent=None,
-            )
-        else:
-            uid_map[data["persistent_uid"]] = i
-            interface.new_panel(
-                name=str(i),
-                description=_or_default(data, t, "description"),
-                default_closed=_or_default(data, t, "default_closed"),
+        for i, item in enumerate(items):
+            data = item[DATA]
+            self.obj.move_to_parent(
+                item=self.obj.items_tree[str(i)],
+                parent=parent(data["parent"]),
+                # this doesn't matter because we move below
+                to_position=0,
             )
 
-    def parent(uid):
-        if uid not in uid_map:
-            return None
-        return interface.items_tree[str(uid_map[uid])]
-
-    for i, item in enumerate(items):
-        data = item[DATA]
-        interface.move_to_parent(
-            item=interface.items_tree[str(i)],
-            parent=parent(data["parent"]),
-            # this doesn't matter because we move below
-            to_position=0,
-        )
-
-    # we assume that the order in the serialization matches the one in original memory
-    # but the one displayed is something else, stored in 'index'
-    # we need to be careful how we move the items, hence the sorting
-    sorted_items = list(enumerate(items))
-    sorted_items.sort(
-        key=lambda index_and_item: _or_default(
-            index_and_item[1][DATA], bpy.types.NodeTreeInterfaceItem, "index"
-        )
-    )
-    for i, item in sorted_items:
-        interface.move(
-            interface.items_tree[str(i)],
-            _or_default(item[DATA], bpy.types.NodeTreeInterfaceItem, "index"),
-        )
-
-    # this should be fine, we're not modifying the container anymore
-    sorted_objs = [interface.items_tree[str(i)] for i in range(len(items))]
-    assert len(sorted_objs) == len(items)
-    for obj, item in zip(sorted_objs, items):
-        data = item[DATA]
-        obj.name = _or_default(data, get_type(data), "name")
-
-    _import_all_simple_writable_properties_and_list(
-        importer,
-        interface,
-        getter,
-        serialization,
-        bpy.types.NodeTreeInterface,
-        ["items_tree"],
-        from_root,
-    )
-
-
-def _export_interface_tree_socket(
-    exporter: Exporter,
-    socket: bpy.types.NodeTreeInterfaceSocket,
-    from_root: FromRoot,
-):
-    d = _export_all_simple_writable_properties_and_list(
-        exporter,
-        socket,
-        bpy.types.NodeTreeInterfaceSocket,
-        ["item_type", "index", IN_OUT],
-        from_root,
-    )
-    no_clobber(d, "parent", socket.parent.persistent_uid)
-    return d
-
-
-def _export_interface_tree_panel(
-    exporter: Exporter,
-    panel: bpy.types.NodeTreeInterfacePanel,
-    from_root: FromRoot,
-):
-    d = _export_all_simple_writable_properties_and_list(
-        exporter,
-        panel,
-        bpy.types.NodeTreeInterfacePanel,
-        ["item_type", "index", "persistent_uid"],
-        from_root,
-    )
-    no_clobber(d, "parent", panel.parent.persistent_uid)
-    return d
-
-
-def _import_interface_tree_item(
-    importer: Importer,
-    item: bpy.types.NodeTreeInterfaceItem,
-    getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    importer.import_all_simple_writable_properties(
-        item,
-        getter,
-        serialization,
-        bpy.types.NodeTreeInterfaceItem,
-        from_root,
-    )
-
-
-def _import_interface_tree_panel(
-    importer: Importer,
-    item: bpy.types.NodeTreeInterfaceItem,
-    getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    importer.import_all_simple_writable_properties(
-        item,
-        getter,
-        serialization,
-        bpy.types.NodeTreeInterfaceItem,
-        from_root,
-    )
-
-
-def _export_node(
-    exporter: Exporter,
-    node: bpy.types.Node,
-    from_root: FromRoot,
-):
-    return _export_all_simple_writable_properties_and_list(
-        exporter,
-        node,
-        bpy.types.Node,
-        [INPUTS, OUTPUTS],
-        from_root,
-    )
-
-
-def _import_node(
-    importer: Importer,
-    node: bpy.types.Node,
-    getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    _import_all_simple_writable_properties_and_list(
-        importer,
-        node,
-        getter,
-        serialization,
-        bpy.types.Node,
-        [INPUTS, OUTPUTS],
-        from_root,
-    )
-
-
-def _import_node_inputs(
-    _importer: Importer,
-    inputs: bpy.types.NodeInputs,
-    _getter: GETTER,
-    serialization: dict,
-    _from_root: FromRoot,
-):
-    expected = len(serialization["items"])
-    current = len(inputs)
-    if current != expected:
-        raise RuntimeError(
-            f"expected {expected} in-sockets but found {current}, we currently don't support creating sockets"
-        )
-
-
-def _import_node_outputs(
-    _importer: Importer,
-    outputs: bpy.types.NodeOutputs,
-    _getter: GETTER,
-    serialization: dict,
-    _from_root: FromRoot,
-):
-    expected = len(serialization["items"])
-    current = len(outputs)
-    if current != expected:
-        raise RuntimeError(
-            f"expected {expected} out-sockets but found {current}, we currently don't support creating sockets"
-        )
-
-
-def _export_socket(
-    exporter: Exporter,
-    socket: bpy.types.NodeSocket,
-    from_root: FromRoot,
-):
-    return exporter.export_all_simple_writable_properties(
-        socket,
-        bpy.types.NodeSocket,
-        from_root,
-    )
-
-
-def _import_socket(
-    importer: Importer,
-    socket: bpy.types.NodeSocket,
-    getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    importer.import_all_simple_writable_properties(
-        socket,
-        getter,
-        serialization,
-        bpy.types.NodeSocket,
-        from_root,
-    )
-
-
-def _export_link(
-    exporter: Exporter,
-    link: bpy.types.NodeLink,
-    from_root: FromRoot,
-):
-    d = exporter.export_all_simple_writable_properties(
-        link, bpy.types.NodeLink, from_root
-    )
-
-    no_clobber(d, FROM_NODE, link.from_node.name)
-    no_clobber(
-        d,
-        FROM_SOCKET,
-        next(
-            i
-            for i, s in enumerate(link.from_node.outputs)
-            if s.identifier == link.from_socket.identifier
-        ),
-    )
-    no_clobber(d, TO_NODE, link.to_node.name)
-    no_clobber(
-        d,
-        TO_SOCKET,
-        next(
-            i
-            for i, s in enumerate(link.to_node.inputs)
-            if s.identifier == link.to_socket.identifier
-        ),
-    )
-
-    return d
-
-
-def _import_links(
-    importer: Importer,
-    links: bpy.types.NodeLinks,
-    _getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    for link in serialization["items"]:
-        data = link[DATA]
-        from_node = data["from_node"]
-        from_socket = data["from_socket"]
-        to_node = data["to_node"]
-        to_socket = data["to_socket"]
-        if importer.debug_prints:
-            print(
-                f"{from_root.to_str()}: linking {from_node}, {from_socket} to {to_node}, {to_socket}"
-            )
-        links.new(
-            input=importer.current_tree.nodes[from_node].outputs[from_socket],
-            output=importer.current_tree.nodes[to_node].inputs[to_socket],
-        )
-
-
-def _import_link(
-    importer: Importer,
-    link: bpy.types.NodeLink,
-    getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    importer.import_all_simple_writable_properties(
-        link,
-        getter,
-        serialization,
-        bpy.types.NodeLink,
-        from_root,
-    )
-
-
-def _export_menu_switch(
-    exporter: Exporter,
-    node: bpy.types.GeometryNodeMenuSwitch,
-    from_root: FromRoot,
-):
-    return _export_all_simple_writable_properties_and_list(
-        exporter,
-        node,
-        bpy.types.GeometryNodeMenuSwitch,
-        [INPUTS, OUTPUTS, "enum_items"],
-        from_root,
-    )
-
-
-def _import_menu_switch(
-    importer: Importer,
-    node: bpy.types.GeometryNodeMenuSwitch,
-    getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    _import_all_simple_writable_properties_and_list(
-        importer,
-        node,
-        getter,
-        serialization,
-        bpy.types.GeometryNodeMenuSwitch,
-        # ordering is important, the enum_items implicitly create sockets
-        ["enum_items", INPUTS, OUTPUTS],
-        from_root,
-    )
-
-
-def _import_menu_switch_items(
-    importer: Importer,
-    items: bpy.types.NodeMenuSwitchItems,
-    _getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    items.clear()
-    for item in serialization["items"]:
-        name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
-        if importer.debug_prints:
-            print(f"{from_root.to_str()}: adding item {name}")
-        items.new(name=name)
-
-
-def _export_capture_attr(
-    exporter: Exporter,
-    node: bpy.types.GeometryNodeCaptureAttribute,
-    from_root: FromRoot,
-):
-    return _export_all_simple_writable_properties_and_list(
-        exporter,
-        node,
-        bpy.types.GeometryNodeCaptureAttribute,
-        [INPUTS, OUTPUTS, "capture_items"],
-        from_root,
-    )
-
-
-def _import_capture_attr(
-    importer: Importer,
-    node: bpy.types.GeometryNodeCaptureAttribute,
-    getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    _import_all_simple_writable_properties_and_list(
-        importer,
-        node,
-        getter,
-        serialization,
-        bpy.types.GeometryNodeCaptureAttribute,
-        ["capture_items", INPUTS, OUTPUTS],
-        from_root,
-    )
-
-
-def _import_catpure_attr_items(
-    importer: Importer,
-    items: bpy.types.NodeGeometryCaptureAttributeItems,
-    _getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    items.clear()
-    for item in serialization["items"]:
-        name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
-        socket_type = _map_attribute_type_to_socket_type(
-            _or_default(
-                item[DATA], bpy.types.NodeGeometryCaptureAttributeItem, "data_type"
+        # we assume that the order in the serialization matches the one in original memory
+        # but the one displayed is something else, stored in 'index'
+        # we need to be careful how we move the items, hence the sorting
+        sorted_items = list(enumerate(items))
+        sorted_items.sort(
+            key=lambda index_and_item: _or_default(
+                index_and_item[1][DATA], bpy.types.NodeTreeInterfaceItem, "index"
             )
         )
-        if importer.debug_prints:
-            print(f"{from_root.to_str()}: adding item {name} {socket_type}")
-        items.new(socket_type=socket_type, name=name)
+        for i, item in sorted_items:
+            self.obj.move(
+                self.obj.items_tree[str(i)],
+                _or_default(item[DATA], bpy.types.NodeTreeInterfaceItem, "index"),
+            )
+
+        # this should be fine, we're not modifying the container anymore
+        sorted_objs = [self.obj.items_tree[str(i)] for i in range(len(items))]
+        assert len(sorted_objs) == len(items)
+        for obj, item in zip(sorted_objs, items):
+            data = item[DATA]
+            obj.name = _or_default(data, get_type(data), "name")
+
+        self.import_all_simple_writable_properties_and_list(["items_tree"])
 
 
-def _export_repeat_input(
-    exporter: Exporter,
-    node: bpy.types.GeometryNodeRepeatInput,
-    from_root: FromRoot,
-):
-    d = _export_all_simple_writable_properties_and_list(
-        exporter,
-        node,
-        bpy.types.GeometryNodeRepeatInput,
-        [INPUTS, OUTPUTS],
-        from_root,
-    )
-    if node.paired_output is None:
-        raise RuntimeError("Having no paired output for repeat nodes isn't supported")
-    no_clobber(d, "paired_output", node.paired_output.name)
-
-    return d
+class TreeSocketExporter(SpecificExporter[bpy.types.NodeTreeInterfaceSocket]):
+    def serialize(self):
+        d = self.export_all_simple_writable_properties_and_list(
+            ["item_type", "index", IN_OUT]
+        )
+        no_clobber(d, "parent", self.obj.parent.persistent_uid)
+        return d
 
 
-def _import_repeat_input(
-    importer: Importer,
-    node: bpy.types.GeometryNodeRepeatInput,
-    getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    importer.import_all_simple_writable_properties(
-        node,
-        getter,
-        serialization,
-        bpy.types.GeometryNodeRepeatInput,
-        from_root,
-    )
+class TreePanelExporter(SpecificExporter[bpy.types.NodeTreeInterfacePanel]):
+    def serialize(self):
+        d = self.export_all_simple_writable_properties_and_list(
+            ["item_type", "index", "persistent_uid"]
+        )
+        no_clobber(d, "parent", self.obj.parent.persistent_uid)
+        return d
 
-    output = serialization["paired_output"]
 
-    def deferred():
-        if not getter().pair_with_output(importer.current_tree.nodes[output]):
-            raise RuntimeError(f"{from_root.to_str()}: failed to pair with {output}")
-        importer.import_properties_from_id_list(
-            node,
-            getter,
-            serialization,
-            [INPUTS, OUTPUTS],
-            from_root,
+class TreeItemImporter(SpecificImporter[bpy.types.NodeTreeInterfaceItem]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties()
+
+
+class NodeExporter(SpecificExporter[bpy.types.Node]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+
+
+class NodeImporter(SpecificImporter[bpy.types.Node]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+
+
+class NodeInputsImporter(SpecificImporter[bpy.types.NodeInputs]):
+    def deserialize(self):
+        expected = len(self.serialization["items"])
+        current = len(self.obj)
+        if current != expected:
+            raise RuntimeError(
+                f"""{self.from_root.to_str()}
+expected {expected} in-sockets but found {current}
+we currently don't support creating sockets"""
+            )
+
+
+class NodeOutputsImporter(SpecificImporter[bpy.types.NodeOutputs]):
+    def deserialize(self):
+        expected = len(self.serialization["items"])
+        current = len(self.obj)
+        if current != expected:
+            raise RuntimeError(
+                f"""{self.from_root.to_str()}
+expected {expected} out-sockets but found {current}
+we currently don't support creating sockets"""
+            )
+
+
+class SocketExporter(SpecificExporter[bpy.types.NodeSocket]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
+
+
+class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties()
+
+
+class LinkExporter(SpecificExporter[bpy.types.NodeLink]):
+    def serialize(self):
+        d = self.export_all_simple_writable_properties()
+
+        no_clobber(d, FROM_NODE, self.obj.from_node.name)
+        no_clobber(
+            d,
+            FROM_SOCKET,
+            next(
+                i
+                for i, s in enumerate(self.obj.from_node.outputs)
+                if s.identifier == self.obj.from_socket.identifier
+            ),
+        )
+        no_clobber(d, TO_NODE, self.obj.to_node.name)
+        no_clobber(
+            d,
+            TO_SOCKET,
+            next(
+                i
+                for i, s in enumerate(self.obj.to_node.inputs)
+                if s.identifier == self.obj.to_socket.identifier
+            ),
         )
 
-    # defer connection until we've created the output node
-    # only then, import the sockets
-    importer.create_special_node_connections.append(deferred)
+        return d
 
 
-def _export_repeat_output(
-    exporter: Exporter,
-    node: bpy.types.GeometryNodeRepeatOutput,
-    from_root: FromRoot,
+class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
+    def deserialize(self):
+        for link in self.serialization["items"]:
+            data = link[DATA]
+            from_node = data["from_node"]
+            from_socket = data["from_socket"]
+            to_node = data["to_node"]
+            to_socket = data["to_socket"]
+            if self.importer.debug_prints:
+                print(
+                    f"{self.from_root.to_str()}: linking {from_node}, {from_socket} to {to_node}, {to_socket}"
+                )
+            self.obj.new(
+                input=self.importer.current_tree.nodes[from_node].outputs[from_socket],
+                output=self.importer.current_tree.nodes[to_node].inputs[to_socket],
+            )
+
+
+class LinkImporter(SpecificImporter[bpy.types.NodeLink]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties()
+
+
+class MenuSwitchExporter(SpecificExporter[bpy.types.GeometryNodeMenuSwitch]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, "enum_items"]
+        )
+
+
+class MenuSwitchImporter(SpecificImporter[bpy.types.GeometryNodeMenuSwitch]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the enum_items implicitly create sockets
+            ["enum_items", INPUTS, OUTPUTS],
+        )
+
+
+class MenuSwitchItemsImporter(SpecificImporter[bpy.types.NodeMenuSwitchItems]):
+    def deserialize(self):
+        self.obj.clear()
+        for item in self.serialization["items"]:
+            name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
+            if self.importer.debug_prints:
+                print(f"{self.from_root.to_str()}: adding item {name}")
+            self.obj.new(name=name)
+
+
+class CaptureAttrExporter(SpecificExporter[bpy.types.GeometryNodeCaptureAttribute]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, "capture_items"],
+        )
+
+
+class CaptureAttrImporter(SpecificImporter[bpy.types.GeometryNodeCaptureAttribute]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the capture_items implicitly create sockets
+            ["capture_items", INPUTS, OUTPUTS],
+        )
+
+
+class CaptureAttrItemsImporter(
+    SpecificImporter[bpy.types.NodeGeometryCaptureAttributeItems]
 ):
-    return _export_all_simple_writable_properties_and_list(
-        exporter,
-        node,
-        bpy.types.GeometryNodeRepeatOutput,
-        [INPUTS, OUTPUTS, "repeat_items"],
-        from_root,
-    )
+    def deserialize(self):
+        self.obj.clear()
+        for item in self.serialization["items"]:
+            name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
+            socket_type = _map_attribute_type_to_socket_type(
+                _or_default(
+                    item[DATA], bpy.types.NodeGeometryCaptureAttributeItem, "data_type"
+                )
+            )
+            if self.importer.debug_prints:
+                print(f"{self.from_root.to_str()}: adding item {name} {socket_type}")
+            self.obj.new(socket_type=socket_type, name=name)
 
 
-def _import_repeat_output(
-    importer: Importer,
-    node: bpy.types.GeometryNodeRepeatOutput,
-    getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
+class RepeatInputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatInput]):
+    def serialize(self):
+        d = self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        if self.obj.paired_output is None:
+            raise RuntimeError(
+                f"""{self.from_root.to_str()}
+Having no paired output for repeat nodes isn't supported"""
+            )
+        no_clobber(d, "paired_output", self.obj.paired_output.name)
+
+        return d
+
+
+class RepeatInputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatInput]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties()
+
+        # if this fails it's easier to debug here
+        output = self.serialization["paired_output"]
+
+        def deferred():
+            if not self.getter().pair_with_output(
+                self.importer.current_tree.nodes[output]
+            ):
+                raise RuntimeError(
+                    f"{self.from_root.to_str()}: failed to pair with {output}"
+                )
+            self.import_properties_from_id_list([INPUTS, OUTPUTS])
+
+        # defer connection until we've created the output node
+        # only then, import the sockets
+        self.importer.create_special_node_connections.append(deferred)
+
+
+class RepeatOutputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatOutput]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, "repeat_items"]
+        )
+
+
+class RepeatOutputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatOutput]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the repeat_items implicitly create sockets
+            ["repeat_items", INPUTS, OUTPUTS]
+        )
+
+
+class RepeatOutputItemsImporter(
+    SpecificImporter[bpy.types.NodeGeometryRepeatOutputItems]
 ):
-    _import_all_simple_writable_properties_and_list(
-        importer,
-        node,
-        getter,
-        serialization,
-        bpy.types.GeometryNodeRepeatOutput,
-        ["repeat_items", INPUTS, OUTPUTS],
-        from_root,
-    )
+    def deserialize(self):
+        self.obj.clear()
+        for item in self.serialization["items"]:
+            name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
+            socket_type = _or_default(item[DATA], bpy.types.RepeatItem, "socket_type")
+            if self.importer.debug_prints:
+                print(f"{self.from_root.to_str()}: adding item {name} {socket_type}")
+            self.obj.new(socket_type=socket_type, name=name)
 
 
-def _import_repeat_items(
-    importer: Importer,
-    items: bpy.types.NodeGeometryRepeatOutputItems,
-    _getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    items.clear()
-    for item in serialization["items"]:
-        name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
-        socket_type = _or_default(item[DATA], bpy.types.RepeatItem, "socket_type")
-        if importer.debug_prints:
-            print(f"{from_root.to_str()}: adding item {name} {socket_type}")
-        items.new(socket_type=socket_type, name=name)
+class IndexItemExporter(SpecificExporter[bpy.types.IndexSwitchItem]):
+    def serialize(self):
+        return {}
 
 
-def _export_index_item(
-    _exporter: Exporter,
-    _node: bpy.types.IndexSwitchItem,
-    _from_root: FromRoot,
-):
-    return {}
+class IndexItemsImporter(SpecificImporter[bpy.types.NodeIndexSwitchItems]):
+    def deserialize(self):
+        self.obj.clear()
+        for _ in self.serialization["items"]:
+            if self.importer.debug_prints:
+                print(f"{self.from_root.to_str()}: adding index")
+            self.obj.new()
 
 
-def _import_index_items(
-    importer: Importer,
-    items: bpy.types.NodeIndexSwitchItems,
-    _getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    items.clear()
-    for _ in serialization["items"]:
-        if importer.debug_prints:
-            print(f"{from_root.to_str()}: adding index")
-        items.new()
+class ViewerSpecificExporter(SpecificExporter[bpy.types.GeometryNodeViewer]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, "viewer_items"]
+        )
 
 
-def _export_viewer(
-    exporter: Exporter,
-    node: bpy.types.GeometryNodeViewer,
-    from_root: FromRoot,
-):
-    return _export_all_simple_writable_properties_and_list(
-        exporter,
-        node,
-        bpy.types.GeometryNodeViewer,
-        [INPUTS, OUTPUTS, "viewer_items"],
-        from_root,
-    )
+class ViewerImporter(SpecificImporter[bpy.types.GeometryNodeViewer]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the viewer_items implicitly create sockets
+            ["viewer_items", INPUTS, OUTPUTS],
+        )
 
 
-def _import_viewer(
-    importer: Importer,
-    node: bpy.types.GeometryNodeViewer,
-    getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    _import_all_simple_writable_properties_and_list(
-        importer,
-        node,
-        getter,
-        serialization,
-        bpy.types.GeometryNodeViewer,
-        ["viewer_items", INPUTS, OUTPUTS],
-        from_root,
-    )
+class ViewerItemsImporter(SpecificImporter[bpy.types.NodeGeometryViewerItems]):
+    def deserialize(self):
+        self.obj.clear()
+        for item in self.serialization["items"]:
+            data = item[DATA]
+            name = _or_default(data, bpy.types.NodeGeometryViewerItem, "name")
+            socket_type = _or_default(
+                data, bpy.types.NodeGeometryViewerItem, "socket_type"
+            )
+
+            if self.importer.debug_prints:
+                print(f"{self.from_root.to_str()}: adding item {name} {socket_type}")
+
+            self.obj.new(socket_type=socket_type, name=name)
 
 
-def _import_view_items(
-    importer: Importer,
-    items: bpy.types.NodeGeometryViewerItems,
-    _getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    items.clear()
-    for item in serialization["items"]:
-        data = item[DATA]
-        name = _or_default(data, bpy.types.NodeGeometryViewerItem, "name")
-        socket_type = _or_default(data, bpy.types.NodeGeometryViewerItem, "socket_type")
+class ViewerItemImporter(SpecificImporter[bpy.types.NodeGeometryViewerItem]):
+    def deserialize(self):
+        auto_remove = _or_default(
+            self.serialization, bpy.types.NodeGeometryViewerItem, "auto_remove"
+        )
 
-        if importer.debug_prints:
-            print(f"{from_root.to_str()}: adding item {name} {socket_type}")
+        def deferred():
+            self.getter().auto_remove = auto_remove
 
-        items.new(socket_type=socket_type, name=name)
+        # very, very important to not set auto_remove to true before the links are established
+        # especially while iterating over more properties of it
+        self.importer.set_auto_remove.append(deferred)
 
 
-def _import_view_item(
-    importer: Importer,
-    _item: bpy.types.NodeGeometryViewerItem,
-    getter: GETTER,
-    serialization: dict,
-    _from_root: FromRoot,
-):
-    auto_remove = _or_default(
-        serialization, bpy.types.NodeGeometryViewerItem, "auto_remove"
-    )
-
-    def deferred():
-        getter().auto_remove = auto_remove
-
-    # very, very important to not set auto_remove to true before the links are established
-    # especially while iterating over more properties of it
-    importer.set_auto_remove.append(deferred)
+class ColorRampElementExporter(SpecificExporter[bpy.types.ColorRampElement]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
 
 
-def _export_color_ramp_element(
-    exporter: Exporter,
-    node: bpy.types.ColorRampElement,
-    from_root: FromRoot,
-):
-    return exporter.export_all_simple_writable_properties(
-        node, bpy.types.ColorRampElement, from_root
-    )
+class ColorRampElementsImporter(SpecificImporter[bpy.types.ColorRampElements]):
+    def deserialize(self):
+        # Can't start from zero here https://projects.blender.org/blender/blender/issues/150171
+        number_needed = len(self.serialization["items"])
+
+        if number_needed == 0:
+            raise RuntimeError(
+                f"""{self.from_root.to_str()}
+color ramps need at least one element"""
+            )
+
+        # this will probably not happen
+        while len(self.obj) > number_needed:
+            if self.importer.debug_prints:
+                print(f"{self.from_root.to_str()}: removing element")
+            self.obj.remove(self.obj[-1])
+
+        while len(self.obj) < number_needed:
+            if self.importer.debug_prints:
+                print(f"{self.from_root.to_str()}: adding element")
+            self.obj.new(position=0)
 
 
-def _import_color_ramp_elements(
-    importer: Importer,
-    items: bpy.types.ColorRampElements,
-    _getter: GETTER,
-    serialization: dict,
-    from_root: FromRoot,
-):
-    # Can't start from zero here https://projects.blender.org/blender/blender/issues/150171
-    number_needed = len(serialization["items"])
-
-    if number_needed == 0:
-        raise RuntimeError("color ramps need at least one element")
-
-    # this will probably not happen
-    while len(items) > number_needed:
-        if importer.debug_prints:
-            print(f"{from_root.to_str()}: removing element")
-        items.remove(items[-1])
-    while len(items) < number_needed:
-        if importer.debug_prints:
-            print(f"{from_root.to_str()}: adding element")
-        items.new(position=0)
-
-
-# TODO: make sure that they use a matching type in the hint
-BUILT_IN_SERIALIZERS = {
-    NoneType: lambda _exporter, _obj, _from_root: {},
-    bpy.types.NodeTree: _export_node_tree,
-    bpy.types.NodeTreeInterface: _export_node_tree_interface,
-    bpy.types.NodeTreeInterfaceSocket: _export_interface_tree_socket,
-    bpy.types.NodeTreeInterfacePanel: _export_interface_tree_panel,
-    bpy.types.Node: _export_node,
-    bpy.types.NodeSocket: _export_socket,
-    bpy.types.NodeLink: _export_link,
-    bpy.types.GeometryNodeMenuSwitch: _export_menu_switch,
-    bpy.types.GeometryNodeCaptureAttribute: _export_capture_attr,
-    bpy.types.GeometryNodeRepeatInput: _export_repeat_input,
-    bpy.types.GeometryNodeRepeatOutput: _export_repeat_output,
-    bpy.types.IndexSwitchItem: _export_index_item,
-    bpy.types.GeometryNodeViewer: _export_viewer,
-    bpy.types.ColorRampElement: _export_color_ramp_element,
-}
-
-
-# TODO: make sure that they use a matching type in the hint
-BUILT_IN_DESERIALIZERS = {
-    NoneType: lambda _importer, _obj, _getter, _serialization, _from_root: {},
-    bpy.types.NodeTree: _import_node_tree,
-    bpy.types.NodeTreeInterface: _import_node_tree_interface,
-    bpy.types.NodeTreeInterfaceItem: _import_interface_tree_item,
-    bpy.types.NodeTreeInterfacePanel: _import_interface_tree_panel,
-    bpy.types.Nodes: _import_nodes,
-    bpy.types.Node: _import_node,
-    bpy.types.NodeInputs: _import_node_inputs,
-    bpy.types.NodeOutputs: _import_node_outputs,
-    bpy.types.NodeSocket: _import_socket,
-    bpy.types.NodeLinks: _import_links,
-    bpy.types.NodeLink: _import_link,
-    bpy.types.GeometryNodeMenuSwitch: _import_menu_switch,
-    bpy.types.NodeMenuSwitchItems: _import_menu_switch_items,
-    bpy.types.GeometryNodeCaptureAttribute: _import_capture_attr,
-    bpy.types.NodeGeometryCaptureAttributeItems: _import_catpure_attr_items,
-    bpy.types.GeometryNodeRepeatInput: _import_repeat_input,
-    bpy.types.GeometryNodeRepeatOutput: _import_repeat_output,
-    bpy.types.NodeGeometryRepeatOutputItems: _import_repeat_items,
-    bpy.types.NodeIndexSwitchItems: _import_index_items,
-    bpy.types.GeometryNodeViewer: _import_viewer,
-    bpy.types.NodeGeometryViewerItems: _import_view_items,
-    bpy.types.NodeGeometryViewerItem: _import_view_item,
-    bpy.types.ColorRampElements: _import_color_ramp_elements,
-}
+# now they are cooked and ready to use ~ bon appétit
+BUILT_IN_EXPORTER = _BUILT_IN_EXPORTER
+BUILT_IN_IMPORTER = _BUILT_IN_IMPORTER
