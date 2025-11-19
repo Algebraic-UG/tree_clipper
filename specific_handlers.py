@@ -29,6 +29,11 @@ def _or_default(serialization: dict, t: type, identifier: str):
     return serialization.get(identifier, t.bl_rna.properties[identifier].default)
 
 
+# You can get a list of possible values by erroring on the creation
+# TypeError: NodeGeometryCaptureAttributeItems.new(): error with argument 1, "socket_type"
+# -  enum "XXXXX" not found in ('FLOAT', 'INT', 'BOOLEAN', 'VECTOR', 'RGBA', 'ROTATION',
+# 'MATRIX', 'STRING', 'MENU', 'SHADER', 'OBJECT', 'IMAGE', 'GEOMETRY', 'COLLECTION',
+# 'TEXTURE', 'MATERIAL', 'BUNDLE', 'CLOSURE')
 # TODO this is incomplete?
 def _map_attribute_type_to_socket_type(attr_type: str):
     return {
@@ -37,14 +42,14 @@ def _map_attribute_type_to_socket_type(attr_type: str):
         "BOOLEAN": "BOOLEAN",
         "FLOAT_VECTOR": "VECTOR",
         "FLOAT_COLOR": "RGBA",
-        # "QUATERNION": ???
+        "QUATERNION": "ROTATION",
         "FLOAT4X4": "MATRIX",
         "STRING": "STRING",
         "INT8": "INT",
         # "INT16_2D": ???
         # "INT32_2D": ???
-        # "FLOAT2":???
-        # "BYTE_COLOR":???
+        "FLOAT2": "VECTOR",
+        "BYTE_COLOR": "RGBA",
     }[attr_type]
 
 
