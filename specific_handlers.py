@@ -151,7 +151,6 @@ def _import_node_tree(
     importer.set_auto_remove.clear()
 
 
-
 def _import_nodes(
     importer: Importer,
     nodes: bpy.types.Nodes,
@@ -472,9 +471,10 @@ def _import_links(
             print(
                 f"{from_root.to_str()}: linking {from_node}, {from_socket} to {to_node}, {to_socket}"
             )
-        input = importer.current_tree.nodes[from_node].outputs[from_socket]
-        output = importer.current_tree.nodes[to_node].inputs[to_socket]
-        links.new(input=input, output=output)
+        links.new(
+            input=importer.current_tree.nodes[from_node].outputs[from_socket],
+            output=importer.current_tree.nodes[to_node].inputs[to_socket],
+        )
 
 
 def _import_link(
@@ -765,14 +765,18 @@ def _import_view_items(
 
         items.new(socket_type=socket_type, name=name)
 
+
 def _import_view_item(
     importer: Importer,
-    item: bpy.types.NodeGeometryViewerItem,
+    _item: bpy.types.NodeGeometryViewerItem,
     getter: GETTER,
     serialization: dict,
     _from_root: FromRoot,
 ):
-    auto_remove = _or_default(serialization, bpy.types.NodeGeometryViewerItem, "auto_remove")
+    auto_remove = _or_default(
+        serialization, bpy.types.NodeGeometryViewerItem, "auto_remove"
+    )
+
     def deferred():
         getter().auto_remove = auto_remove
 
@@ -824,5 +828,5 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.NodeIndexSwitchItems: _import_index_items,
     bpy.types.GeometryNodeViewer: _import_viewer,
     bpy.types.NodeGeometryViewerItems: _import_view_items,
-    bpy.types.NodeGeometryViewerItem: _import_view_item
+    bpy.types.NodeGeometryViewerItem: _import_view_item,
 }
