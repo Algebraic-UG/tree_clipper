@@ -58,8 +58,51 @@ class Exporter:
     # helper functions to be used in specific handlers
     ################################################################################
 
-    def export_property_simple(
+    def export_all_simple_writable_properties(
         self,
+        *,
+        obj: bpy.types.bpy_struct,
+        assumed_type: type,
+        from_root: FromRoot,
+    ):
+        d = {}
+        for prop in assumed_type.bl_rna.properties:
+            if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
+                continue
+            d_prop = self._export_property_simple(
+                obj=obj,
+                prop=prop,
+                from_root=from_root.add_prop(prop),
+            )
+            if d_prop is not None:
+                d[prop.identifier] = d_prop
+        return d
+
+    def export_properties_from_id_list(
+        self,
+        *,
+        obj: bpy.types.bpy_struct,
+        properties: list[str],
+        from_root: FromRoot,
+    ):
+        d = {}
+        for prop in [obj.bl_rna.properties[p] for p in properties]:
+            d_prop = self._export_property(
+                obj=obj,
+                prop=prop,
+                from_root=from_root.add_prop(prop),
+            )
+            if d_prop is not None:
+                d[prop.identifier] = d_prop
+        return d
+
+    ################################################################################
+    # internals
+    ################################################################################
+
+    def _export_property_simple(
+        self,
+        *,
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
         from_root: FromRoot,
@@ -85,8 +128,9 @@ class Exporter:
             return None
         return attribute
 
-    def export_property_pointer(
+    def _export_property_pointer(
         self,
+        *,
         obj: bpy.types.bpy_struct,
         prop: bpy.types.PointerProperty,
         from_root: FromRoot,
@@ -104,7 +148,7 @@ class Exporter:
             return None
 
         if attribute.id_data == self.current_tree and prop.is_readonly:
-            return self._export_obj(attribute, from_root)
+            return self._export_obj(obj=attribute, from_root=from_root)
         else:
             pointer = Pointer(from_root=from_root)
             self.pointers.setdefault(attribute, []).append(pointer)
@@ -112,8 +156,9 @@ class Exporter:
                 print(f"{from_root.to_str()}: deferring")
             return pointer
 
-    def export_property_collection(
+    def _export_property_collection(
         self,
+        *,
         obj: bpy.types.bpy_struct,
         prop: bpy.types.CollectionProperty,
         from_root: FromRoot,
@@ -125,72 +170,46 @@ class Exporter:
 
         attribute = getattr(obj, prop.identifier)
 
-        d = self._export_obj(attribute, from_root)
+        d = self._export_obj(obj=attribute, from_root=from_root)
         items = [
-            self._export_obj(element, from_root.add(f"[{i}]"))
+            self._export_obj(obj=element, from_root=from_root.add(f"[{i}]"))
             for i, element in enumerate(attribute)
         ]
         no_clobber(d[DATA], "items", items)
 
         return d
 
-    def export_all_simple_writable_properties(
+    def _export_property(
         self,
-        obj: bpy.types.bpy_struct,
-        assumed_type: type,
-        from_root: FromRoot,
-    ):
-        d = {}
-        for prop in assumed_type.bl_rna.properties:
-            if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
-                continue
-            d_prop = self.export_property_simple(
-                obj,
-                prop,
-                from_root.add_prop(prop),
-            )
-            if d_prop is not None:
-                d[prop.identifier] = d_prop
-        return d
-
-    def export_property(
-        self,
+        *,
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
         from_root: FromRoot,
     ):
         if prop.type in PROPERTY_TYPES_SIMPLE:
-            return self.export_property_simple(obj, prop, from_root)
+            return self._export_property_simple(
+                obj=obj,
+                prop=prop,
+                from_root=from_root,
+            )
         elif prop.type == "POINTER":
-            return self.export_property_pointer(obj, prop, from_root)
+            return self._export_property_pointer(
+                obj=obj,
+                prop=prop,
+                from_root=from_root,
+            )
         elif prop.type == "COLLECTION":
-            return self.export_property_collection(obj, prop, from_root)
+            return self._export_property_collection(
+                obj=obj,
+                prop=prop,
+                from_root=from_root,
+            )
         else:
             raise RuntimeError(f"Unknown property type: {prop.type}")
 
-    def export_properties_from_id_list(
-        self,
-        obj: bpy.types.bpy_struct,
-        properties: list[str],
-        from_root: FromRoot,
-    ):
-        d = {}
-        for prop in [obj.bl_rna.properties[p] for p in properties]:
-            d_prop = self.export_property(
-                obj,
-                prop,
-                from_root.add_prop(prop),
-            )
-            if d_prop is not None:
-                d[prop.identifier] = d_prop
-        return d
-
-    ################################################################################
-    # internals
-    ################################################################################
-
     def _attempt_export_property(
         self,
+        *,
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
         from_root,
@@ -206,7 +225,11 @@ From root: {from_root.to_str()}"""
         if prop.type in PROPERTY_TYPES_SIMPLE:
             if prop.is_readonly:
                 return None
-            return self.export_property_simple(obj, prop, from_root)
+            return self._export_property_simple(
+                obj=obj,
+                prop=prop,
+                from_root=from_root,
+            )
 
         attribute = getattr(obj, prop.identifier)
         if attribute is None:
@@ -215,7 +238,11 @@ From root: {from_root.to_str()}"""
         if prop.type == "POINTER":
             if prop.is_readonly and attribute.id_data != self.current_tree:
                 error_out("readonly pointer to external")
-            return self.export_property_pointer(obj, prop, from_root)
+            return self._export_property_pointer(
+                obj=obj,
+                prop=prop,
+                from_root=from_root,
+            )
 
         if prop.type == "COLLECTION":
             if (
@@ -226,12 +253,17 @@ From root: {from_root.to_str()}"""
                 error_out(
                     "collection with function that requires args and the elements aren't specifically handled"
                 )
-            return self.export_property_collection(obj, prop, from_root)
+            return self._export_property_collection(
+                obj=obj,
+                prop=prop,
+                from_root=from_root,
+            )
 
         raise RuntimeError(f"Unknown property type: {prop.type}")
 
     def _export_obj_with_serializer(
         self,
+        *,
         obj: bpy.types.bpy_struct,
         serializer: SERIALIZER,
         from_root: FromRoot,
@@ -248,13 +280,20 @@ From root: {from_root.to_str()}"""
 
         return {ID: this_id, DATA: serializer(self, obj, from_root)}
 
-    def _export_obj(self, obj: bpy.types.bpy_struct, from_root: FromRoot):
+    def _export_obj(
+        self,
+        *,
+        obj: bpy.types.bpy_struct,
+        from_root: FromRoot,
+    ):
         # edge case for things like bpy_prop_collection that aren't real RNA types?
         # https://projects.blender.org/blender/blender/issues/150092
         if not hasattr(obj, "bl_rna"):
             assert isinstance(obj, bpy.types.bpy_prop_collection)
             return self._export_obj_with_serializer(
-                obj, self.specific_handlers[NoneType], from_root
+                obj=obj,
+                serializer=self.specific_handlers[NoneType],
+                from_root=from_root,
             )
 
         assumed_type = most_specific_type_handled(self.specific_handlers, obj)
@@ -270,7 +309,7 @@ From root: {from_root.to_str()}"""
             if p.identifier not in handled_prop_ids and p.identifier not in ["rna_type"]
         ]
 
-        def _serializer(exporter: Self, obj: bpy.types.bpy_struct, from_root: FromRoot):
+        def serializer(exporter: Self, obj: bpy.types.bpy_struct, from_root: FromRoot):
             d = specific_handler(exporter, obj, from_root)
             for prop in unhandled_properties:
                 # pylint: disable=protected-access
@@ -282,20 +321,30 @@ From root: {from_root.to_str()}"""
 
             return d
 
-        return self._export_obj_with_serializer(obj, _serializer, from_root)
+        return self._export_obj_with_serializer(
+            obj=obj,
+            serializer=serializer,
+            from_root=from_root,
+        )
 
-    def _export_node_tree(self, node_tree: bpy.types.NodeTree, from_root: FromRoot):
+    def _export_node_tree(
+        self,
+        *,
+        node_tree: bpy.types.NodeTree,
+        from_root: FromRoot,
+    ):
         if self.debug_prints:
             print(f"{from_root.to_str()}: entering")
 
         self.current_tree = node_tree
-        d = self._export_obj(node_tree, from_root)
+        d = self._export_obj(obj=node_tree, from_root=from_root)
         self.current_tree = None
 
         return d
 
 
 def _collect_sub_trees(
+    *,
     current: bpy.types.NodeTree,
     trees: list[(bpy.types.NodeTree, FromRoot)],
     from_root: FromRoot,
@@ -306,7 +355,7 @@ def _collect_sub_trees(
             if all(tree != already_in[0] for already_in in trees):
                 sub_root = from_root.add(f"Group ({node.name}, {tree.name})")
                 trees.append((tree, sub_root))
-                _collect_sub_trees(tree, trees, sub_root)
+                _collect_sub_trees(current=tree, trees=trees, from_root=sub_root)
 
 
 ################################################################################
@@ -339,7 +388,7 @@ def export_nodes(
 
     trees = [(root, from_root)]
     if export_sub_trees:
-        _collect_sub_trees(root, trees, from_root)
+        _collect_sub_trees(current=root, trees=trees, from_root=from_root)
 
     manifest_path = Path(__file__).parent / "blender_manifest.toml"
     with manifest_path.open("rb") as f:
@@ -350,7 +399,7 @@ def export_nodes(
         TREE_CLIPPER_VERSION: blender_manifest["version"],
         TREES: [
             # pylint: disable=protected-access
-            exporter._export_node_tree(tree, from_root)
+            exporter._export_node_tree(node_tree=tree, from_root=from_root)
             for (tree, from_root) in trees
         ],
     }
@@ -367,10 +416,10 @@ def export_nodes(
             pass
 
     class Encoder(json.JSONEncoder):
-        def default(self, obj):
-            if isinstance(obj, Pointer):
-                return obj.id
-            return super().default(obj)
+        def default(self, o):
+            if isinstance(o, Pointer):
+                return o.id
+            return super().default(o)
 
     with Path(output_file).open("w", encoding="utf-8") as f:
         f.write(json.dumps(d, cls=Encoder, indent=4))

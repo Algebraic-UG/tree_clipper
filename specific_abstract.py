@@ -82,12 +82,12 @@ class SpecificExporter(Generic[T], ABC):
         # this is so much more convinient than writing this out for each function!
         def wrapper(
             exporter: Exporter,
-            obj: bpy.types.bpy_struct,
+            obj: T,
             from_root: FromRoot,
         ):
             inst = cls(
                 exporter=exporter,
-                obj=cast(T, obj),
+                obj=obj,
                 from_root=from_root,
             )
             return inst.serialize()
@@ -110,16 +110,16 @@ class SpecificExporter(Generic[T], ABC):
 
     def export_all_simple_writable_properties(self):
         return self.exporter.export_all_simple_writable_properties(
-            self.obj,
-            self.assumed_type,
-            self.from_root,
+            obj=self.obj,
+            assumed_type=self.assumed_type,
+            from_root=self.from_root,
         )
 
     def export_properties_from_id_list(self, id_list: list[str]):
         return self.exporter.export_properties_from_id_list(
-            self.obj,
-            id_list,
-            self.from_root,
+            obj=self.obj,
+            properties=id_list,
+            from_root=self.from_root,
         )
 
     def export_all_simple_writable_properties_and_list(self, id_list: list[str]):
@@ -193,14 +193,14 @@ class SpecificImporter(Generic[T], ABC):
         # this is so much more convinient than writing this out for each function!
         def wrapper(
             importer: Importer,
-            obj: bpy.types.bpy_struct,
+            obj: T,
             getter: GETTER,
             serialization: dict,
             from_root: FromRoot,
         ):
             inst = cls(
                 importer=importer,
-                obj=cast(T, obj),
+                obj=obj,
                 getter=getter,
                 serialization=serialization,
                 from_root=from_root,
@@ -229,19 +229,19 @@ class SpecificImporter(Generic[T], ABC):
 
     def import_all_simple_writable_properties(self):
         self.importer.import_all_simple_writable_properties(
-            self.obj,
-            self.getter,
-            self.serialization,
-            self.assumed_type,
-            self.from_root,
+            obj=self.obj,
+            getter=self.getter,
+            serialization=self.serialization,
+            assumed_type=self.assumed_type,
+            from_root=self.from_root,
         )
 
     def import_properties_from_id_list(self, id_list: list[str]):
         self.importer.import_properties_from_id_list(
-            self.obj,
-            self.getter,
-            id_list,
-            self.from_root,
+            obj=self.obj,
+            getter=self.getter,
+            properties=id_list,
+            from_root=self.from_root,
         )
 
     def import_all_simple_writable_properties_and_list(self, id_list: list[str]):
