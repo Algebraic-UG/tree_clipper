@@ -802,13 +802,21 @@ def _import_color_ramp_elements(
     serialization: dict,
     from_root: FromRoot,
 ):
-    items.clear()
-    for item in serialization["items"]:
-        position = _or_default(item[DATA], bpy.types.ColorRampElement, "position")
-        if importer.debug_prints:
-            print(f"{from_root.to_str()}: adding element at {position}")
+    # Can't start from zero here https://projects.blender.org/blender/blender/issues/150171
+    number_needed = len(serialization["items"])
 
-        items.new(position=position)
+    if number_needed == 0:
+        raise RuntimeError("color ramps need at least one element")
+
+    # this will probably not happen
+    while len(items) > number_needed:
+        if importer.debug_prints:
+            print(f"{from_root.to_str()}: removing element")
+        items.remove(items[-1])
+    while len(items) < number_needed:
+        if importer.debug_prints:
+            print(f"{from_root.to_str()}: adding element")
+        items.new(position=0)
 
 
 # TODO: make sure that they use a matching type in the hint
