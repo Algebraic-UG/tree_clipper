@@ -145,6 +145,12 @@ def _import_node_tree(
         from_root,
     )
 
+    # now that the links exist they won't be removed immediately
+    for f in importer.set_auto_remove:
+        f()
+    importer.set_auto_remove.clear()
+
+
 
 def _import_nodes(
     importer: Importer,
@@ -759,6 +765,21 @@ def _import_view_items(
 
         items.new(socket_type=socket_type, name=name)
 
+def _import_view_item(
+    importer: Importer,
+    item: bpy.types.NodeGeometryViewerItem,
+    getter: GETTER,
+    serialization: dict,
+    _from_root: FromRoot,
+):
+    auto_remove = _or_default(serialization, bpy.types.NodeGeometryViewerItem, "auto_remove")
+    def deferred():
+        getter().auto_remove = auto_remove
+
+    # very, very important to not set auto_remove to true before the links are established
+    # especially while iterating over more properties of it
+    importer.set_auto_remove.append(deferred)
+
 
 # TODO: make sure that they use a matching type in the hint
 BUILT_IN_SERIALIZERS = {
@@ -803,4 +824,5 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.NodeIndexSwitchItems: _import_index_items,
     bpy.types.GeometryNodeViewer: _import_viewer,
     bpy.types.NodeGeometryViewerItems: _import_view_items,
+    bpy.types.NodeGeometryViewerItem: _import_view_item
 }

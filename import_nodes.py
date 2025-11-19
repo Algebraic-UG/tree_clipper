@@ -42,6 +42,10 @@ class Importer:
         # first, we link everything up, then set the default values
         self.set_socket_enum_defaults = []
 
+        # for the viewer items we need to set auto removal
+        # only after the links are there
+        self.set_auto_remove = []
+
         # for special nodes like the ones spanniung a repeat zone
         # we must defer things until all nodes are created
         # but it must happen before constructing the links
