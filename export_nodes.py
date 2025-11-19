@@ -29,10 +29,8 @@ class Pointer:
         self,
         *,
         from_root: FromRoot,
-        points_to: bpy.types.bpy_struct,
     ):
         self.from_root = from_root
-        self.points_to = points_to
         self.id = None
 
 
@@ -108,8 +106,8 @@ class Exporter:
         if attribute.id_data == self.current_tree and prop.is_readonly:
             return self._export_obj(attribute, from_root)
         else:
-            pointer = Pointer(from_root=from_root, points_to=attribute)
-            self.pointers.setdefault(attribute.as_pointer(), []).append(pointer)
+            pointer = Pointer(from_root=from_root)
+            self.pointers.setdefault(attribute, []).append(pointer)
             if self.debug_prints:
                 print(f"{from_root.to_str()}: deferring")
             return pointer
@@ -244,11 +242,9 @@ From root: {from_root.to_str()}"""
         this_id = self.next_id
         self.next_id += 1
 
-        # if an obj has no as_pointer but can still be pointed to via PointerProperty we might be in trouble
-        if hasattr(obj, "as_pointer"):
-            if obj.as_pointer() in self.serialized:
-                raise RuntimeError(f"Double serialization: {from_root.to_str()}")
-            self.serialized[obj.as_pointer()] = this_id
+        if obj in self.serialized:
+            raise RuntimeError(f"Double serialization: {from_root.to_str()}")
+        self.serialized[obj] = this_id
 
         return {ID: this_id, DATA: serializer(self, obj, from_root)}
 
@@ -361,10 +357,10 @@ def export_nodes(
     if is_material:
         d[MATERIAL_NAME] = name
 
-    for ptr, pointers in exporter.pointers.items():
-        if ptr in exporter.serialized:
+    for obj, pointers in exporter.pointers.items():
+        if obj in exporter.serialized:
             for pointer in pointers:
-                pointer.id = exporter.serialized[ptr]
+                pointer.id = exporter.serialized[obj]
         else:
             # TODO
             pass
