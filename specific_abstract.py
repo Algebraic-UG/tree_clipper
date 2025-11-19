@@ -240,6 +240,7 @@ class SpecificImporter(Generic[T], ABC):
         self.importer.import_properties_from_id_list(
             obj=self.obj,
             getter=self.getter,
+            serialization=self.serialization,
             properties=id_list,
             from_root=self.from_root,
         )
