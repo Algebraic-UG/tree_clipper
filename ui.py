@@ -1,21 +1,17 @@
 import bpy
 
-import base64
-import gzip
 
 from pathlib import Path
-import json
 import tempfile
 
-from .export_nodes import Pointer, export_nodes
 from .specific_handlers import (
     BUILT_IN_EXPORTER,
     BUILT_IN_IMPORTER,
 )
-from .import_nodes import import_nodes
+from .export_nodes import ExportParameters, export_nodes_to_file
+from .import_nodes import ImportParameters, import_nodes_from_file
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
-MAGIC_STRING = "TreeClipper"
 
 
 class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
@@ -30,6 +26,7 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
         default=DEFAULT_FILE,
         subtype="FILE_PATH",
     )  # type: ignore
+    json_indent: bpy.props.IntProperty(name="JSON Indent", default=4, min=0)  # type: ignore
     compress: bpy.props.BoolProperty(name="Compress", default=True)  # type: ignore
     export_sub_trees: bpy.props.BoolProperty(name="Export Sub Trees", default=True)  # type: ignore
     skip_defaults: bpy.props.BoolProperty(name="Skip Defaults", default=True)  # type: ignore
@@ -39,31 +36,19 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
-        data = export_nodes(
-            is_material=self.is_material,
-            name=self.name,
-            specific_handlers=BUILT_IN_EXPORTER,
-            export_sub_trees=self.export_sub_trees,
-            skip_defaults=self.skip_defaults,
-            debug_prints=self.debug_prints,
+        export_nodes_to_file(
+            file_path=Path(self.output_file),
+            p=ExportParameters(
+                is_material=self.is_material,
+                name=self.name,
+                specific_handlers=BUILT_IN_EXPORTER,
+                export_sub_trees=self.export_sub_trees,
+                skip_defaults=self.skip_defaults,
+                debug_prints=self.debug_prints,
+                compress=self.compress,
+                json_indent=self.json_indent,
+            ),
         )
-
-        class Encoder(json.JSONEncoder):
-            def default(self, o):
-                if isinstance(o, Pointer):
-                    return o.id
-                return super().default(o)
-
-        with Path(self.output_file).open("w", encoding="utf-8") as f:
-            if self.compress:
-                json_str = json.dumps(data, cls=Encoder)
-                gzipped = gzip.compress(json_str.encode("utf-8"))
-                base64_str = base64.b64encode(gzipped).decode("utf-8")
-
-                f.write(MAGIC_STRING)
-                f.write(base64_str)
-            else:
-                f.write(json.dumps(data, cls=Encoder, indent=4))
 
         return {"FINISHED"}
 
@@ -86,27 +71,16 @@ class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
-        with Path(self.input_file).open("r", encoding="utf-8") as f:
-            compressed = f.read(len(MAGIC_STRING)) == MAGIC_STRING
-
-        with Path(self.input_file).open("r", encoding="utf-8") as f:
-            if compressed:
-                full = f.read()
-                base64_str = full[len(MAGIC_STRING) :]
-                gzipped = base64.b64decode(base64_str)
-                json_str = gzip.decompress(gzipped).decode("utf-8")
-
-                data = json.loads(json_str)
-            else:
-                data = json.load(f)
-
-        import_nodes(
-            d=data,
-            specific_handlers=BUILT_IN_IMPORTER,
-            allow_version_mismatch=self.allow_version_mismatch,
-            getters={},
-            overwrite=self.overwrite,
-            debug_prints=self.debug_prints,
+        import_nodes_from_file(
+            file_path=Path(self.input_file),
+            p=ImportParameters(
+                specific_handlers=BUILT_IN_IMPORTER,
+                allow_version_mismatch=self.allow_version_mismatch,
+                # TODO: put extrenal things here https://github.com/Algebraic-UG/tree_clipper/issues/16
+                getters={},
+                overwrite=self.overwrite,
+                debug_prints=self.debug_prints,
+            ),
         )
 
         return {"FINISHED"}

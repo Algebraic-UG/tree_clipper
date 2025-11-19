@@ -1,3 +1,6 @@
+import base64
+import gzip
+import json
 from pathlib import Path
 from types import NoneType
 from typing import Self
@@ -9,6 +12,7 @@ from .common import (
     BLENDER_VERSION,
     DATA,
     ID,
+    MAGIC_STRING,
     MATERIAL_NAME,
     PROPERTY_TYPES_SIMPLE,
     SERIALIZER,
@@ -362,34 +366,49 @@ def _collect_sub_trees(
 
 
 ################################################################################
-# entry point
+# entry points
 ################################################################################
 
 
-def export_nodes(
-    *,
-    is_material: bool,
-    name: str,
-    specific_handlers: dict[type, SERIALIZER],
-    export_sub_trees: bool = True,
-    skip_defaults: bool = True,
-    debug_prints: bool,
-):
+class ExportParameters:
+    def __init__(
+        self,
+        *,
+        is_material: bool,
+        name: str,
+        specific_handlers: dict[type, SERIALIZER],
+        export_sub_trees: bool = True,
+        skip_defaults: bool = True,
+        debug_prints: bool,
+        compress: bool,
+        json_indent: int = 4,
+    ):
+        self.is_material = is_material
+        self.name = name
+        self.specific_handlers = specific_handlers
+        self.export_sub_trees = export_sub_trees
+        self.skip_defaults = skip_defaults
+        self.debug_prints = debug_prints
+        self.compress = compress
+        self.json_indent = json_indent
+
+
+def export_nodes_to_dict(p: ExportParameters) -> dict:
     exporter = Exporter(
-        specific_handlers=specific_handlers,
-        skip_defaults=skip_defaults,
-        debug_prints=debug_prints,
+        specific_handlers=p.specific_handlers,
+        skip_defaults=p.skip_defaults,
+        debug_prints=p.debug_prints,
     )
 
-    if is_material:
-        from_root = FromRoot([f"Material ({name})"])
-        root = bpy.data.materials[name].node_tree
+    if p.is_material:
+        from_root = FromRoot([f"Material ({p.name})"])
+        root = bpy.data.materials[p.name].node_tree
     else:
-        from_root = FromRoot([f"Root ({name})"])
-        root = bpy.data.node_groups[name]
+        from_root = FromRoot([f"Root ({p.name})"])
+        root = bpy.data.node_groups[p.name]
 
     trees = [(root, from_root)]
-    if export_sub_trees:
+    if p.export_sub_trees:
         _collect_sub_trees(current=root, trees=trees, from_root=from_root)
 
     manifest_path = Path(__file__).parent / "blender_manifest.toml"
@@ -406,8 +425,8 @@ def export_nodes(
         ],
     }
 
-    if is_material:
-        d[MATERIAL_NAME] = name
+    if p.is_material:
+        d[MATERIAL_NAME] = p.name
 
     for obj, pointers in exporter.pointers.items():
         if obj in exporter.serialized:
@@ -418,3 +437,31 @@ def export_nodes(
             pass
 
     return d
+
+
+class _Encoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Pointer):
+            return o.id
+        return super().default(o)
+
+
+def export_nodes_to_str(p: ExportParameters) -> str:
+    d = export_nodes_to_dict(p)
+    if p.compress:
+        json_str = json.dumps(d, cls=_Encoder)
+        gzipped = gzip.compress(json_str.encode("utf-8"))
+        base64_str = base64.b64encode(gzipped).decode("utf-8")
+        return MAGIC_STRING + base64_str
+    else:
+        return json.dumps(d, cls=_Encoder, indent=p.json_indent)
+
+
+def export_nodes_to_file(*, file_path: Path, p: ExportParameters):
+    d = export_nodes_to_dict(p)
+    with file_path.open("w", encoding="utf-8") as f:
+        if p.compress:
+            compressed = export_nodes_to_str(p)
+            f.write(compressed)
+        else:
+            json.dump(d, f, indent=p.json_indent)
