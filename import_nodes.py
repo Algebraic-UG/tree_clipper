@@ -375,7 +375,10 @@ From root: {from_root.to_str()}"""
                 )
 
             from_root = FromRoot([f"Tree ({node_tree.name})"])
-            getter = lambda: bpy.data.node_groups[node_tree.name]
+
+            def getter():
+                return bpy.data.node_groups[node_tree.name]
+
         else:
             # this can only happen for the top level
             if overwrite:
@@ -387,7 +390,9 @@ From root: {from_root.to_str()}"""
             node_tree = mat.node_tree
 
             from_root = FromRoot([f"Material ({mat.name})"])
-            getter = lambda: bpy.data.materials[mat.name].node_tree
+
+            def getter():
+                return bpy.data.materials[mat.name].node_tree
 
         if self.debug_prints:
             print(f"{from_root.to_str()}: entering")
