@@ -1,5 +1,8 @@
 import bpy
 
+import base64
+import gzip
+
 from pathlib import Path
 import json
 import tempfile
@@ -12,6 +15,7 @@ from .specific_handlers import (
 from .import_nodes import import_nodes
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
+MAGIC_STRING = "TreeClipper"
 
 
 class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
@@ -26,6 +30,7 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
         default=DEFAULT_FILE,
         subtype="FILE_PATH",
     )  # type: ignore
+    compress: bpy.props.BoolProperty(name="Compress", default=True)  # type: ignore
     export_sub_trees: bpy.props.BoolProperty(name="Export Sub Trees", default=True)  # type: ignore
     skip_defaults: bpy.props.BoolProperty(name="Skip Defaults", default=True)  # type: ignore
     debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=True)  # type: ignore
@@ -50,13 +55,15 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
                 return super().default(o)
 
         with Path(self.output_file).open("w", encoding="utf-8") as f:
-            f.write(json.dumps(data, cls=Encoder, indent=4))
+            if self.compress:
+                json_str = json.dumps(data, cls=Encoder)
+                gzipped = gzip.compress(json_str.encode("utf-8"))
+                base64_str = base64.b64encode(gzipped).decode("utf-8")
 
-            # json_str = json.dumps(d, cls=Encoder)
-            # gzipped = gzip.compress(json_str.encode("utf-8"))
-            # base64_str = base64.b64encode(gzipped).decode("utf-8")
-
-            # f.write(base64_str)
+                f.write(MAGIC_STRING)
+                f.write(base64_str)
+            else:
+                f.write(json.dumps(data, cls=Encoder, indent=4))
 
         return {"FINISHED"}
 
@@ -80,7 +87,18 @@ class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
 
     def execute(self, _context):
         with Path(self.input_file).open("r", encoding="utf-8") as f:
-            data = json.load(f)
+            compressed = f.read(len(MAGIC_STRING)) == MAGIC_STRING
+
+        with Path(self.input_file).open("r", encoding="utf-8") as f:
+            if compressed:
+                full = f.read()
+                base64_str = full[len(MAGIC_STRING) :]
+                gzipped = base64.b64decode(base64_str)
+                json_str = gzip.decompress(gzipped).decode("utf-8")
+
+                data = json.loads(json_str)
+            else:
+                data = json.load(f)
 
         import_nodes(
             d=data,
