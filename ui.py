@@ -26,11 +26,13 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
         default=DEFAULT_FILE,
         subtype="FILE_PATH",
     )  # type: ignore
-    json_indent: bpy.props.IntProperty(name="JSON Indent", default=4, min=0)  # type: ignore
+
     compress: bpy.props.BoolProperty(name="Compress", default=True)  # type: ignore
+    json_indent: bpy.props.IntProperty(name="JSON Indent", default=4, min=0)  # type: ignore
+
     export_sub_trees: bpy.props.BoolProperty(name="Export Sub Trees", default=True)  # type: ignore
     skip_defaults: bpy.props.BoolProperty(name="Skip Defaults", default=True)  # type: ignore
-    debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=True)  # type: ignore
+    debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=False)  # type: ignore
 
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
@@ -52,6 +54,22 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
 
         return {"FINISHED"}
 
+    def draw(self, _context):
+        self.layout.prop(self, "is_material")
+        self.layout.prop(
+            self, "name", text="Material" if self.is_material else "Node Tree"
+        )
+        self.layout.prop(self, "output_file")
+        self.layout.prop(self, "compress")
+        if not self.compress:
+            self.layout.prop(self, "json_indent")
+        head, body = self.layout.panel("advanced", default_closed=True)
+        head.label(text="Advanced")
+        if body is not None:
+            body.prop(self, "export_sub_trees")
+            body.prop(self, "skip_defaults")
+            body.prop(self, "debug_prints")
+
 
 class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import"
@@ -63,9 +81,10 @@ class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
         default=DEFAULT_FILE,
         subtype="FILE_PATH",
     )  # type: ignore
-    allow_version_mismatch: bpy.props.BoolProperty(name="Ignore Version", default=False)  # type: ignore
     overwrite: bpy.props.BoolProperty(name="Overwrite", default=True)  # type: ignore
-    debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=True)  # type: ignore
+
+    allow_version_mismatch: bpy.props.BoolProperty(name="Ignore Version", default=False)  # type: ignore
+    debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=False)  # type: ignore
 
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
@@ -84,6 +103,15 @@ class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
         )
 
         return {"FINISHED"}
+
+    def draw(self, _context):
+        self.layout.prop(self, "input_file")
+        self.layout.prop(self, "overwrite")
+        head, body = self.layout.panel("advanced", default_closed=True)
+        head.label(text="Advanced")
+        if body is not None:
+            body.prop(self, "allow_version_mismatch")
+            body.prop(self, "debug_prints")
 
 
 class SCENE_PT_Tree_Clipper_Panel(bpy.types.Panel):
