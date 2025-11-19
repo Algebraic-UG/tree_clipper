@@ -790,7 +790,7 @@ def _export_color_ramp_element(
     node: bpy.types.ColorRampElement,
     from_root: FromRoot,
 ):
-    exporter.export_all_simple_writable_properties(
+    return exporter.export_all_simple_writable_properties(
         node, bpy.types.ColorRampElement, from_root
     )
 
