@@ -491,6 +491,74 @@ color ramps need at least one element"""
             self.obj.new(position=0)
 
 
+class SimulationInputExporter(SpecificExporter[bpy.types.GeometryNodeSimulationInput]):
+    def serialize(self):
+        d = self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        if self.obj.paired_output is None:
+            raise RuntimeError(
+                f"""{self.from_root.to_str()}
+Having no paired output for simulation nodes isn't supported"""
+            )
+        no_clobber(d, "paired_output", self.obj.paired_output.name)
+
+        return d
+
+
+class SimulationInputImporter(SpecificImporter[bpy.types.GeometryNodeSimulationInput]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties()
+
+        # if this fails it's easier to debug here
+        output = self.serialization["paired_output"]
+
+        def deferred():
+            if not self.getter().pair_with_output(
+                self.importer.current_tree.nodes[output]
+            ):
+                raise RuntimeError(
+                    f"{self.from_root.to_str()}: failed to pair with {output}"
+                )
+            self.import_properties_from_id_list([INPUTS, OUTPUTS])
+
+        # defer connection until we've created the output node
+        # only then, import the sockets
+        self.importer.create_special_node_connections.append(deferred)
+
+
+class SimulationOutputExporter(
+    SpecificExporter[bpy.types.GeometryNodeSimulationOutput]
+):
+    def serialize(self):
+        return self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, "state_items"]
+        )
+
+
+class SimulationOutputImporter(
+    SpecificImporter[bpy.types.GeometryNodeSimulationOutput]
+):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the state_items implicitly create sockets
+            ["state_items", INPUTS, OUTPUTS]
+        )
+
+
+class SimulationOutputItemsImporter(
+    SpecificImporter[bpy.types.NodeGeometrySimulationOutputItems]
+):
+    def deserialize(self):
+        self.obj.clear()
+        for item in self.serialization["items"]:
+            name = _or_default(item[DATA], bpy.types.SimulationStateItem, "name")
+            socket_type = _or_default(
+                item[DATA], bpy.types.SimulationStateItem, "socket_type"
+            )
+            if self.importer.debug_prints:
+                print(f"{self.from_root.to_str()}: adding item {name} {socket_type}")
+            self.obj.new(socket_type=socket_type, name=name)
+
+
 # now they are cooked and ready to use ~ bon appétit
 BUILT_IN_EXPORTER = _BUILT_IN_EXPORTER
 BUILT_IN_IMPORTER = _BUILT_IN_IMPORTER
