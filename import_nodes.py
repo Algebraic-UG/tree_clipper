@@ -133,7 +133,7 @@ class Importer:
             and prop.identifier == "default"
         ):
             if self.debug_prints:
-                print(f"{from_root.to_str()}: skipping enum default for now")
+                print(f"{from_root.to_str()}: defer setting enum default for now")
             self.set_socket_enum_defaults.append(
                 lambda: setattr(getter(), prop.identifier, serialization)
             )
