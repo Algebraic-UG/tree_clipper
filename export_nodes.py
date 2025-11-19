@@ -250,6 +250,7 @@ From root: {from_root.to_str()}"""
 
     def _export_obj(self, obj: bpy.types.bpy_struct, from_root: FromRoot):
         # edge case for things like bpy_prop_collection that aren't real RNA types?
+        # https://projects.blender.org/blender/blender/issues/150092
         if not hasattr(obj, "bl_rna"):
             assert isinstance(obj, bpy.types.bpy_prop_collection)
             return self._export_obj_with_serializer(

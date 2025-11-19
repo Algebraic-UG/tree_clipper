@@ -785,6 +785,32 @@ def _import_view_item(
     importer.set_auto_remove.append(deferred)
 
 
+def _export_color_ramp_element(
+    exporter: Exporter,
+    node: bpy.types.ColorRampElement,
+    from_root: FromRoot,
+):
+    exporter.export_all_simple_writable_properties(
+        node, bpy.types.ColorRampElement, from_root
+    )
+
+
+def _import_color_ramp_elements(
+    importer: Importer,
+    items: bpy.types.ColorRampElements,
+    _getter: GETTER,
+    serialization: dict,
+    from_root: FromRoot,
+):
+    items.clear()
+    for item in serialization["items"]:
+        position = _or_default(item[DATA], bpy.types.ColorRampElement, "position")
+        if importer.debug_prints:
+            print(f"{from_root.to_str()}: adding element at {position}")
+
+        items.new(position=position)
+
+
 # TODO: make sure that they use a matching type in the hint
 BUILT_IN_SERIALIZERS = {
     NoneType: lambda _exporter, _obj, _from_root: {},
@@ -801,6 +827,7 @@ BUILT_IN_SERIALIZERS = {
     bpy.types.GeometryNodeRepeatOutput: _export_repeat_output,
     bpy.types.IndexSwitchItem: _export_index_item,
     bpy.types.GeometryNodeViewer: _export_viewer,
+    bpy.types.ColorRampElement: _export_color_ramp_element,
 }
 
 
@@ -829,4 +856,5 @@ BUILT_IN_DESERIALIZERS = {
     bpy.types.GeometryNodeViewer: _import_viewer,
     bpy.types.NodeGeometryViewerItems: _import_view_items,
     bpy.types.NodeGeometryViewerItem: _import_view_item,
+    bpy.types.ColorRampElements: _import_color_ramp_elements,
 }
