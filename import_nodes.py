@@ -129,14 +129,17 @@ class Importer:
             and prop.identifier == "default"
         ):
             if self.debug_prints:
-                print(f"{from_root.to_str()}: skipping enum default for now")
+                print(f"{from_root.to_str()}: defer setting enum default for now")
             self.set_socket_enum_defaults.append(
                 lambda: setattr(getter(), prop.identifier, serialization)
             )
             return
 
-        # should just work^tm
-        setattr(obj, prop.identifier, serialization)
+        if prop.type == "ENUM" and prop.is_enum_flag:
+            assert isinstance(serialization, list)
+            setattr(obj, prop.identifier, set(serialization))
+        else:
+            setattr(obj, prop.identifier, serialization)
 
     def _import_property_pointer(
         self,
