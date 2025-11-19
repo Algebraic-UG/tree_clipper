@@ -10,6 +10,8 @@ from pathlib import Path
 
 from .common import (
     DATA,
+    DESERIALIZER,
+    GETTER,
     ID,
     MATERIAL_NAME,
     PROPERTY_TYPES_SIMPLE,

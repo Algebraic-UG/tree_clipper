@@ -12,10 +12,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import bpy
+import _rna_info as rna_info
 
 from .ui import (
-    SCENE_OT_Tree_Clipper_Import,
     SCENE_OT_Tree_Clipper_Export,
+    SCENE_OT_Tree_Clipper_Import,
     SCENE_PT_Tree_Clipper_Panel,
 )
 
@@ -24,8 +25,6 @@ classes = [
     SCENE_OT_Tree_Clipper_Export,
     SCENE_OT_Tree_Clipper_Import,
 ]
-
-import _rna_info as rna_info  # Blender module.
 
 
 def playground():

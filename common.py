@@ -96,5 +96,7 @@ def most_specific_type_handled(
 
 
 GETTER = Callable[[], bpy.types.bpy_struct]
-SERIALIZER = Callable[[Exporter, bpy.types.bpy_struct, FromRoot], dict]
-DESERIALIZER = Callable[[Importer, bpy.types.bpy_struct, GETTER, dict, FromRoot], None]
+SERIALIZER = Callable[["Exporter", bpy.types.bpy_struct, FromRoot], dict]
+DESERIALIZER = Callable[
+    ["Importer", bpy.types.bpy_struct, GETTER, dict, FromRoot], None
+]
