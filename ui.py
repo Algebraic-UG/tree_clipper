@@ -76,7 +76,7 @@ class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
             p=ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
                 allow_version_mismatch=self.allow_version_mismatch,
-                # TODO: put extrenal things here https://github.com/Algebraic-UG/tree_clipper/issues/16
+                # TODO: put external things here https://github.com/Algebraic-UG/tree_clipper/issues/16
                 getters={},
                 overwrite=self.overwrite,
                 debug_prints=self.debug_prints,
