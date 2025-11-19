@@ -139,8 +139,11 @@ class Importer:
             )
             return
 
-        # should just work^tm
-        setattr(obj, prop.identifier, serialization)
+        if prop.type == "ENUM" and prop.is_enum_flag:
+            assert isinstance(serialization, list)
+            setattr(obj, prop.identifier, set(serialization))
+        else:
+            setattr(obj, prop.identifier, serialization)
 
     def _import_property_pointer(
         self,

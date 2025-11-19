@@ -122,6 +122,15 @@ class Exporter:
                     return None
                 return list(attribute)
 
+        if prop.type == "ENUM":
+            if prop.is_enum_flag:
+                if self.skip_defaults and prop.default_flag == attribute:
+                    if self.debug_prints:
+                        print(f"{from_root.to_str()}: skipping default")
+                    return None
+                assert isinstance(attribute, set)
+                return list(attribute)
+
         if self.skip_defaults and prop.default == attribute:
             if self.debug_prints:
                 print(f"{from_root.to_str()}: skipping default")
