@@ -321,7 +321,7 @@ def export_nodes(
     specific_handlers: dict[type, SERIALIZER],
     export_sub_trees: bool = True,
     skip_defaults: bool = True,
-    debug_prints: bool
+    debug_prints: bool,
 ):
     exporter = Exporter(
         specific_handlers=specific_handlers,
