@@ -29,11 +29,8 @@ def _or_default(serialization: dict, t: type, identifier: str):
     return serialization.get(identifier, t.bl_rna.properties[identifier].default)
 
 
-# You can get a list of possible values by erroring on the creation
-# TypeError: NodeGeometryCaptureAttributeItems.new(): error with argument 1, "socket_type"
-# -  enum "XXXXX" not found in ('FLOAT', 'INT', 'BOOLEAN', 'VECTOR', 'RGBA', 'ROTATION',
-# 'MATRIX', 'STRING', 'MENU', 'SHADER', 'OBJECT', 'IMAGE', 'GEOMETRY', 'COLLECTION',
-# 'TEXTURE', 'MATERIAL', 'BUNDLE', 'CLOSURE')
+# Possible socket data types: https://docs.blender.org/api/current/bpy_types_enum_items/node_socket_data_type_items.html#rna-enum-node-socket-data-type-items
+# Only a subset of those are supported on the capture attribute node: FLOAT, INT, VECTOR, RGBA, BOOLEAN, QUATERNION, MATRIX
 # TODO this is incomplete?
 def _map_attribute_type_to_socket_type(attr_type: str):
     return {
@@ -48,8 +45,8 @@ def _map_attribute_type_to_socket_type(attr_type: str):
         "INT8": "INT",
         # "INT16_2D": ???
         # "INT32_2D": ???
-        "FLOAT2": "VECTOR",
-        "BYTE_COLOR": "RGBA",
+        # "FLOAT2": "VECTOR",
+        # "BYTE_COLOR": "RGBA",
     }[attr_type]
 
 
