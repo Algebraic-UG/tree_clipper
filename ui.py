@@ -10,8 +10,8 @@ from .import_nodes import import_nodes
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
 
 
-class SCENE_OT_NodesAsJSON_Panel_Export(bpy.types.Operator):
-    bl_idname = "scene.nodes_as_json_export"
+class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_export"
     bl_label = "Export"
     bl_options = {"REGISTER"}
 
@@ -36,8 +36,8 @@ class SCENE_OT_NodesAsJSON_Panel_Export(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class SCENE_OT_NodesAsJSON_Panel_Import(bpy.types.Operator):
-    bl_idname = "scene.nodes_as_json_import"
+class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_import"
     bl_label = "Import"
     bl_options = {"REGISTER", "UNDO"}
 
@@ -59,11 +59,11 @@ class SCENE_OT_NodesAsJSON_Panel_Import(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class SCENE_PT_NodesAsJSON_Panel(bpy.types.Panel):
-    bl_label = "Nodes As JSON"
+class SCENE_PT_Tree_Clipper_Panel(bpy.types.Panel):
+    bl_label = "Tree Clipper"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
-    bl_category = "Nodes As JSON"
+    bl_category = "Tree Clipper"
 
     def draw(self, context):
 
@@ -78,8 +78,8 @@ class SCENE_PT_NodesAsJSON_Panel(bpy.types.Panel):
         else:
             name = context.space_data.node_tree.name
 
-        export_op = self.layout.operator(SCENE_OT_NodesAsJSON_Panel_Export.bl_idname)
+        export_op = self.layout.operator(SCENE_OT_Tree_Clipper_Export.bl_idname)
         export_op.is_material = is_material
         export_op.name = name
 
-        self.layout.operator(SCENE_OT_NodesAsJSON_Panel_Import.bl_idname)
+        self.layout.operator(SCENE_OT_Tree_Clipper_Import.bl_idname)

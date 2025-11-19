@@ -15,7 +15,7 @@ from .common import (
     ID,
     PROPERTY_TYPES_SIMPLE,
     BLENDER_VERSION,
-    NODES_AS_JSON_VERSION,
+    TREE_CLIPPER_VERSION,
     MATERIAL_NAME,
     TREES,
     most_specific_type_handled,
@@ -349,7 +349,7 @@ def export_nodes(
 
     d = {
         BLENDER_VERSION: bpy.app.version_string,
-        NODES_AS_JSON_VERSION: blender_manifest["version"],
+        TREE_CLIPPER_VERSION: blender_manifest["version"],
         TREES: [
             # pylint: disable=protected-access
             exporter._export_node_tree(tree, from_root)

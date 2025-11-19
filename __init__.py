@@ -14,15 +14,15 @@
 import bpy
 
 from .ui import (
-    SCENE_PT_NodesAsJSON_Panel,
-    SCENE_OT_NodesAsJSON_Panel_Export,
-    SCENE_OT_NodesAsJSON_Panel_Import,
+    SCENE_OT_Tree_Clipper_Import,
+    SCENE_OT_Tree_Clipper_Export,
+    SCENE_PT_Tree_Clipper_Panel,
 )
 
 classes = [
-    SCENE_PT_NodesAsJSON_Panel,
-    SCENE_OT_NodesAsJSON_Panel_Export,
-    SCENE_OT_NodesAsJSON_Panel_Import,
+    SCENE_PT_Tree_Clipper_Panel,
+    SCENE_OT_Tree_Clipper_Export,
+    SCENE_OT_Tree_Clipper_Import,
 ]
 
 import _rna_info as rna_info  # Blender module.

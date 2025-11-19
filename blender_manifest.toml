@@ -2,9 +2,9 @@ schema_version = "1.0.0"
 
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
-id = "nodes_as_json"
+id = "tree_clipper"
 version = "1.0.0"
-name = "Nodes As JSON"
+name = "Tree Clipper"
 tagline = "This is another extension"
 maintainer = "Algebraic"
 # Supported types: "add-on", "theme"

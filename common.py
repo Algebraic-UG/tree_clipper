@@ -14,7 +14,7 @@ PROPERTY_TYPES_SIMPLE = set(
 )
 
 BLENDER_VERSION = "blender_version"
-NODES_AS_JSON_VERSION = "nodes_as_json_version"
+TREE_CLIPPER_VERSION = "tree_clipper_version"
 MATERIAL_NAME = "name"
 TREES = "node_trees"
 
@@ -40,7 +40,6 @@ NODE_TREE_INTERFACE = "interface"
 NODE_TREE_LINKS = "links"
 NODE_TREE_NODES = "nodes"
 
-REFERENCE = "nodes_as_json_reference"
 ID = "id"
 DATA = "data"
 

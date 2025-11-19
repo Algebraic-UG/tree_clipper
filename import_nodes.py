@@ -14,7 +14,7 @@ from .common import (
     MATERIAL_NAME,
     PROPERTY_TYPES_SIMPLE,
     BLENDER_VERSION,
-    NODES_AS_JSON_VERSION,
+    TREE_CLIPPER_VERSION,
     TREES,
     FromRoot,
     most_specific_type_handled,
@@ -412,7 +412,7 @@ def _check_version(d: dict):
     if exporter_blender_version != importer_blender_version:
         return f"Blender version mismatch. File version: {exporter_blender_version}, but running {importer_blender_version}"
 
-    exporter_node_as_json_version = d[NODES_AS_JSON_VERSION]
+    exporter_node_as_json_version = d[TREE_CLIPPER_VERSION]
     manifest_path = Path(__file__).parent / "blender_manifest.toml"
     with manifest_path.open("rb") as f:
         blender_manifest = tomllib.load(f)
