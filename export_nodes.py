@@ -494,7 +494,7 @@ class ExportIntermediate:
     def export_to_file(self, *, file_path: Path, compress: bool, json_indent: int):
         with file_path.open("w", encoding="utf-8") as file:
             if compress:
-                string = self.export_to_str(compress, json_indent)
+                string = self.export_to_str(compress=compress, json_indent=json_indent)
                 file.write(string)
             else:
                 json.dump(self.data, file, cls=_Encoder, indent=json_indent)
