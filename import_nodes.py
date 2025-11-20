@@ -537,5 +537,5 @@ def import_nodes_from_file(*, file_path: Path, p: ImportParameters):
             full = f.read()
             import_nodes_from_str(s=full, p=p)
         else:
-            d = json.load(file_path)
+            d = json.load(f)
             import_nodes_from_dict(d=d, p=p)
