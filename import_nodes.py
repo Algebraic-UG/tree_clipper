@@ -519,8 +519,7 @@ def _import_nodes_from_dict(*, data: dict, parameters: ImportParameters):
 
 
 class ImportIntermediate:
-    def __init__(self, paremeters: ImportParameters):
-        self.parameters = paremeters
+    def __init__(self):
         self.data = None
 
     def from_str(self, string: str):
@@ -547,5 +546,5 @@ class ImportIntermediate:
                 data = json.load(file)
                 self.data = data
 
-    def import_nodes(self):
-        _import_nodes_from_dict(data=self.data, parameters=self.parameters)
+    def import_nodes(self, parameters: ImportParameters):
+        _import_nodes_from_dict(data=self.data, parameters=parameters)

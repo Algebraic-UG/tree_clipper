@@ -14,6 +14,7 @@ from .import_nodes import ImportParameters, ImportIntermediate
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
 
 _INTERMEDIATE_EXPORT_CACHE = None
+_INTERMEDIATE_IMPORT_CACHE = None
 
 
 def force_ui_redraw():
@@ -56,7 +57,7 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
         force_ui_redraw()
 
         # seems impossible to use bl_idname here
-        bpy.ops.scene.tree_clipper_export_finalize("INVOKE_DEFAULT")
+        bpy.ops.scene.tree_clipper_export_cache("INVOKE_DEFAULT")
         return {"FINISHED"}
 
     def draw(self, _context):
@@ -108,9 +109,9 @@ class Tree_Clipper_External_Item(bpy.types.PropertyGroup):
     description: bpy.props.StringProperty(name="", default="Hint for Import")  # type: ignore
 
 
-class SCENE_OT_Tree_Clipper_Export_Finalize(bpy.types.Operator):
-    bl_idname = "scene.tree_clipper_export_finalize"
-    bl_label = "Finalize Cache"
+class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_export_cache"
+    bl_label = "Export Cache"
     bl_options = {"REGISTER"}
 
     output_file: bpy.props.StringProperty(
@@ -169,16 +170,49 @@ class SCENE_OT_Tree_Clipper_Export_Finalize(bpy.types.Operator):
                 body.label(text="    -> " + path_elem)
 
 
-class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
-    bl_idname = "scene.tree_clipper_import"
-    bl_label = "Import"
-    bl_options = {"REGISTER", "UNDO"}
+class SCENE_OT_Tree_Clipper_Import_Prepare(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_import_prepare"
+    bl_label = "Prepare Import"
+    bl_options = {"REGISTER"}
 
     input_file: bpy.props.StringProperty(
         name="Input File",
         default=DEFAULT_FILE,
         subtype="FILE_PATH",
     )  # type: ignore
+
+    def invoke(self, context, _):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def execute(self, _context):
+        global _INTERMEDIATE_IMPORT_CACHE
+        _INTERMEDIATE_IMPORT_CACHE = ImportIntermediate()
+        _INTERMEDIATE_IMPORT_CACHE.from_file(Path(self.input_file))
+
+        # otherwise the cache buttons aren't shown until the panel is mouse-overed
+        force_ui_redraw()
+
+        # seems impossible to use bl_idname here
+        bpy.ops.scene.tree_clipper_import_cache("INVOKE_DEFAULT")
+        return {"FINISHED"}
+
+
+class SCENE_OT_Tree_Clipper_Import_Clear_Cache(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_import_clear_cache"
+    bl_label = "Clear Cache"
+    bl_options = {"REGISTER"}
+
+    def execute(_self, _context):
+        global _INTERMEDIATE_IMPORT_CACHE
+        _INTERMEDIATE_IMPORT_CACHE = None
+        return {"FINISHED"}
+
+
+class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_import_cache"
+    bl_label = "Import Cache"
+    bl_options = {"REGISTER", "UNDO"}
+
     overwrite: bpy.props.BoolProperty(name="Overwrite", default=True)  # type: ignore
 
     allow_version_mismatch: bpy.props.BoolProperty(name="Ignore Version", default=False)  # type: ignore
@@ -188,8 +222,8 @@ class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
-        intermediate = ImportIntermediate(
-            paremeters=ImportParameters(
+        _INTERMEDIATE_IMPORT_CACHE.import_nodes(
+            ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
                 allow_version_mismatch=self.allow_version_mismatch,
                 # TODO: put external things here https://github.com/Algebraic-UG/tree_clipper/issues/16
@@ -198,13 +232,9 @@ class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
                 debug_prints=self.debug_prints,
             )
         )
-        intermediate.from_file(Path(self.input_file))
-        intermediate.import_nodes()
-
         return {"FINISHED"}
 
     def draw(self, _context):
-        self.layout.prop(self, "input_file")
         self.layout.prop(self, "overwrite")
         head, body = self.layout.panel("advanced", default_closed=True)
         head.label(text="Advanced")
@@ -237,9 +267,14 @@ class SCENE_PT_Tree_Clipper_Panel(bpy.types.Panel):
 
         if _INTERMEDIATE_EXPORT_CACHE is not None:
             export_cached = self.layout.row()
-            export_cached.operator(SCENE_OT_Tree_Clipper_Export_Finalize.bl_idname)
+            export_cached.operator(SCENE_OT_Tree_Clipper_Export_Cache.bl_idname)
             export_cached.operator(SCENE_OT_Tree_Clipper_Export_Clear_Cache.bl_idname)
 
         self.layout.separator()
 
-        self.layout.operator(SCENE_OT_Tree_Clipper_Import.bl_idname)
+        self.layout.operator(SCENE_OT_Tree_Clipper_Import_Prepare.bl_idname)
+
+        if _INTERMEDIATE_IMPORT_CACHE is not None:
+            export_cached = self.layout.row()
+            export_cached.operator(SCENE_OT_Tree_Clipper_Import_Cache.bl_idname)
+            export_cached.operator(SCENE_OT_Tree_Clipper_Import_Clear_Cache.bl_idname)
