@@ -29,10 +29,13 @@ class Pointer:
     def __init__(
         self,
         *,
+        pointer_id: int,
         from_root: FromRoot,
     ):
         self.from_root = from_root
-        self.id = None
+        self.pointer_id = pointer_id
+        # this is determined after all trees are serialized
+        self.pointee_id = None
 
 
 class Exporter:
@@ -158,7 +161,7 @@ class Exporter:
         if attribute.id_data == self.current_tree and prop.is_readonly:
             return self._export_obj(obj=attribute, from_root=from_root)
         else:
-            pointer = Pointer(from_root=from_root)
+            pointer = Pointer(pointer_id=self.next_id - 1, from_root=from_root)
             self.pointers.setdefault(attribute, []).append(pointer)
             if self.debug_prints:
                 print(f"{from_root.to_str()}: deferring")
