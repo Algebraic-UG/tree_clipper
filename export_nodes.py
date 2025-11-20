@@ -498,3 +498,6 @@ class ExportIntermediate:
                 file.write(string)
             else:
                 json.dump(self.data, file, cls=_Encoder, indent=json_indent)
+
+    def get_external(self):
+        return self.data["external"]
