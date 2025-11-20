@@ -8,7 +8,7 @@ from .specific_handlers import (
     BUILT_IN_EXPORTER,
     BUILT_IN_IMPORTER,
 )
-from .export_nodes import ExportParameters, export_nodes_to_file
+from .export_nodes import ExportParameters, ExportIntermediate
 from .import_nodes import ImportParameters, import_nodes_from_file
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
@@ -39,9 +39,8 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
-        export_nodes_to_file(
-            file_path=Path(self.output_file),
-            parameters=ExportParameters(
+        intermediate = ExportIntermediate(
+            ExportParameters(
                 is_material=self.is_material,
                 name=self.name,
                 specific_handlers=BUILT_IN_EXPORTER,
@@ -49,9 +48,12 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
                 skip_defaults=self.skip_defaults,
                 debug_prints=self.debug_prints,
                 write_from_roots=self.write_from_roots,
-                compress=self.compress,
-                json_indent=self.json_indent,
-            ),
+            )
+        )
+        intermediate.export_to_file(
+            file_path=Path(self.output_file),
+            compress=self.compress,
+            json_indent=self.json_indent,
         )
 
         return {"FINISHED"}
