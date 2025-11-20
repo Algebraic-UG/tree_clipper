@@ -124,8 +124,10 @@ class SpecificExporter(Generic[AssumedType], ABC):
 
     def export_all_simple_writable_properties_and_list(self, id_list: list[str]):
         data = self.export_all_simple_writable_properties()
-        for identifier, data in self.export_properties_from_id_list(id_list).items():
-            no_clobber(data, identifier, data)
+        for identifier, data_prop in self.export_properties_from_id_list(
+            id_list
+        ).items():
+            no_clobber(data, identifier, data_prop)
         return data
 
     @abstractmethod
