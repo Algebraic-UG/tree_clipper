@@ -40,7 +40,7 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
     def execute(self, _context):
         export_nodes_to_file(
             file_path=Path(self.output_file),
-            p=ExportParameters(
+            parameters=ExportParameters(
                 is_material=self.is_material,
                 name=self.name,
                 specific_handlers=BUILT_IN_EXPORTER,
@@ -92,7 +92,7 @@ class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
     def execute(self, _context):
         import_nodes_from_file(
             file_path=Path(self.input_file),
-            p=ImportParameters(
+            parameters=ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
                 allow_version_mismatch=self.allow_version_mismatch,
                 # TODO: put external things here https://github.com/Algebraic-UG/tree_clipper/issues/16
