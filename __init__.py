@@ -14,6 +14,8 @@
 import bpy
 
 from .ui import (
+    Tree_Clipper_External_Item,
+    SCENE_UL_Tree_Clipper_External_List,
     SCENE_OT_Tree_Clipper_Export_Clear_Cache,
     SCENE_OT_Tree_Clipper_Export_Finalize,
     SCENE_OT_Tree_Clipper_Export_Prepare,
@@ -22,11 +24,13 @@ from .ui import (
 )
 
 classes = [
-    SCENE_PT_Tree_Clipper_Panel,
+    Tree_Clipper_External_Item,
+    SCENE_UL_Tree_Clipper_External_List,
     SCENE_OT_Tree_Clipper_Export_Finalize,
     SCENE_OT_Tree_Clipper_Export_Clear_Cache,
     SCENE_OT_Tree_Clipper_Export_Prepare,
     SCENE_OT_Tree_Clipper_Import,
+    SCENE_PT_Tree_Clipper_Panel,
 ]
 
 

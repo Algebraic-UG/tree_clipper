@@ -84,6 +84,25 @@ class SCENE_OT_Tree_Clipper_Export_Clear_Cache(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SCENE_UL_Tree_Clipper_External_List(bpy.types.UIList):
+    def draw_item(
+        self,
+        _context,
+        layout,
+        _data,
+        item,
+        _icon,
+        _active_data,
+        _active_property,
+    ):
+        external = _INTERMEDIATE_EXPORT_CACHE.get_external()[item.external_id]
+        layout.label(text=str(item.external_id))
+
+
+class Tree_Clipper_External_Item(bpy.types.PropertyGroup):
+    external_id: bpy.props.IntProperty()  # type: ignore
+
+
 class SCENE_OT_Tree_Clipper_Export_Finalize(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_finalize"
     bl_label = "Finalize Cache"
@@ -98,7 +117,14 @@ class SCENE_OT_Tree_Clipper_Export_Finalize(bpy.types.Operator):
     compress: bpy.props.BoolProperty(name="Compress", default=True)  # type: ignore
     json_indent: bpy.props.IntProperty(name="JSON Indent", default=4, min=0)  # type: ignore
 
+    external_items: bpy.props.CollectionProperty(type=Tree_Clipper_External_Item)  # type: ignore
+    selected_external_item: bpy.props.IntProperty()  # type: ignore
+
     def invoke(self, context, _):
+        self.external_items.clear()
+        for external_id in _INTERMEDIATE_EXPORT_CACHE.get_external().keys():
+            item = self.external_items.add()
+            item.external_id = external_id
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
@@ -114,6 +140,14 @@ class SCENE_OT_Tree_Clipper_Export_Finalize(bpy.types.Operator):
         self.layout.prop(self, "compress")
         if not self.compress:
             self.layout.prop(self, "json_indent")
+        self.layout.template_list(
+            listtype_name="SCENE_UL_Tree_Clipper_External_List",
+            list_id="",
+            dataptr=self,
+            propname="external_items",
+            active_dataptr=self,
+            active_propname="selected_external_item",
+        )
 
 
 class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
