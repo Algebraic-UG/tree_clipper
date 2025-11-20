@@ -13,22 +13,16 @@ from .import_nodes import ImportParameters, import_nodes_from_file
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
 
+_INTERMEDIATE_EXPORT_CACHE = None
 
-class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
-    bl_idname = "scene.tree_clipper_export"
-    bl_label = "Export"
+
+class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_export_prepare"
+    bl_label = "Prepare Export"
     bl_options = {"REGISTER"}
 
     is_material: bpy.props.BoolProperty(name="Top level Material")  # type: ignore
     name: bpy.props.StringProperty(name="Material/NodeTree")  # type: ignore
-    output_file: bpy.props.StringProperty(
-        name="Output File",
-        default=DEFAULT_FILE,
-        subtype="FILE_PATH",
-    )  # type: ignore
-
-    compress: bpy.props.BoolProperty(name="Compress", default=True)  # type: ignore
-    json_indent: bpy.props.IntProperty(name="JSON Indent", default=4, min=0)  # type: ignore
 
     export_sub_trees: bpy.props.BoolProperty(name="Export Sub Trees", default=True)  # type: ignore
     skip_defaults: bpy.props.BoolProperty(name="Skip Defaults", default=True)  # type: ignore
@@ -38,8 +32,9 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
 
-    def execute(self, _context):
-        intermediate = ExportIntermediate(
+    def execute(self, context):
+        global _INTERMEDIATE_EXPORT_CACHE
+        _INTERMEDIATE_EXPORT_CACHE = ExportIntermediate(
             ExportParameters(
                 is_material=self.is_material,
                 name=self.name,
@@ -50,12 +45,8 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
                 write_from_roots=self.write_from_roots,
             )
         )
-        intermediate.export_to_file(
-            file_path=Path(self.output_file),
-            compress=self.compress,
-            json_indent=self.json_indent,
-        )
-
+        # seems impossible to use bl_idname here
+        bpy.ops.scene.tree_clipper_export_finalize("INVOKE_DEFAULT")
         return {"FINISHED"}
 
     def draw(self, _context):
@@ -63,10 +54,6 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
         self.layout.prop(
             self, "name", text="Material" if self.is_material else "Node Tree"
         )
-        self.layout.prop(self, "output_file")
-        self.layout.prop(self, "compress")
-        if not self.compress:
-            self.layout.prop(self, "json_indent")
         head, body = self.layout.panel("advanced", default_closed=True)
         head.label(text="Advanced")
         if body is not None:
@@ -74,6 +61,49 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
             body.prop(self, "skip_defaults")
             body.prop(self, "debug_prints")
             body.prop(self, "write_from_roots")
+
+
+class SCENE_OT_Tree_Clipper_Export_Clear_Cache(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_export_clear_cache"
+    bl_label = "Clear Cache"
+    bl_options = {"REGISTER"}
+
+    def execute(_self, _context):
+        global _INTERMEDIATE_EXPORT_CACHE
+        _INTERMEDIATE_EXPORT_CACHE = None
+        return {"FINISHED"}
+
+
+class SCENE_OT_Tree_Clipper_Export_Finalize(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_export_finalize"
+    bl_label = "Finalize Cache"
+    bl_options = {"REGISTER"}
+
+    output_file: bpy.props.StringProperty(
+        name="Output File",
+        default=DEFAULT_FILE,
+        subtype="FILE_PATH",
+    )  # type: ignore
+
+    compress: bpy.props.BoolProperty(name="Compress", default=True)  # type: ignore
+    json_indent: bpy.props.IntProperty(name="JSON Indent", default=4, min=0)  # type: ignore
+
+    def invoke(self, context, _):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def execute(self, _context):
+        _INTERMEDIATE_EXPORT_CACHE.export_to_file(
+            file_path=Path(self.output_file),
+            compress=self.compress,
+            json_indent=self.json_indent,
+        )
+        return {"FINISHED"}
+
+    def draw(self, _context):
+        self.layout.prop(self, "output_file")
+        self.layout.prop(self, "compress")
+        if not self.compress:
+            self.layout.prop(self, "json_indent")
 
 
 class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
@@ -137,8 +167,13 @@ class SCENE_PT_Tree_Clipper_Panel(bpy.types.Panel):
         else:
             name = context.space_data.node_tree.name
 
-        export_op = self.layout.operator(SCENE_OT_Tree_Clipper_Export.bl_idname)
+        export_op = self.layout.operator(SCENE_OT_Tree_Clipper_Export_Prepare.bl_idname)
         export_op.is_material = is_material
         export_op.name = name
+
+        if _INTERMEDIATE_EXPORT_CACHE is not None:
+            export_cached = self.layout.row()
+            export_cached.operator(SCENE_OT_Tree_Clipper_Export_Finalize.bl_idname)
+            export_cached.operator(SCENE_OT_Tree_Clipper_Export_Clear_Cache.bl_idname)
 
         self.layout.operator(SCENE_OT_Tree_Clipper_Import.bl_idname)
