@@ -461,6 +461,8 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict:
             external_id = exporter.next_id
             exporter.next_id += 1
             external[external_id] = External(pointed_to_by=pointers)
+            for pointer in pointers:
+                pointer.pointee_id = external_id
 
     data["external"] = external
 
