@@ -172,10 +172,6 @@ class TreeSocketExporter(SpecificExporter[bpy.types.NodeTreeInterfaceSocket]):
         data = self.export_all_simple_writable_properties_and_list(
             ["item_type", "index", IN_OUT]
         )
-
-        if self.exporter.scan_mode:
-            return data
-
         no_clobber(data, "parent", self.obj.parent.persistent_uid)
         return data
 
@@ -185,10 +181,6 @@ class TreePanelExporter(SpecificExporter[bpy.types.NodeTreeInterfacePanel]):
         data = self.export_all_simple_writable_properties_and_list(
             ["item_type", "index", "persistent_uid"]
         )
-
-        if self.exporter.scan_mode:
-            return data
-
         no_clobber(data, "parent", self.obj.parent.persistent_uid)
         return data
 
@@ -245,9 +237,6 @@ class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
 class LinkExporter(SpecificExporter[bpy.types.NodeLink]):
     def serialize(self):
         data = self.export_all_simple_writable_properties()
-
-        if self.exporter.scan_mode:
-            return data
 
         no_clobber(data, FROM_NODE, self.obj.from_node.name)
         no_clobber(
@@ -361,10 +350,6 @@ class RepeatInputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatInput]):
                 f"""{self.from_root.to_str()}
 Having no paired output for repeat nodes isn't supported"""
             )
-
-        if self.exporter.scan_mode:
-            return data
-
         no_clobber(data, "paired_output", self.obj.paired_output.name)
 
         return data
@@ -514,10 +499,6 @@ class SimulationInputExporter(SpecificExporter[bpy.types.GeometryNodeSimulationI
                 f"""{self.from_root.to_str()}
 Having no paired output for simulation nodes isn't supported"""
             )
-
-        if self.exporter.scan_mode:
-            return data
-
         no_clobber(data, "paired_output", self.obj.paired_output.name)
 
         return data
