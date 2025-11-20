@@ -464,4 +464,4 @@ def export_nodes_to_file(*, file_path: Path, p: ExportParameters):
             compressed = export_nodes_to_str(p)
             f.write(compressed)
         else:
-            json.dump(d, f, indent=p.json_indent)
+            json.dump(d, f, cls=_Encoder, indent=p.json_indent)
