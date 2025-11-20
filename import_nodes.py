@@ -218,7 +218,9 @@ class Importer:
                 obj=item,
                 getter=make_getter(i),
                 serialization=serialized_items[i],
-                from_root=from_root.add(f"[{i}]"),
+                from_root=from_root.add(
+                    f"[{i}] ({getattr(serialized_items[i][DATA], 'name', 'unnamed')})"
+                ),
             )
 
     def _import_property(
