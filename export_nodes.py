@@ -410,6 +410,16 @@ class ExportParameters:
         self.json_indent = json_indent
 
 
+class External:
+    def __init__(
+        self,
+        *,
+        pointed_to_by: list[Pointer],
+    ):
+        self.pointed_to_by = pointed_to_by
+        self.description = None
+
+
 def export_nodes_to_dict(parameters: ExportParameters) -> dict:
     exporter = Exporter(
         specific_handlers=parameters.specific_handlers,
@@ -450,15 +460,11 @@ def export_nodes_to_dict(parameters: ExportParameters) -> dict:
     for obj, pointers in exporter.pointers.items():
         if obj in exporter.serialized:
             for pointer in pointers:
-                pointer.id = exporter.serialized[obj]
+                pointer.pointee_id = exporter.serialized[obj]
         else:
             external_id = exporter.next_id
             exporter.next_id += 1
-            pointed_to_by = []
-            for pointer in pointers:
-                pointer.id = external_id
-                pointed_to_by.append(pointer.from_root.to_str())
-            external[external_id] = pointed_to_by
+            external[external_id] = External(pointed_to_by=pointers)
 
     data["external"] = external
 
