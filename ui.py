@@ -33,6 +33,7 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
     export_sub_trees: bpy.props.BoolProperty(name="Export Sub Trees", default=True)  # type: ignore
     skip_defaults: bpy.props.BoolProperty(name="Skip Defaults", default=True)  # type: ignore
     debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=False)  # type: ignore
+    write_from_roots: bpy.props.BoolProperty(name="Add Paths", default=False)  # type: ignore
 
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
@@ -47,6 +48,7 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
                 export_sub_trees=self.export_sub_trees,
                 skip_defaults=self.skip_defaults,
                 debug_prints=self.debug_prints,
+                write_from_roots=self.write_from_roots,
                 compress=self.compress,
                 json_indent=self.json_indent,
             ),
@@ -69,6 +71,7 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
             body.prop(self, "export_sub_trees")
             body.prop(self, "skip_defaults")
             body.prop(self, "debug_prints")
+            body.prop(self, "write_from_roots")
 
 
 class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
