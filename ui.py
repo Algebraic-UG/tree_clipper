@@ -161,7 +161,7 @@ class SCENE_OT_Tree_Clipper_Export_Finalize(bpy.types.Operator):
         external_item = self.external_items[self.selected_external_item]
         external = _INTERMEDIATE_EXPORT_CACHE.get_external()[external_item.external_id]
         pointer = external.pointed_to_by[external_item.idx]
-        head, body = self.layout.panel("details")
+        head, body = self.layout.panel("details", default_closed=True)
         head.label(text="Item Details")
         if body is not None:
             body.label(text="Referenced at:")
