@@ -16,6 +16,12 @@ DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
 _INTERMEDIATE_EXPORT_CACHE = None
 
 
+def force_ui_redraw():
+    for area in bpy.context.window.screen.areas:
+        if area.type == "NODE_EDITOR":
+            area.tag_redraw()
+
+
 class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_prepare"
     bl_label = "Prepare Export"
@@ -45,6 +51,10 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
                 write_from_roots=self.write_from_roots,
             )
         )
+
+        # otherwise the cache buttons aren't shown until the panel is mouse-overed
+        force_ui_redraw()
+
         # seems impossible to use bl_idname here
         bpy.ops.scene.tree_clipper_export_finalize("INVOKE_DEFAULT")
         return {"FINISHED"}
