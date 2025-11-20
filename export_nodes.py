@@ -2,6 +2,7 @@ import base64
 import gzip
 import json
 from pathlib import Path
+import time
 from types import NoneType
 from typing import Self
 
@@ -486,7 +487,10 @@ def export_nodes_to_str(parameters: ExportParameters) -> str:
 
 
 def export_nodes_to_file(*, file_path: Path, parameters: ExportParameters):
+    start = time.time()
     data = export_nodes_to_dict(parameters)
+    end = time.time()
+    print(end - start)
     with file_path.open("w", encoding="utf-8") as file:
         if parameters.compress:
             compressed = export_nodes_to_str(parameters)
