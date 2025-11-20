@@ -396,8 +396,6 @@ class ExportParameters:
         skip_defaults: bool = True,
         debug_prints: bool,
         write_from_roots: bool,
-        compress: bool,
-        json_indent: int = 4,
     ):
         self.is_material = is_material
         self.name = name
@@ -406,8 +404,6 @@ class ExportParameters:
         self.skip_defaults = skip_defaults
         self.debug_prints = debug_prints
         self.write_from_roots = write_from_roots
-        self.compress = compress
-        self.json_indent = json_indent
 
 
 class External:
@@ -420,7 +416,7 @@ class External:
         self.description = None
 
 
-def export_nodes_to_dict(parameters: ExportParameters) -> dict:
+def _export_nodes_to_dict(parameters: ExportParameters) -> dict:
     exporter = Exporter(
         specific_handlers=parameters.specific_handlers,
         skip_defaults=parameters.skip_defaults,
@@ -474,29 +470,29 @@ def export_nodes_to_dict(parameters: ExportParameters) -> dict:
 class _Encoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Pointer):
-            return obj.id
+            return obj.pointee_id
+        if isinstance(obj, External):
+            return obj.description
         return super().default(obj)
 
 
-def export_nodes_to_str(parameters: ExportParameters) -> str:
-    data = export_nodes_to_dict(parameters)
-    if parameters.compress:
-        json_str = json.dumps(data, cls=_Encoder)
-        gzipped = gzip.compress(json_str.encode("utf-8"))
-        base64_str = base64.b64encode(gzipped).decode("utf-8")
-        return MAGIC_STRING + base64_str
-    else:
-        return json.dumps(data, cls=_Encoder, indent=parameters.json_indent)
+class ExportIntermediate:
+    def __init__(self, parameters: ExportParameters):
+        self.data = _export_nodes_to_dict(parameters=parameters)
 
-
-def export_nodes_to_file(*, file_path: Path, parameters: ExportParameters):
-    start = time.time()
-    data = export_nodes_to_dict(parameters)
-    end = time.time()
-    print(end - start)
-    with file_path.open("w", encoding="utf-8") as file:
-        if parameters.compress:
-            compressed = export_nodes_to_str(parameters)
-            file.write(compressed)
+    def export_to_str(self, *, compress: bool, json_indent: int) -> str:
+        if compress:
+            json_str = json.dumps(self.data, cls=_Encoder)
+            gzipped = gzip.compress(json_str.encode("utf-8"))
+            base64_str = base64.b64encode(gzipped).decode("utf-8")
+            return MAGIC_STRING + base64_str
         else:
-            json.dump(data, file, cls=_Encoder, indent=parameters.json_indent)
+            return json.dumps(self.data, cls=_Encoder, indent=json_indent)
+
+    def export_to_file(self, *, file_path: Path, compress: bool, json_indent: int):
+        with file_path.open("w", encoding="utf-8") as file:
+            if compress:
+                string = self.export_to_str(compress, json_indent)
+                file.write(string)
+            else:
+                json.dump(self.data, file, cls=_Encoder, indent=json_indent)
