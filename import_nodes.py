@@ -521,9 +521,9 @@ def import_nodes_from_str(*, s: str, p: ImportParameters):
         base64_str = s[len(MAGIC_STRING) :]
         gzipped = base64.b64decode(base64_str)
         json_str = gzip.decompress(gzipped).decode("utf-8")
-        d = json.loads(s)
-    else:
         d = json.loads(json_str)
+    else:
+        d = json.loads(s)
 
     import_nodes_from_dict(d=d, p=p)
 
