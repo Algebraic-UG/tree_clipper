@@ -192,7 +192,12 @@ class Exporter:
 
         data = self._export_obj(obj=attribute, from_root=from_root)
         items = [
-            self._export_obj(obj=element, from_root=from_root.add(f"[{i}]"))
+            self._export_obj(
+                obj=element,
+                from_root=from_root.add(
+                    f"[{i}] ({getattr(attribute[i], 'name', 'unnamed')})"
+                ),
+            )
             for i, element in enumerate(attribute)
         ]
         no_clobber(data[DATA], "items", items)
