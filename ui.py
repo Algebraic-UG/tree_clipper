@@ -96,11 +96,16 @@ class SCENE_UL_Tree_Clipper_External_List(bpy.types.UIList):
         _active_property,
     ):
         external = _INTERMEDIATE_EXPORT_CACHE.get_external()[item.external_id]
-        layout.label(text=str(item.external_id))
+        pointer = external.pointed_to_by[item.idx]
+        row = layout.row()
+        row.prop(item, "description")
+        row.prop(pointer.obj, pointer.identifier)
 
 
 class Tree_Clipper_External_Item(bpy.types.PropertyGroup):
     external_id: bpy.props.IntProperty()  # type: ignore
+    idx: bpy.props.IntProperty()  # type: ignore
+    description: bpy.props.StringProperty(name="", default="Hint for Import")  # type: ignore
 
 
 class SCENE_OT_Tree_Clipper_Export_Finalize(bpy.types.Operator):
@@ -122,10 +127,12 @@ class SCENE_OT_Tree_Clipper_Export_Finalize(bpy.types.Operator):
 
     def invoke(self, context, _):
         self.external_items.clear()
-        for external_id in _INTERMEDIATE_EXPORT_CACHE.get_external().keys():
-            item = self.external_items.add()
-            item.external_id = external_id
-        return context.window_manager.invoke_props_dialog(self)
+        for external_id, external in _INTERMEDIATE_EXPORT_CACHE.get_external().items():
+            for idx in range(len(external.pointed_to_by)):
+                item = self.external_items.add()
+                item.external_id = external_id
+                item.idx = idx
+        return context.window_manager.invoke_props_dialog(self, width=600)
 
     def execute(self, _context):
         _INTERMEDIATE_EXPORT_CACHE.export_to_file(
@@ -140,6 +147,9 @@ class SCENE_OT_Tree_Clipper_Export_Finalize(bpy.types.Operator):
         self.layout.prop(self, "compress")
         if not self.compress:
             self.layout.prop(self, "json_indent")
+        if len(self.external_items) == 0:
+            return
+        self.layout.label(text="References to External:")
         self.layout.template_list(
             listtype_name="SCENE_UL_Tree_Clipper_External_List",
             list_id="",
@@ -148,6 +158,15 @@ class SCENE_OT_Tree_Clipper_Export_Finalize(bpy.types.Operator):
             active_dataptr=self,
             active_propname="selected_external_item",
         )
+        external_item = self.external_items[self.selected_external_item]
+        external = _INTERMEDIATE_EXPORT_CACHE.get_external()[external_item.external_id]
+        pointer = external.pointed_to_by[external_item.idx]
+        head, body = self.layout.panel("details")
+        head.label(text="Item Details")
+        if body is not None:
+            body.label(text="Referenced at:")
+            for path_elem in pointer.from_root.path:
+                body.label(text="    -> " + path_elem)
 
 
 class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
