@@ -38,7 +38,7 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
     def invoke(self, context, _):
         return context.window_manager.invoke_props_dialog(self)
 
-    def execute(self, context):
+    def execute(self, _context):
         global _INTERMEDIATE_EXPORT_CACHE
         _INTERMEDIATE_EXPORT_CACHE = ExportIntermediate(
             ExportParameters(
