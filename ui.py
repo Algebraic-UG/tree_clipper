@@ -9,7 +9,7 @@ from .specific_handlers import (
     BUILT_IN_IMPORTER,
 )
 from .export_nodes import ExportParameters, ExportIntermediate
-from .import_nodes import ImportParameters, import_nodes_from_file
+from .import_nodes import ImportParameters, ImportIntermediate
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
 
@@ -188,17 +188,18 @@ class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
-        import_nodes_from_file(
-            file_path=Path(self.input_file),
-            parameters=ImportParameters(
+        intermediate = ImportIntermediate(
+            paremeters=ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
                 allow_version_mismatch=self.allow_version_mismatch,
                 # TODO: put external things here https://github.com/Algebraic-UG/tree_clipper/issues/16
                 getters={},
                 overwrite=self.overwrite,
                 debug_prints=self.debug_prints,
-            ),
+            )
         )
+        intermediate.from_file(Path(self.input_file))
+        intermediate.import_nodes()
 
         return {"FINISHED"}
 
