@@ -431,13 +431,14 @@ def export_nodes_to_dict(parameters: ExportParameters) -> dict:
     if parameters.is_material:
         data[MATERIAL_NAME] = parameters.name
 
+    external = {}
     for obj, pointers in exporter.pointers.items():
         if obj in exporter.serialized:
             for pointer in pointers:
                 pointer.id = exporter.serialized[obj]
         else:
-            # TODO
-            pass
+            external[str(pointer.id)] = pointer.from_root.to_str()
+    data["external"] = external
 
     return data
 
