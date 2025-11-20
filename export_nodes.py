@@ -448,7 +448,14 @@ def export_nodes_to_dict(parameters: ExportParameters) -> dict:
             for pointer in pointers:
                 pointer.id = exporter.serialized[obj]
         else:
-            external[str(pointer.id)] = pointer.from_root.to_str()
+            external_id = exporter.next_id
+            exporter.next_id += 1
+            pointed_to_by = []
+            for pointer in pointers:
+                pointer.id = external_id
+                pointed_to_by.append(pointer.from_root.to_str())
+            external[external_id] = pointed_to_by
+
     data["external"] = external
 
     return data
