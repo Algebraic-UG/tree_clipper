@@ -40,12 +40,14 @@ class Exporter:
         *,
         specific_handlers: dict[type, SERIALIZER],
         skip_defaults: bool,
+        write_from_roots: bool,
         debug_prints: bool,
     ):
         self.next_id = 0
         self.specific_handlers = specific_handlers
         self.skip_defaults = skip_defaults
         self.debug_prints = debug_prints
+        self.write_from_roots = write_from_roots
         self.pointers = {}
         self.serialized = {}
         self.current_tree = None
@@ -285,7 +287,13 @@ From root: {from_root.to_str()}"""
             raise RuntimeError(f"Double serialization: {from_root.to_str()}")
         self.serialized[obj] = this_id
 
-        return {ID: this_id, DATA: serializer(self, obj, from_root)}
+        data = {
+            ID: this_id,
+            DATA: serializer(self, obj, from_root),
+        }
+        if self.write_from_roots:
+            data["from_root"] = from_root.to_str()
+        return data
 
     def _export_obj(
         self,
@@ -383,6 +391,7 @@ class ExportParameters:
         export_sub_trees: bool = True,
         skip_defaults: bool = True,
         debug_prints: bool,
+        write_from_roots: bool,
         compress: bool,
         json_indent: int = 4,
     ):
@@ -392,6 +401,7 @@ class ExportParameters:
         self.export_sub_trees = export_sub_trees
         self.skip_defaults = skip_defaults
         self.debug_prints = debug_prints
+        self.write_from_roots = write_from_roots
         self.compress = compress
         self.json_indent = json_indent
 
@@ -401,6 +411,7 @@ def export_nodes_to_dict(parameters: ExportParameters) -> dict:
         specific_handlers=parameters.specific_handlers,
         skip_defaults=parameters.skip_defaults,
         debug_prints=parameters.debug_prints,
+        write_from_roots=parameters.write_from_roots,
     )
 
     if parameters.is_material:
