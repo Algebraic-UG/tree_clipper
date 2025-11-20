@@ -43,7 +43,6 @@ class Exporter:
         skip_defaults: bool,
         write_from_roots: bool,
         debug_prints: bool,
-        scan_mode: bool,
     ):
         self.next_id = 0
         self.specific_handlers = specific_handlers
@@ -53,7 +52,6 @@ class Exporter:
         self.pointers = {}
         self.serialized = {}
         self.current_tree = None
-        self.scan_mode = scan_mode
 
     ################################################################################
     # helper functions to be used in specific handlers
@@ -108,9 +106,6 @@ class Exporter:
         prop: bpy.types.Property,
         from_root: FromRoot,
     ):
-        if self.scan_mode:
-            return None
-
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting simple")
 
@@ -418,7 +413,6 @@ def export_nodes_to_dict(parameters: ExportParameters) -> dict:
         skip_defaults=parameters.skip_defaults,
         debug_prints=parameters.debug_prints,
         write_from_roots=parameters.write_from_roots,
-        scan_mode=True,
     )
 
     if parameters.is_material:
