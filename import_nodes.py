@@ -490,7 +490,7 @@ class ImportParameters:
         self.debug_prints = debug_prints
 
 
-def import_nodes_from_dict(*, data: dict, parameters: ImportParameters):
+def _import_nodes_from_dict(*, data: dict, parameters: ImportParameters):
     importer = Importer(
         specific_handlers=parameters.specific_handlers,
         getters=parameters.getters,
@@ -518,27 +518,34 @@ def import_nodes_from_dict(*, data: dict, parameters: ImportParameters):
     )
 
 
-def import_nodes_from_str(*, string: str, parameters: ImportParameters):
-    compressed = string.startswith(MAGIC_STRING)
-    if compressed:
-        base64_str = string[len(MAGIC_STRING) :]
-        gzipped = base64.b64decode(base64_str)
-        json_str = gzip.decompress(gzipped).decode("utf-8")
-        data = json.loads(json_str)
-    else:
-        data = json.loads(string)
+class ImportIntermediate:
+    def __init__(self, paremeters: ImportParameters):
+        self.parameters = paremeters
+        self.data = None
 
-    import_nodes_from_dict(data=data, parameters=parameters)
-
-
-def import_nodes_from_file(*, file_path: Path, parameters: ImportParameters):
-    with file_path.open("r", encoding="utf-8") as file:
-        compressed = file.read(len(MAGIC_STRING)) == MAGIC_STRING
-
-    with file_path.open("r", encoding="utf-8") as file:
+    def from_str(self, string: str):
+        compressed = string.startswith(MAGIC_STRING)
         if compressed:
-            full = file.read()
-            import_nodes_from_str(string=full, parameters=parameters)
+            base64_str = string[len(MAGIC_STRING) :]
+            gzipped = base64.b64decode(base64_str)
+            json_str = gzip.decompress(gzipped).decode("utf-8")
+            data = json.loads(json_str)
         else:
-            data = json.load(file)
-            import_nodes_from_dict(data=data, parameters=parameters)
+            data = json.loads(string)
+
+        self.data = data
+
+    def from_file(self, file_path: Path):
+        with file_path.open("r", encoding="utf-8") as file:
+            compressed = file.read(len(MAGIC_STRING)) == MAGIC_STRING
+
+        with file_path.open("r", encoding="utf-8") as file:
+            if compressed:
+                full = file.read()
+                self.from_str(full)
+            else:
+                data = json.load(file)
+                self.data = data
+
+    def import_nodes(self):
+        _import_nodes_from_dict(data=self.data, parameters=self.parameters)
