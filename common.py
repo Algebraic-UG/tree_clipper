@@ -47,7 +47,7 @@ NODE_TREE_NODES = "nodes"
 ID = "id"
 DATA = "data"
 
-MAGIC_STRING = "TreeClipper"
+MAGIC_STRING = "TreeClipper::"
 
 
 def no_clobber(d: dict, key: str, value):
