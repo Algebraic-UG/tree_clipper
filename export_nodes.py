@@ -344,7 +344,9 @@ From root: {from_root.to_str()}"""
         ]
 
         def serializer(
-            exporter: Self, obj: bpy.types.bpy_struct, from_root: FromRoot
+            exporter: Self,
+            obj: bpy.types.bpy_struct,
+            from_root: FromRoot,
         ) -> dict[str, Any]:
             data = specific_handler(exporter=exporter, obj=obj, from_root=from_root)
             for prop in unhandled_properties:
