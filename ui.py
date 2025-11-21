@@ -17,15 +17,9 @@ _INTERMEDIATE_EXPORT_CACHE = None
 _INTERMEDIATE_IMPORT_CACHE = None
 
 
-def force_ui_redraw():
-    for area in bpy.context.window.screen.areas:
-        if area.type == "NODE_EDITOR":
-            area.tag_redraw()
-
-
 class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_prepare"
-    bl_label = "Prepare Export"
+    bl_label = "Export"
     bl_options = {"REGISTER"}
 
     is_material: bpy.props.BoolProperty(name="Top level Material")  # type: ignore
@@ -53,9 +47,6 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
             )
         )
 
-        # otherwise the cache buttons aren't shown until the panel is mouse-overed
-        force_ui_redraw()
-
         # seems impossible to use bl_idname here
         bpy.ops.scene.tree_clipper_export_cache("INVOKE_DEFAULT")
         return {"FINISHED"}
@@ -72,17 +63,6 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
             body.prop(self, "skip_defaults")
             body.prop(self, "debug_prints")
             body.prop(self, "write_from_roots")
-
-
-class SCENE_OT_Tree_Clipper_Export_Clear_Cache(bpy.types.Operator):
-    bl_idname = "scene.tree_clipper_export_clear_cache"
-    bl_label = "Clear Cache"
-    bl_options = {"REGISTER"}
-
-    def execute(_self, _context):
-        global _INTERMEDIATE_EXPORT_CACHE
-        _INTERMEDIATE_EXPORT_CACHE = None
-        return {"FINISHED"}
 
 
 class SCENE_UL_Tree_Clipper_External_List(bpy.types.UIList):
@@ -136,11 +116,13 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self, width=600)
 
     def execute(self, _context):
+        global _INTERMEDIATE_EXPORT_CACHE
         _INTERMEDIATE_EXPORT_CACHE.export_to_file(
             file_path=Path(self.output_file),
             compress=self.compress,
             json_indent=self.json_indent,
         )
+        _INTERMEDIATE_EXPORT_CACHE = None
         return {"FINISHED"}
 
     def draw(self, _context):
@@ -172,7 +154,7 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
 
 class SCENE_OT_Tree_Clipper_Import_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_prepare"
-    bl_label = "Prepare Import"
+    bl_label = "Import"
     bl_options = {"REGISTER"}
 
     input_file: bpy.props.StringProperty(
@@ -189,22 +171,8 @@ class SCENE_OT_Tree_Clipper_Import_Prepare(bpy.types.Operator):
         _INTERMEDIATE_IMPORT_CACHE = ImportIntermediate()
         _INTERMEDIATE_IMPORT_CACHE.from_file(Path(self.input_file))
 
-        # otherwise the cache buttons aren't shown until the panel is mouse-overed
-        force_ui_redraw()
-
         # seems impossible to use bl_idname here
         bpy.ops.scene.tree_clipper_import_cache("INVOKE_DEFAULT")
-        return {"FINISHED"}
-
-
-class SCENE_OT_Tree_Clipper_Import_Clear_Cache(bpy.types.Operator):
-    bl_idname = "scene.tree_clipper_import_clear_cache"
-    bl_label = "Clear Cache"
-    bl_options = {"REGISTER"}
-
-    def execute(_self, _context):
-        global _INTERMEDIATE_IMPORT_CACHE
-        _INTERMEDIATE_IMPORT_CACHE = None
         return {"FINISHED"}
 
 
@@ -222,6 +190,7 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
+        global _INTERMEDIATE_IMPORT_CACHE
         _INTERMEDIATE_IMPORT_CACHE.import_nodes(
             ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
@@ -232,6 +201,7 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
                 debug_prints=self.debug_prints,
             )
         )
+        _INTERMEDIATE_IMPORT_CACHE = None
         return {"FINISHED"}
 
     def draw(self, _context):
@@ -265,16 +235,6 @@ class SCENE_PT_Tree_Clipper_Panel(bpy.types.Panel):
         export_op.is_material = is_material
         export_op.name = name
 
-        if _INTERMEDIATE_EXPORT_CACHE is not None:
-            export_cached = self.layout.row()
-            export_cached.operator(SCENE_OT_Tree_Clipper_Export_Cache.bl_idname)
-            export_cached.operator(SCENE_OT_Tree_Clipper_Export_Clear_Cache.bl_idname)
-
         self.layout.separator()
 
         self.layout.operator(SCENE_OT_Tree_Clipper_Import_Prepare.bl_idname)
-
-        if _INTERMEDIATE_IMPORT_CACHE is not None:
-            export_cached = self.layout.row()
-            export_cached.operator(SCENE_OT_Tree_Clipper_Import_Cache.bl_idname)
-            export_cached.operator(SCENE_OT_Tree_Clipper_Import_Clear_Cache.bl_idname)
