@@ -2,9 +2,8 @@ import base64
 import gzip
 import json
 from pathlib import Path
-import time
 from types import NoneType
-from typing import Self
+from typing import Any, Self
 
 import bpy
 import tomllib
@@ -17,6 +16,7 @@ from .common import (
     MATERIAL_NAME,
     PROPERTY_TYPES_SIMPLE,
     SERIALIZER,
+    SIMPLE_DATA_TYPE,
     TREE_CLIPPER_VERSION,
     TREES,
     FromRoot,
@@ -33,7 +33,7 @@ class Pointer:
         identifier: str,
         pointer_id: int,
         from_root: FromRoot,
-    ):
+    ) -> None:
         self.obj = obj
         self.identifier = identifier
         self.from_root = from_root
@@ -50,7 +50,7 @@ class Exporter:
         skip_defaults: bool,
         write_from_roots: bool,
         debug_prints: bool,
-    ):
+    ) -> None:
         self.next_id = 0
         self.specific_handlers = specific_handlers
         self.skip_defaults = skip_defaults
@@ -70,7 +70,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         assumed_type: type,
         from_root: FromRoot,
-    ):
+    ) -> dict[str, SIMPLE_DATA_TYPE]:
         data = {}
         for prop in assumed_type.bl_rna.properties:
             if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
@@ -90,7 +90,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         properties: list[str],
         from_root: FromRoot,
-    ):
+    ) -> dict[str, Any]:
         data = {}
         for prop in [obj.bl_rna.properties[p] for p in properties]:
             data_prop = self._export_property(
@@ -112,7 +112,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
         from_root: FromRoot,
-    ):
+    ) -> None | SIMPLE_DATA_TYPE:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting simple")
 
@@ -149,7 +149,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         prop: bpy.types.PointerProperty,
         from_root: FromRoot,
-    ):
+    ) -> None | Pointer | dict[str, Any]:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting pointer")
 
@@ -182,7 +182,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         prop: bpy.types.CollectionProperty,
         from_root: FromRoot,
-    ):
+    ) -> dict[str, Any]:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting collection")
 
@@ -210,7 +210,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
         from_root: FromRoot,
-    ):
+    ) -> None | SIMPLE_DATA_TYPE | Pointer | dict[str, Any]:
         if prop.type in PROPERTY_TYPES_SIMPLE:
             return self._export_property_simple(
                 obj=obj,
@@ -238,7 +238,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
         from_root,
-    ):
+    ) -> None | SIMPLE_DATA_TYPE | Pointer | dict[str, Any]:
         def error_out(reason: str):
             raise RuntimeError(
                 f"""\
@@ -294,7 +294,7 @@ From root: {from_root.to_str()}"""
         obj: bpy.types.bpy_struct,
         serializer: SERIALIZER,
         from_root: FromRoot,
-    ):
+    ) -> dict[str, Any]:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting")
 
@@ -318,7 +318,7 @@ From root: {from_root.to_str()}"""
         *,
         obj: bpy.types.bpy_struct,
         from_root: FromRoot,
-    ):
+    ) -> dict[str, Any]:
         # edge case for things like bpy_prop_collection that aren't real RNA types?
         # https://projects.blender.org/blender/blender/issues/150092
         if not hasattr(obj, "bl_rna"):
@@ -343,7 +343,9 @@ From root: {from_root.to_str()}"""
             and prop.identifier not in ["rna_type"]
         ]
 
-        def serializer(exporter: Self, obj: bpy.types.bpy_struct, from_root: FromRoot):
+        def serializer(
+            exporter: Self, obj: bpy.types.bpy_struct, from_root: FromRoot
+        ) -> dict[str, Any]:
             data = specific_handler(exporter=exporter, obj=obj, from_root=from_root)
             for prop in unhandled_properties:
                 # pylint: disable=protected-access
@@ -368,7 +370,7 @@ From root: {from_root.to_str()}"""
         *,
         node_tree: bpy.types.NodeTree,
         from_root: FromRoot,
-    ):
+    ) -> dict[str, Any]:
         if self.debug_prints:
             print(f"{from_root.to_str()}: entering")
 
@@ -384,7 +386,7 @@ def _collect_sub_trees(
     current: bpy.types.NodeTree,
     trees: list[(bpy.types.NodeTree, FromRoot)],
     from_root: FromRoot,
-):
+) -> None:
     for node in current.nodes:
         if hasattr(node, "node_tree"):
             tree = node.node_tree
@@ -410,7 +412,7 @@ class ExportParameters:
         skip_defaults: bool = True,
         debug_prints: bool,
         write_from_roots: bool,
-    ):
+    ) -> None:
         self.is_material = is_material
         self.name = name
         self.specific_handlers = specific_handlers
@@ -425,12 +427,12 @@ class External:
         self,
         *,
         pointed_to_by: list[Pointer],
-    ):
+    ) -> None:
         self.pointed_to_by = pointed_to_by
         self.description = None
 
 
-def _export_nodes_to_dict(parameters: ExportParameters) -> dict:
+def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
     exporter = Exporter(
         specific_handlers=parameters.specific_handlers,
         skip_defaults=parameters.skip_defaults,
@@ -484,7 +486,7 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict:
 
 
 class _Encoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj) -> int | str | Any:
         if isinstance(obj, Pointer):
             return obj.pointee_id
         if isinstance(obj, External):
@@ -493,7 +495,7 @@ class _Encoder(json.JSONEncoder):
 
 
 class ExportIntermediate:
-    def __init__(self, parameters: ExportParameters):
+    def __init__(self, parameters: ExportParameters) -> None:
         self.data = _export_nodes_to_dict(parameters=parameters)
 
     def export_to_str(self, *, compress: bool, json_indent: int) -> str:
@@ -505,7 +507,13 @@ class ExportIntermediate:
         else:
             return json.dumps(self.data, cls=_Encoder, indent=json_indent)
 
-    def export_to_file(self, *, file_path: Path, compress: bool, json_indent: int):
+    def export_to_file(
+        self,
+        *,
+        file_path: Path,
+        compress: bool,
+        json_indent: int,
+    ) -> None:
         with file_path.open("w", encoding="utf-8") as file:
             if compress:
                 string = self.export_to_str(compress=compress, json_indent=json_indent)
@@ -513,5 +521,5 @@ class ExportIntermediate:
             else:
                 json.dump(self.data, file, cls=_Encoder, indent=json_indent)
 
-    def get_external(self):
+    def get_external(self) -> dict[int, External]:
         return self.data["external"]

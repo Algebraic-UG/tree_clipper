@@ -32,7 +32,7 @@ class Importer:
         specific_handlers: dict[type, DESERIALIZER],
         getters: dict[int, GETTER],
         debug_prints: bool,
-    ):
+    ) -> None:
         self.specific_handlers = specific_handlers
         self.getters = getters
         self.debug_prints = debug_prints
@@ -64,7 +64,7 @@ class Importer:
         serialization: dict[str, Any],
         assumed_type: type,
         from_root: FromRoot,
-    ):
+    ) -> None:
         for prop in assumed_type.bl_rna.properties:
             if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
                 continue
@@ -88,7 +88,7 @@ class Importer:
         serialization: dict[str, Any],
         properties: list[str],
         from_root: FromRoot,
-    ):
+    ) -> None:
         for prop in [getter().bl_rna.properties[p] for p in properties]:
             self._import_property(
                 getter=getter,
@@ -108,7 +108,7 @@ class Importer:
         prop: bpy.types.Property,
         serialization: int | float | str,  # TODO: merge PR
         from_root: FromRoot,
-    ):
+    ) -> None:
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing simple")
 
@@ -145,7 +145,7 @@ class Importer:
         prop: bpy.types.PointerProperty,
         serialization: dict | int,
         from_root: FromRoot,
-    ):
+    ) -> None:
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing pointer")
 
@@ -179,7 +179,7 @@ class Importer:
         prop: bpy.types.CollectionProperty,
         serialization: dict[str, Any],
         from_root: FromRoot,
-    ):
+    ) -> None:
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing collection")
 
@@ -202,7 +202,7 @@ class Importer:
                 f"expected {len(serialized_items)} to be ready but deserialized {len(attribute)}"
             )
 
-        def make_getter(i: int):
+        def make_getter(i: int) -> GETTER:
             return lambda: getattr(getter(), identifier)[i]
 
         for i, item in enumerate(attribute):
@@ -221,7 +221,7 @@ class Importer:
         prop: bpy.types.CollectionProperty,
         serialization: dict[str, Any],
         from_root: FromRoot,
-    ):
+    ) -> None:
         if prop.type in PROPERTY_TYPES_SIMPLE:
             return self._import_property_simple(
                 getter=getter,
@@ -252,7 +252,7 @@ class Importer:
         getter: GETTER,
         reason: str,
         from_root: FromRoot,
-    ):
+    ) -> None:
         raise RuntimeError(
             f"""\
 More specific handler needed for type: {type(getter())}
@@ -267,7 +267,7 @@ From root: {from_root.to_str()}"""
         serialization: dict[str, Any],
         deserializer: DESERIALIZER,
         from_root: FromRoot,
-    ):
+    ) -> None:
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing")
 
@@ -288,7 +288,7 @@ From root: {from_root.to_str()}"""
         getter: GETTER,
         serialization: dict[str, Any],
         from_root: FromRoot,
-    ):
+    ) -> None:
         # edge case for things like bpy_prop_collection that aren't real RNA types?
         if not hasattr(getter(), "bl_rna"):
             assert isinstance(getter(), bpy.types.bpy_prop_collection)
@@ -329,7 +329,7 @@ From root: {from_root.to_str()}"""
             getter: GETTER,
             serialization: dict[str, Any],
             from_root: FromRoot,
-        ):
+        ) -> None:
             for prop in unhandled_properties:
                 if prop.type in PROPERTY_TYPES_SIMPLE:
                     if prop.is_readonly:
@@ -380,7 +380,7 @@ From root: {from_root.to_str()}"""
         serialization: dict[str, Any],
         overwrite: bool,
         material_name: str = None,
-    ):
+    ) -> None:
         original_name = serialization[DATA]["name"]
 
         if material_name is None:
@@ -394,7 +394,7 @@ From root: {from_root.to_str()}"""
 
             from_root = FromRoot([f"Tree ({node_tree.name})"])
 
-            def getter():
+            def getter() -> bpy.types.NodeTree:
                 return bpy.data.node_groups[node_tree.name]
 
         else:
@@ -409,7 +409,7 @@ From root: {from_root.to_str()}"""
 
             from_root = FromRoot([f"Material ({mat.name})"])
 
-            def getter():
+            def getter() -> bpy.types.NodeTree:
                 return bpy.data.materials[mat.name].node_tree
 
         if self.debug_prints:
@@ -428,7 +428,7 @@ From root: {from_root.to_str()}"""
         self.set_socket_enum_defaults.clear()
 
 
-def _check_version(data: dict):
+def _check_version(data: dict) -> None | str:
     exporter_blender_version = data[BLENDER_VERSION]
     importer_blender_version = bpy.app.version_string
     if exporter_blender_version != importer_blender_version:
@@ -459,7 +459,7 @@ class ImportParameters:
         getters: dict[int, GETTER],
         overwrite: bool,
         debug_prints: bool,
-    ):
+    ) -> None:
         self.specific_handlers = specific_handlers
         self.allow_version_mismatch = allow_version_mismatch
         self.getters = getters
@@ -467,7 +467,7 @@ class ImportParameters:
         self.debug_prints = debug_prints
 
 
-def _import_nodes_from_dict(*, data: dict, parameters: ImportParameters):
+def _import_nodes_from_dict(*, data: dict, parameters: ImportParameters) -> None:
     importer = Importer(
         specific_handlers=parameters.specific_handlers,
         getters=parameters.getters,
@@ -496,10 +496,10 @@ def _import_nodes_from_dict(*, data: dict, parameters: ImportParameters):
 
 
 class ImportIntermediate:
-    def __init__(self):
+    def __init__(self) -> None:
         self.data = None
 
-    def from_str(self, string: str):
+    def from_str(self, string: str) -> None:
         compressed = string.startswith(MAGIC_STRING)
         if compressed:
             base64_str = string[len(MAGIC_STRING) :]
@@ -511,7 +511,7 @@ class ImportIntermediate:
 
         self.data = data
 
-    def from_file(self, file_path: Path):
+    def from_file(self, file_path: Path) -> None:
         with file_path.open("r", encoding="utf-8") as file:
             compressed = file.read(len(MAGIC_STRING)) == MAGIC_STRING
 
@@ -523,5 +523,5 @@ class ImportIntermediate:
                 data = json.load(file)
                 self.data = data
 
-    def import_nodes(self, parameters: ImportParameters):
+    def import_nodes(self, parameters: ImportParameters) -> None:
         _import_nodes_from_dict(data=self.data, parameters=parameters)
