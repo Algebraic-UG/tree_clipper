@@ -151,7 +151,7 @@ class SpecificExporter(Generic[AssumedType], ABC):
         return data
 
     @abstractmethod
-    def serialize(self) -> None:
+    def serialize(self) -> dict[str, Any]:
         """Do the actual exporting here"""
 
 
