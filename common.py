@@ -3,10 +3,6 @@ import bpy
 from types import NoneType
 from typing import Any, Callable, TYPE_CHECKING, Self
 
-SIMPLE_DATA_TYPE = (
-    list[str] | list[float] | list[int] | str | float | int
-)  # possible return types
-
 
 if TYPE_CHECKING:
     from .export_nodes import Exporter
@@ -105,3 +101,4 @@ def most_specific_type_handled(
 GETTER = Callable[[], bpy.types.bpy_struct]
 SERIALIZER = Callable[["Exporter", bpy.types.bpy_struct, FromRoot], dict[str, Any]]
 DESERIALIZER = Callable[["Importer", GETTER, dict, FromRoot], None]
+SIMPLE_DATA_TYPE = list[str] | list[float] | list[int] | str | float | int
