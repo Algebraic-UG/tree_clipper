@@ -1,14 +1,15 @@
 import bpy
 
+
 from pathlib import Path
 import tempfile
 
-from .export_nodes import export_nodes
 from .specific_handlers import (
     BUILT_IN_EXPORTER,
     BUILT_IN_IMPORTER,
 )
-from .import_nodes import import_nodes
+from .export_nodes import ExportParameters, export_nodes_to_file
+from .import_nodes import ImportParameters, import_nodes_from_file
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
 
@@ -25,6 +26,8 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
         default=DEFAULT_FILE,
         subtype="FILE_PATH",
     )  # type: ignore
+    json_indent: bpy.props.IntProperty(name="JSON Indent", default=4, min=0)  # type: ignore
+    compress: bpy.props.BoolProperty(name="Compress", default=True)  # type: ignore
     export_sub_trees: bpy.props.BoolProperty(name="Export Sub Trees", default=True)  # type: ignore
     skip_defaults: bpy.props.BoolProperty(name="Skip Defaults", default=True)  # type: ignore
     debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=True)  # type: ignore
@@ -33,15 +36,20 @@ class SCENE_OT_Tree_Clipper_Export(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
-        export_nodes(
-            is_material=self.is_material,
-            name=self.name,
-            output_file=self.output_file,
-            specific_handlers=BUILT_IN_EXPORTER,
-            export_sub_trees=self.export_sub_trees,
-            skip_defaults=self.skip_defaults,
-            debug_prints=self.debug_prints,
+        export_nodes_to_file(
+            file_path=Path(self.output_file),
+            p=ExportParameters(
+                is_material=self.is_material,
+                name=self.name,
+                specific_handlers=BUILT_IN_EXPORTER,
+                export_sub_trees=self.export_sub_trees,
+                skip_defaults=self.skip_defaults,
+                debug_prints=self.debug_prints,
+                compress=self.compress,
+                json_indent=self.json_indent,
+            ),
         )
+
         return {"FINISHED"}
 
 
@@ -63,14 +71,18 @@ class SCENE_OT_Tree_Clipper_Import(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
-        import_nodes(
-            input_file=self.input_file,
-            specific_handlers=BUILT_IN_IMPORTER,
-            allow_version_mismatch=self.allow_version_mismatch,
-            getters={},
-            overwrite=self.overwrite,
-            debug_prints=self.debug_prints,
+        import_nodes_from_file(
+            file_path=Path(self.input_file),
+            p=ImportParameters(
+                specific_handlers=BUILT_IN_IMPORTER,
+                allow_version_mismatch=self.allow_version_mismatch,
+                # TODO: put external things here https://github.com/Algebraic-UG/tree_clipper/issues/16
+                getters={},
+                overwrite=self.overwrite,
+                debug_prints=self.debug_prints,
+            ),
         )
+
         return {"FINISHED"}
 
 

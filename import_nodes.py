@@ -1,3 +1,6 @@
+import base64
+import gzip
+import json
 from types import NoneType
 import bpy
 
@@ -5,7 +8,6 @@ from typing import Self
 
 import sys
 import tomllib
-import json
 from pathlib import Path
 
 from .common import (
@@ -20,6 +22,7 @@ from .common import (
     TREES,
     FromRoot,
     most_specific_type_handled,
+    MAGIC_STRING,
 )
 
 
@@ -463,31 +466,37 @@ def _check_version(d: dict):
 
 
 ################################################################################
-# entry point
+# entry points
 ################################################################################
 
 
-def import_nodes(
-    *,
-    input_file: str,
-    specific_handlers: dict[type, DESERIALIZER],
-    allow_version_mismatch: bool,
-    getters: dict[int, GETTER],
-    overwrite: bool,
-    debug_prints: bool,
-):
-    importer = Importer(
-        specific_handlers=specific_handlers,
-        getters=getters,
-        debug_prints=debug_prints,
-    )
+class ImportParameters:
+    def __init__(
+        self,
+        *,
+        specific_handlers: dict[type, DESERIALIZER],
+        allow_version_mismatch: bool,
+        getters: dict[int, GETTER],
+        overwrite: bool,
+        debug_prints: bool,
+    ):
+        self.specific_handlers = specific_handlers
+        self.allow_version_mismatch = allow_version_mismatch
+        self.getters = getters
+        self.overwrite = overwrite
+        self.debug_prints = debug_prints
 
-    with Path(input_file).open("r", encoding="utf-8") as f:
-        d = json.load(f)
+
+def import_nodes_from_dict(*, d: dict, p: ImportParameters):
+    importer = Importer(
+        specific_handlers=p.specific_handlers,
+        getters=p.getters,
+        debug_prints=p.debug_prints,
+    )
 
     version_mismatch = _check_version(d)
     if version_mismatch is not None:
-        if allow_version_mismatch:
+        if p.allow_version_mismatch:
             print(version_mismatch, file=sys.stderr)
         else:
             raise RuntimeError(version_mismatch)
@@ -495,12 +504,38 @@ def import_nodes(
     # important to construct in reverse order
     for tree in reversed(d[TREES][1:]):
         # pylint: disable=protected-access
-        importer._import_node_tree(serialization=tree, overwrite=overwrite)
+        importer._import_node_tree(serialization=tree, overwrite=p.overwrite)
 
     # root tree needs special treatment, might be material
     # pylint: disable=protected-access
     importer._import_node_tree(
         serialization=d[TREES][0],
-        overwrite=overwrite,
+        overwrite=p.overwrite,
         material_name=None if MATERIAL_NAME not in d else d[MATERIAL_NAME],
     )
+
+
+def import_nodes_from_str(*, s: str, p: ImportParameters):
+    compressed = s.startswith(MAGIC_STRING)
+    if compressed:
+        base64_str = s[len(MAGIC_STRING) :]
+        gzipped = base64.b64decode(base64_str)
+        json_str = gzip.decompress(gzipped).decode("utf-8")
+        d = json.loads(json_str)
+    else:
+        d = json.loads(s)
+
+    import_nodes_from_dict(d=d, p=p)
+
+
+def import_nodes_from_file(*, file_path: Path, p: ImportParameters):
+    with file_path.open("r", encoding="utf-8") as f:
+        compressed = f.read(len(MAGIC_STRING)) == MAGIC_STRING
+
+    with file_path.open("r", encoding="utf-8") as f:
+        if compressed:
+            full = f.read()
+            import_nodes_from_str(s=full, p=p)
+        else:
+            d = json.load(f)
+            import_nodes_from_dict(d=d, p=p)
