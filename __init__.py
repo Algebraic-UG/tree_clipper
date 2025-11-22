@@ -12,7 +12,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import bpy
-import _rna_info as rna_info
 
 from .ui import (
     SCENE_OT_Tree_Clipper_Export,
@@ -27,66 +26,8 @@ classes = [
 ]
 
 
-def playground():
-    rna_info.BuildRNAInfo()
-
-    t = bpy.types.Node
-
-    def all_subclasses(cls):
-        """Return a set of all subclasses (recursive) of a given class."""
-        subclasses = set(cls.__subclasses__())
-        for subclass in cls.__subclasses__():
-            subclasses.update(all_subclasses(subclass))
-        return subclasses
-
-    subs = all_subclasses(t)
-    print("SUBCLASSES ==============================================")
-    print("\n".join([cls.__name__ for cls in subs]))
-    print(len(subs))
-
-    def all_leafclasses(cls):
-        return set(c for c in all_subclasses(cls) if len(all_subclasses(c)) == 0)
-
-    leafs = all_leafclasses(t)
-
-    print("LEAVES ==============================================")
-    print("\n".join([cls.__name__ for cls in leafs]))
-    print(len(leafs))
-
-    def unique_props(cls):
-        return [
-            p
-            for p in cls.bl_rna.properties
-            if p.identifier not in [p.identifier for p in cls.bl_rna.base.properties]
-        ]
-
-    def collection_props(cls):
-        return [prop for prop in unique_props(cls) if prop.type == "COLLECTION"]
-
-    with_coll = [cls for cls in leafs if collection_props(cls)]
-
-    print("WITH COLLECTIONS ==============================================")
-    print("\n".join([cls.__name__ for cls in with_coll]))
-    print(len(with_coll))
-    for cls in with_coll:
-        fixed_types = " ".join(
-            [p.fixed_type.bl_rna.identifier for p in collection_props(cls)]
-        )
-        print(f"{cls.__name__}: {fixed_types}")
-
-    def pointer_props(cls):
-        return [prop for prop in unique_props(cls) if prop.type == "POINTER"]
-
-    with_pointer = [cls for cls in leafs if pointer_props(cls)]
-
-    print("WITH POINTERS ==============================================")
-    print("\n".join([cls.__name__ for cls in with_pointer]))
-    print(len(with_pointer))
-
-
 def register():
     print("reloaded")
-    # playground()
     for cls in classes:
         bpy.utils.register_class(cls)
 

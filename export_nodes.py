@@ -61,18 +61,18 @@ class Exporter:
         assumed_type: type,
         from_root: FromRoot,
     ):
-        d = {}
+        data = {}
         for prop in assumed_type.bl_rna.properties:
             if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
                 continue
-            d_prop = self._export_property_simple(
+            data_prop = self._export_property_simple(
                 obj=obj,
                 prop=prop,
                 from_root=from_root.add_prop(prop),
             )
-            if d_prop is not None:
-                d[prop.identifier] = d_prop
-        return d
+            if data_prop is not None:
+                data[prop.identifier] = data_prop
+        return data
 
     def export_properties_from_id_list(
         self,
@@ -81,16 +81,16 @@ class Exporter:
         properties: list[str],
         from_root: FromRoot,
     ):
-        d = {}
+        data = {}
         for prop in [obj.bl_rna.properties[p] for p in properties]:
-            d_prop = self._export_property(
+            data_prop = self._export_property(
                 obj=obj,
                 prop=prop,
                 from_root=from_root.add_prop(prop),
             )
-            if d_prop is not None:
-                d[prop.identifier] = d_prop
-        return d
+            if data_prop is not None:
+                data[prop.identifier] = data_prop
+        return data
 
     ################################################################################
     # internals
@@ -175,14 +175,14 @@ class Exporter:
 
         attribute = getattr(obj, prop.identifier)
 
-        d = self._export_obj(obj=attribute, from_root=from_root)
+        data = self._export_obj(obj=attribute, from_root=from_root)
         items = [
             self._export_obj(obj=element, from_root=from_root.add(f"[{i}]"))
             for i, element in enumerate(attribute)
         ]
-        no_clobber(d[DATA], "items", items)
+        no_clobber(data[DATA], "items", items)
 
-        return d
+        return data
 
     def _export_property(
         self,
@@ -252,7 +252,9 @@ From root: {from_root.to_str()}"""
         if prop.type == "COLLECTION":
             if (
                 hasattr(attribute, "bl_rna")
-                and any(len(f.parameters) != 0 for f in attribute.bl_rna.functions)
+                and any(
+                    len(func.parameters) != 0 for func in attribute.bl_rna.functions
+                )
                 and type(prop.fixed_type) not in self.specific_handlers
             ):
                 error_out(
@@ -304,29 +306,30 @@ From root: {from_root.to_str()}"""
         assumed_type = most_specific_type_handled(self.specific_handlers, obj)
         specific_handler = self.specific_handlers[assumed_type]
         handled_prop_ids = (
-            [p.identifier for p in assumed_type.bl_rna.properties]
+            [prop.identifier for prop in assumed_type.bl_rna.properties]
             if assumed_type is not NoneType
             else []
         )
         unhandled_properties = [
-            p
-            for p in obj.bl_rna.properties
-            if p.identifier not in handled_prop_ids and p.identifier not in ["rna_type"]
+            prop
+            for prop in obj.bl_rna.properties
+            if prop.identifier not in handled_prop_ids
+            and prop.identifier not in ["rna_type"]
         ]
 
         def serializer(exporter: Self, obj: bpy.types.bpy_struct, from_root: FromRoot):
-            d = specific_handler(exporter, obj, from_root)
+            data = specific_handler(exporter, obj, from_root)
             for prop in unhandled_properties:
                 # pylint: disable=protected-access
-                prop_d = exporter._attempt_export_property(
+                prop_data = exporter._attempt_export_property(
                     obj=obj,
                     prop=prop,
                     from_root=from_root.add_prop(prop),
                 )
-                if prop_d is not None:
-                    no_clobber(d, prop.identifier, prop_d)
+                if prop_data is not None:
+                    no_clobber(data, prop.identifier, prop_data)
 
-            return d
+            return data
 
         return self._export_obj_with_serializer(
             obj=obj,
@@ -344,10 +347,10 @@ From root: {from_root.to_str()}"""
             print(f"{from_root.to_str()}: entering")
 
         self.current_tree = node_tree
-        d = self._export_obj(obj=node_tree, from_root=from_root)
+        data = self._export_obj(obj=node_tree, from_root=from_root)
         self.current_tree = None
 
-        return d
+        return data
 
 
 def _collect_sub_trees(
@@ -393,29 +396,29 @@ class ExportParameters:
         self.json_indent = json_indent
 
 
-def export_nodes_to_dict(p: ExportParameters) -> dict:
+def export_nodes_to_dict(parameters: ExportParameters) -> dict:
     exporter = Exporter(
-        specific_handlers=p.specific_handlers,
-        skip_defaults=p.skip_defaults,
-        debug_prints=p.debug_prints,
+        specific_handlers=parameters.specific_handlers,
+        skip_defaults=parameters.skip_defaults,
+        debug_prints=parameters.debug_prints,
     )
 
-    if p.is_material:
-        from_root = FromRoot([f"Material ({p.name})"])
-        root = bpy.data.materials[p.name].node_tree
+    if parameters.is_material:
+        from_root = FromRoot([f"Material ({parameters.name})"])
+        root = bpy.data.materials[parameters.name].node_tree
     else:
-        from_root = FromRoot([f"Root ({p.name})"])
-        root = bpy.data.node_groups[p.name]
+        from_root = FromRoot([f"Root ({parameters.name})"])
+        root = bpy.data.node_groups[parameters.name]
 
     trees = [(root, from_root)]
-    if p.export_sub_trees:
+    if parameters.export_sub_trees:
         _collect_sub_trees(current=root, trees=trees, from_root=from_root)
 
     manifest_path = Path(__file__).parent / "blender_manifest.toml"
-    with manifest_path.open("rb") as f:
-        blender_manifest = tomllib.load(f)
+    with manifest_path.open("rb") as file:
+        blender_manifest = tomllib.load(file)
 
-    d = {
+    data = {
         BLENDER_VERSION: bpy.app.version_string,
         TREE_CLIPPER_VERSION: blender_manifest["version"],
         TREES: [
@@ -425,8 +428,8 @@ def export_nodes_to_dict(p: ExportParameters) -> dict:
         ],
     }
 
-    if p.is_material:
-        d[MATERIAL_NAME] = p.name
+    if parameters.is_material:
+        data[MATERIAL_NAME] = parameters.name
 
     for obj, pointers in exporter.pointers.items():
         if obj in exporter.serialized:
@@ -436,32 +439,32 @@ def export_nodes_to_dict(p: ExportParameters) -> dict:
             # TODO
             pass
 
-    return d
+    return data
 
 
 class _Encoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, Pointer):
-            return o.id
-        return super().default(o)
+    def default(self, obj):
+        if isinstance(obj, Pointer):
+            return obj.id
+        return super().default(obj)
 
 
-def export_nodes_to_str(p: ExportParameters) -> str:
-    d = export_nodes_to_dict(p)
-    if p.compress:
-        json_str = json.dumps(d, cls=_Encoder)
+def export_nodes_to_str(parameters: ExportParameters) -> str:
+    data = export_nodes_to_dict(parameters)
+    if parameters.compress:
+        json_str = json.dumps(data, cls=_Encoder)
         gzipped = gzip.compress(json_str.encode("utf-8"))
         base64_str = base64.b64encode(gzipped).decode("utf-8")
         return MAGIC_STRING + base64_str
     else:
-        return json.dumps(d, cls=_Encoder, indent=p.json_indent)
+        return json.dumps(data, cls=_Encoder, indent=parameters.json_indent)
 
 
-def export_nodes_to_file(*, file_path: Path, p: ExportParameters):
-    d = export_nodes_to_dict(p)
-    with file_path.open("w", encoding="utf-8") as f:
-        if p.compress:
-            compressed = export_nodes_to_str(p)
-            f.write(compressed)
+def export_nodes_to_file(*, file_path: Path, parameters: ExportParameters):
+    data = export_nodes_to_dict(parameters)
+    with file_path.open("w", encoding="utf-8") as file:
+        if parameters.compress:
+            compressed = export_nodes_to_str(parameters)
+            file.write(compressed)
         else:
-            json.dump(d, f, cls=_Encoder, indent=p.json_indent)
+            json.dump(data, file, cls=_Encoder, indent=parameters.json_indent)

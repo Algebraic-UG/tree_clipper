@@ -25,8 +25,8 @@ from .common import (
 )
 
 
-def _or_default(serialization: dict, t: type, identifier: str):
-    return serialization.get(identifier, t.bl_rna.properties[identifier].default)
+def _or_default(serialization: dict, ty: type, identifier: str):
+    return serialization.get(identifier, ty.bl_rna.properties[identifier].default)
 
 
 # Possible socket data types: https://docs.blender.org/api/current/bpy_types_enum_items/node_socket_data_type_items.html#rna-enum-node-socket-data-type-items
@@ -65,15 +65,15 @@ class NodeTreeImporter(SpecificImporter[bpy.types.NodeTree]):
 
         # one thing that requires this is the repeat zone
         # after this more sockets are available for linking
-        for f in self.importer.create_special_node_connections:
-            f()
+        for func in self.importer.create_special_node_connections:
+            func()
         self.importer.create_special_node_connections.clear()
 
         self.import_properties_from_id_list([NODE_TREE_LINKS])
 
         # now that the links exist they won't be removed immediately
-        for f in self.importer.set_auto_remove:
-            f()
+        for func in self.importer.set_auto_remove:
+            func()
         self.importer.set_auto_remove.clear()
 
 
@@ -85,9 +85,9 @@ class NodesImporter(SpecificImporter[bpy.types.Nodes]):
             bl_idname = node[DATA]["bl_idname"]
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding {bl_idname}")
-            n = self.obj.new(type=bl_idname)
+            new_node = self.obj.new(type=bl_idname)
             if node[ID] == active_id:
-                self.obj.active = n
+                self.obj.active = new_node
 
 
 class InterfaceExporter(SpecificExporter[bpy.types.NodeTreeInterface]):
@@ -113,12 +113,12 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
         uid_map = {}
         for i, item in enumerate(items):
             data = item[DATA]
-            t = get_type(data)
-            if t == bpy.types.NodeTreeInterfaceSocket:
+            ty = get_type(data)
+            if ty == bpy.types.NodeTreeInterfaceSocket:
                 self.obj.new_socket(
                     name=str(i),
-                    description=_or_default(data, t, "description"),
-                    in_out=_or_default(data, t, "in_out"),
+                    description=_or_default(data, ty, "description"),
+                    in_out=_or_default(data, ty, "in_out"),
                     socket_type=data["socket_type"],
                     parent=None,
                 )
@@ -126,8 +126,8 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
                 uid_map[data["persistent_uid"]] = i
                 self.obj.new_panel(
                     name=str(i),
-                    description=_or_default(data, t, "description"),
-                    default_closed=_or_default(data, t, "default_closed"),
+                    description=_or_default(data, ty, "description"),
+                    default_closed=_or_default(data, ty, "default_closed"),
                 )
 
         def parent(uid):
@@ -171,20 +171,20 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
 
 class TreeSocketExporter(SpecificExporter[bpy.types.NodeTreeInterfaceSocket]):
     def serialize(self):
-        d = self.export_all_simple_writable_properties_and_list(
+        data = self.export_all_simple_writable_properties_and_list(
             ["item_type", "index", IN_OUT]
         )
-        no_clobber(d, "parent", self.obj.parent.persistent_uid)
-        return d
+        no_clobber(data, "parent", self.obj.parent.persistent_uid)
+        return data
 
 
 class TreePanelExporter(SpecificExporter[bpy.types.NodeTreeInterfacePanel]):
     def serialize(self):
-        d = self.export_all_simple_writable_properties_and_list(
+        data = self.export_all_simple_writable_properties_and_list(
             ["item_type", "index", "persistent_uid"]
         )
-        no_clobber(d, "parent", self.obj.parent.persistent_uid)
-        return d
+        no_clobber(data, "parent", self.obj.parent.persistent_uid)
+        return data
 
 
 class TreeItemImporter(SpecificImporter[bpy.types.NodeTreeInterfaceItem]):
@@ -238,30 +238,30 @@ class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
 
 class LinkExporter(SpecificExporter[bpy.types.NodeLink]):
     def serialize(self):
-        d = self.export_all_simple_writable_properties()
+        data = self.export_all_simple_writable_properties()
 
-        no_clobber(d, FROM_NODE, self.obj.from_node.name)
+        no_clobber(data, FROM_NODE, self.obj.from_node.name)
         no_clobber(
-            d,
+            data,
             FROM_SOCKET,
             next(
                 i
-                for i, s in enumerate(self.obj.from_node.outputs)
-                if s.identifier == self.obj.from_socket.identifier
+                for i, socket in enumerate(self.obj.from_node.outputs)
+                if socket.identifier == self.obj.from_socket.identifier
             ),
         )
-        no_clobber(d, TO_NODE, self.obj.to_node.name)
+        no_clobber(data, TO_NODE, self.obj.to_node.name)
         no_clobber(
-            d,
+            data,
             TO_SOCKET,
             next(
                 i
-                for i, s in enumerate(self.obj.to_node.inputs)
-                if s.identifier == self.obj.to_socket.identifier
+                for i, socket in enumerate(self.obj.to_node.inputs)
+                if socket.identifier == self.obj.to_socket.identifier
             ),
         )
 
-        return d
+        return data
 
 
 class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
@@ -346,15 +346,15 @@ class CaptureAttrItemsImporter(
 
 class RepeatInputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatInput]):
     def serialize(self):
-        d = self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        data = self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
         if self.obj.paired_output is None:
             raise RuntimeError(
                 f"""{self.from_root.to_str()}
 Having no paired output for repeat nodes isn't supported"""
             )
-        no_clobber(d, "paired_output", self.obj.paired_output.name)
+        no_clobber(data, "paired_output", self.obj.paired_output.name)
 
-        return d
+        return data
 
 
 class RepeatInputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatInput]):
@@ -495,15 +495,15 @@ color ramps need at least one element"""
 
 class SimulationInputExporter(SpecificExporter[bpy.types.GeometryNodeSimulationInput]):
     def serialize(self):
-        d = self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        data = self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
         if self.obj.paired_output is None:
             raise RuntimeError(
                 f"""{self.from_root.to_str()}
 Having no paired output for simulation nodes isn't supported"""
             )
-        no_clobber(d, "paired_output", self.obj.paired_output.name)
+        no_clobber(data, "paired_output", self.obj.paired_output.name)
 
-        return d
+        return data
 
 
 class SimulationInputImporter(SpecificImporter[bpy.types.GeometryNodeSimulationInput]):
