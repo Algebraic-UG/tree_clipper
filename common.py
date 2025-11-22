@@ -50,10 +50,10 @@ DATA = "data"
 MAGIC_STRING = "TreeClipper::"
 
 
-def no_clobber(d: dict, key: str, value):
-    if key in d:
+def no_clobber(data: dict, key: str, value):
+    if key in data:
         raise RuntimeError(f"Clobbering '{key}'")
-    d[key] = value
+    data[key] = value
 
 
 class FromRoot:
@@ -79,22 +79,22 @@ def most_specific_type_handled(
     if isinstance(obj, bpy.types.bpy_prop_collection):
         return next(
             (
-                t
-                for t in specific_handlers.keys()
-                if t != NoneType and t.bl_rna.identifier == obj.bl_rna.identifier
+                ty
+                for ty in specific_handlers.keys()
+                if ty != NoneType and ty.bl_rna.identifier == obj.bl_rna.identifier
             ),
             NoneType,
         )
 
-    t = type(obj)
+    ty = type(obj)
     while True:
-        if t in specific_handlers:
-            return t
-        if len(t.__bases__) == 0:
+        if ty in specific_handlers:
+            return ty
+        if len(ty.__bases__) == 0:
             return NoneType
-        if len(t.__bases__) > 1:
-            raise RuntimeError(f"multiple inheritence {t}, unclear what to choose")
-        t = t.__bases__[0]
+        if len(ty.__bases__) > 1:
+            raise RuntimeError(f"multiple inheritence {ty}, unclear what to choose")
+        ty = ty.__bases__[0]
 
 
 GETTER = Callable[[], bpy.types.bpy_struct]

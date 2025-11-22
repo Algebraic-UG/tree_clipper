@@ -353,14 +353,15 @@ From root: {from_root.to_str()}"""
 
         specific_handler = self.specific_handlers[assumed_type]
         handled_prop_ids = (
-            [p.identifier for p in assumed_type.bl_rna.properties]
+            [prop.identifier for prop in assumed_type.bl_rna.properties]
             if assumed_type is not NoneType
             else []
         )
         unhandled_properties = [
-            p
-            for p in obj.bl_rna.properties
-            if p.identifier not in handled_prop_ids and p.identifier not in ["rna_type"]
+            prop
+            for prop in obj.bl_rna.properties
+            if prop.identifier not in handled_prop_ids
+            and prop.identifier not in ["rna_type"]
         ]
 
         def deserializer(
@@ -443,21 +444,21 @@ From root: {from_root.to_str()}"""
         )
         self.current_tree = None
 
-        for f in self.set_socket_enum_defaults:
-            f()
+        for func in self.set_socket_enum_defaults:
+            func()
         self.set_socket_enum_defaults.clear()
 
 
-def _check_version(d: dict):
-    exporter_blender_version = d[BLENDER_VERSION]
+def _check_version(data: dict):
+    exporter_blender_version = data[BLENDER_VERSION]
     importer_blender_version = bpy.app.version_string
     if exporter_blender_version != importer_blender_version:
         return f"Blender version mismatch. File version: {exporter_blender_version}, but running {importer_blender_version}"
 
-    exporter_node_as_json_version = d[TREE_CLIPPER_VERSION]
+    exporter_node_as_json_version = data[TREE_CLIPPER_VERSION]
     manifest_path = Path(__file__).parent / "blender_manifest.toml"
-    with manifest_path.open("rb") as f:
-        blender_manifest = tomllib.load(f)
+    with manifest_path.open("rb") as file:
+        blender_manifest = tomllib.load(file)
     importer_node_as_json_version = blender_manifest["version"]
     name = blender_manifest["name"]
 
@@ -487,55 +488,55 @@ class ImportParameters:
         self.debug_prints = debug_prints
 
 
-def import_nodes_from_dict(*, d: dict, p: ImportParameters):
+def import_nodes_from_dict(*, data: dict, parameters: ImportParameters):
     importer = Importer(
-        specific_handlers=p.specific_handlers,
-        getters=p.getters,
-        debug_prints=p.debug_prints,
+        specific_handlers=parameters.specific_handlers,
+        getters=parameters.getters,
+        debug_prints=parameters.debug_prints,
     )
 
-    version_mismatch = _check_version(d)
+    version_mismatch = _check_version(data)
     if version_mismatch is not None:
-        if p.allow_version_mismatch:
+        if parameters.allow_version_mismatch:
             print(version_mismatch, file=sys.stderr)
         else:
             raise RuntimeError(version_mismatch)
 
     # important to construct in reverse order
-    for tree in reversed(d[TREES][1:]):
+    for tree in reversed(data[TREES][1:]):
         # pylint: disable=protected-access
-        importer._import_node_tree(serialization=tree, overwrite=p.overwrite)
+        importer._import_node_tree(serialization=tree, overwrite=parameters.overwrite)
 
     # root tree needs special treatment, might be material
     # pylint: disable=protected-access
     importer._import_node_tree(
-        serialization=d[TREES][0],
-        overwrite=p.overwrite,
-        material_name=None if MATERIAL_NAME not in d else d[MATERIAL_NAME],
+        serialization=data[TREES][0],
+        overwrite=parameters.overwrite,
+        material_name=None if MATERIAL_NAME not in data else data[MATERIAL_NAME],
     )
 
 
-def import_nodes_from_str(*, s: str, p: ImportParameters):
-    compressed = s.startswith(MAGIC_STRING)
+def import_nodes_from_str(*, string: str, parameters: ImportParameters):
+    compressed = string.startswith(MAGIC_STRING)
     if compressed:
-        base64_str = s[len(MAGIC_STRING) :]
+        base64_str = string[len(MAGIC_STRING) :]
         gzipped = base64.b64decode(base64_str)
         json_str = gzip.decompress(gzipped).decode("utf-8")
-        d = json.loads(json_str)
+        data = json.loads(json_str)
     else:
-        d = json.loads(s)
+        data = json.loads(string)
 
-    import_nodes_from_dict(d=d, p=p)
+    import_nodes_from_dict(data=data, parameters=parameters)
 
 
-def import_nodes_from_file(*, file_path: Path, p: ImportParameters):
-    with file_path.open("r", encoding="utf-8") as f:
-        compressed = f.read(len(MAGIC_STRING)) == MAGIC_STRING
+def import_nodes_from_file(*, file_path: Path, parameters: ImportParameters):
+    with file_path.open("r", encoding="utf-8") as file:
+        compressed = file.read(len(MAGIC_STRING)) == MAGIC_STRING
 
-    with file_path.open("r", encoding="utf-8") as f:
+    with file_path.open("r", encoding="utf-8") as file:
         if compressed:
-            full = f.read()
-            import_nodes_from_str(s=full, p=p)
+            full = file.read()
+            import_nodes_from_str(string=full, parameters=parameters)
         else:
-            d = json.load(f)
-            import_nodes_from_dict(d=d, p=p)
+            data = json.load(file)
+            import_nodes_from_dict(data=data, parameters=parameters)
