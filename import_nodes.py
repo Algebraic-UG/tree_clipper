@@ -162,7 +162,7 @@ class Importer:
                 )
             if self.debug_prints:
                 print(f"{from_root.to_str()}: resolving {serialization}")
-            setattr(getter(), self.getters[serialization]())
+            setattr(getter(), identifier, self.getters[serialization]())
         else:
             attribute = getattr(getter(), identifier)
             if attribute is None:
