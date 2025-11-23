@@ -194,6 +194,11 @@ class TreeItemImporter(SpecificImporter[bpy.types.NodeTreeInterfaceItem]):
         self.import_all_simple_writable_properties()
 
 
+class TreePanelImporter(SpecificImporter[bpy.types.NodeTreeInterfacePanel]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties()
+
+
 class NodeExporter(SpecificExporter[bpy.types.Node]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
