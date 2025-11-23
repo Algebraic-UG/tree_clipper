@@ -18,6 +18,7 @@ from .common import (
     MATERIAL_NAME,
     PROPERTY_TYPES_SIMPLE,
     BLENDER_VERSION,
+    SIMPLE_DATA_TYPE,
     TREE_CLIPPER_VERSION,
     TREES,
     FromRoot,
@@ -106,7 +107,7 @@ class Importer:
         *,
         getter: GETTER,
         prop: bpy.types.Property,
-        serialization: int | float | str,  # TODO: merge PR
+        serialization: SIMPLE_DATA_TYPE,
         from_root: FromRoot,
     ) -> None:
         if self.debug_prints:
