@@ -379,6 +379,11 @@ From root: {from_root.to_str()}"""
                         from_root=from_root,
                     )
 
+                other_obj = getter()
+                if prop.identifier == "dimensions":
+                    print("asdf")
+
+                assert getter() == obj
                 # pylint: disable=protected-access
                 self._import_property(
                     obj=obj,
@@ -387,6 +392,8 @@ From root: {from_root.to_str()}"""
                     serialization=serialization[prop.identifier],
                     from_root=from_root,
                 )
+                other_obj = getter()
+                assert getter() == obj
 
             specific_handler(importer, obj, getter, serialization, from_root)
 
