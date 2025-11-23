@@ -125,7 +125,11 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
                     parent=None,
                 )
             else:
-                uid_map[data["persistent_uid"]] = i
+                uid_map[
+                    _or_default(
+                        data, bpy.types.NodeTreeInterfacePanel, "persistent_uid"
+                    )
+                ] = i
                 self.getter().new_panel(
                     name=str(i),
                     description=_or_default(data, ty, "description"),
