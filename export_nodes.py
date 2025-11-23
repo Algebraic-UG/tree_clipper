@@ -390,12 +390,13 @@ def _collect_sub_trees(
     from_root: FromRoot,
 ) -> None:
     for node in current.nodes:
-        if hasattr(node, "node_tree"):
+        if isinstance(node, bpy.types.GeometryNodeGroup) and node.node_tree is not None:
             tree = node.node_tree
-            if all(tree != already_in[0] for already_in in trees):
+            if all(tree.name != already_in[0].name for already_in in trees):
                 sub_root = from_root.add(f"Group ({node.name}, {tree.name})")
-                trees.append((tree, sub_root))
                 _collect_sub_trees(current=tree, trees=trees, from_root=sub_root)
+    assert all(current.name != already_in[0].name for already_in in trees)
+    trees.append((current, from_root))
 
 
 ################################################################################
@@ -449,9 +450,12 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
         from_root = FromRoot([f"Root ({parameters.name})"])
         root = bpy.data.node_groups[parameters.name]
 
-    trees = [(root, from_root)]
+    trees = []
     if parameters.export_sub_trees:
         _collect_sub_trees(current=root, trees=trees, from_root=from_root)
+
+    for tree in trees:
+        print(tree[0].name)
 
     manifest_path = Path(__file__).parent / "blender_manifest.toml"
     with manifest_path.open("rb") as file:

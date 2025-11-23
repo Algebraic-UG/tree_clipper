@@ -482,15 +482,14 @@ def _import_nodes_from_dict(*, data: dict, parameters: ImportParameters) -> None
         else:
             raise RuntimeError(version_mismatch)
 
-    # important to construct in reverse order
-    for tree in reversed(data[TREES][1:]):
+    for tree in data[TREES][:-1]:
         # pylint: disable=protected-access
         importer._import_node_tree(serialization=tree, overwrite=parameters.overwrite)
 
     # root tree needs special treatment, might be material
     # pylint: disable=protected-access
     importer._import_node_tree(
-        serialization=data[TREES][0],
+        serialization=data[TREES][-1],
         overwrite=parameters.overwrite,
         material_name=None if MATERIAL_NAME not in data else data[MATERIAL_NAME],
     )
