@@ -4,7 +4,7 @@ import bpy
 
 from types import NoneType
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, ClassVar, Type
+from typing import Any, Callable, Generic, TypeVar, ClassVar, Type
 
 
 from .common import FromRoot, no_clobber
@@ -15,12 +15,31 @@ from .import_nodes import GETTER, Importer
 AssumedType = TypeVar("AssumedType", bound=bpy.types.bpy_struct)
 
 
+def default_serializer(
+    *,
+    exporter: Exporter,
+    obj: AssumedType,
+    from_root: FromRoot,
+) -> dict[str, Any]:
+    return {}
+
+
+def default_deserializer(
+    *,
+    importer: Importer,
+    getter: GETTER,
+    serialization: dict[str, Any],
+    from_root: FromRoot,
+) -> None:
+    pass
+
+
 # these are filled either manually, or by defining subclasses of the abstract ones below
 _BUILT_IN_EXPORTER = {
-    NoneType: lambda _exporter, _obj, _from_root: {},
+    NoneType: default_serializer,
 }
 _BUILT_IN_IMPORTER = {
-    NoneType: lambda _importer, _obj, _getter, _serialization, _from_root: {},
+    NoneType: default_deserializer,
 }
 
 
@@ -81,6 +100,7 @@ class SpecificExporter(Generic[AssumedType], ABC):
         # 2.
         # this is so much more convinient than writing this out for each function!
         def wrapper(
+            *,
             exporter: Exporter,
             obj: AssumedType,
             from_root: FromRoot,
@@ -144,8 +164,7 @@ class SpecificImporter(Generic[AssumedType], ABC):
     ```
     def _import_node_tree(
         importer: Importer,
-        node_tree: bpy.types.NodeTree,
-        getter: GETTER,
+        getter: Callable[[], bpy.types.NodeTree],
         serialization: dict,
         from_root: FromRoot,
     ):
@@ -156,7 +175,7 @@ class SpecificImporter(Generic[AssumedType], ABC):
     or this:
     ```
     class NodeTreeImporter(SpecificImporter[bpy.types.NodeTree]):
-        # able to access self.obj with type hints!
+        # able to access self.getter() with type hints!
         def deserialize(self):
             ...
     ```
@@ -194,15 +213,14 @@ class SpecificImporter(Generic[AssumedType], ABC):
         # 2.
         # this is so much more convinient than writing this out for each function!
         def wrapper(
+            *,
             importer: Importer,
-            obj: AssumedType,
-            getter: GETTER,
-            serialization: dict,
+            getter: Callable[[], AssumedType],
+            serialization: dict[str, Any],
             from_root: FromRoot,
         ):
             inst = cls(
                 importer=importer,
-                obj=obj,
                 getter=getter,
                 serialization=serialization,
                 from_root=from_root,
@@ -218,20 +236,17 @@ class SpecificImporter(Generic[AssumedType], ABC):
         self,
         *,
         importer: Importer,
-        obj: AssumedType,
-        getter: GETTER,
-        serialization: dict,
+        getter: Callable[[], AssumedType],
+        serialization: dict[str, Any],
         from_root: FromRoot,
     ):
         self.importer = importer
-        self.obj = obj
         self.getter = getter
         self.serialization = serialization
         self.from_root = from_root
 
     def import_all_simple_writable_properties(self):
         self.importer.import_all_simple_writable_properties(
-            obj=self.obj,
             getter=self.getter,
             serialization=self.serialization,
             assumed_type=self.assumed_type,
@@ -240,7 +255,6 @@ class SpecificImporter(Generic[AssumedType], ABC):
 
     def import_properties_from_id_list(self, id_list: list[str]):
         self.importer.import_properties_from_id_list(
-            obj=self.obj,
             getter=self.getter,
             serialization=self.serialization,
             properties=id_list,

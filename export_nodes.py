@@ -307,7 +307,7 @@ From root: {from_root.to_str()}"""
 
         data = {
             ID: this_id,
-            DATA: serializer(self, obj, from_root),
+            DATA: serializer(exporter=self, obj=obj, from_root=from_root),
         }
         if self.write_from_roots:
             data["from_root"] = from_root.to_str()
@@ -344,7 +344,7 @@ From root: {from_root.to_str()}"""
         ]
 
         def serializer(exporter: Self, obj: bpy.types.bpy_struct, from_root: FromRoot):
-            data = specific_handler(exporter, obj, from_root)
+            data = specific_handler(exporter=exporter, obj=obj, from_root=from_root)
             for prop in unhandled_properties:
                 # pylint: disable=protected-access
                 prop_data = exporter._attempt_export_property(

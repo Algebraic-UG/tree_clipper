@@ -77,17 +77,17 @@ class NodeTreeImporter(SpecificImporter[bpy.types.NodeTree]):
 
 class NodesImporter(SpecificImporter[bpy.types.Nodes]):
     def deserialize(self):
-        self.obj.clear()
+        self.getter().clear()
         active_id = self.serialization.get("active", None)
         for node in self.serialization["items"]:
             bl_idname = node[DATA]["bl_idname"]
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding {bl_idname}")
-            new_node = self.obj.new(type=bl_idname)
+            new_node = self.getter().new(type=bl_idname)
             # it's important to do this immediately because renaming later can change more than one name
             new_node.name = _or_default(self.serialization, bpy.types.Node, "name")
             if node[ID] == active_id:
-                self.obj.active = new_node
+                self.getter().active = new_node
 
 
 class InterfaceExporter(SpecificExporter[bpy.types.NodeTreeInterface]):
@@ -99,7 +99,7 @@ class InterfaceExporter(SpecificExporter[bpy.types.NodeTreeInterface]):
 
 class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
     def deserialize(self):
-        self.obj.clear()
+        self.getter().clear()
 
         def get_type(data: dict):
             item_type = _or_default(data, bpy.types.NodeTreeInterfaceItem, "item_type")
@@ -115,7 +115,7 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
             data = item[DATA]
             ty = get_type(data)
             if ty == bpy.types.NodeTreeInterfaceSocket:
-                self.obj.new_socket(
+                self.getter().new_socket(
                     name=str(i),
                     description=_or_default(data, ty, "description"),
                     in_out=_or_default(data, ty, "in_out"),
@@ -124,7 +124,7 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
                 )
             else:
                 uid_map[data["persistent_uid"]] = i
-                self.obj.new_panel(
+                self.getter().new_panel(
                     name=str(i),
                     description=_or_default(data, ty, "description"),
                     default_closed=_or_default(data, ty, "default_closed"),
@@ -133,12 +133,12 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
         def parent(uid):
             if uid not in uid_map:
                 return None
-            return self.obj.items_tree[str(uid_map[uid])]
+            return self.getter().items_tree[str(uid_map[uid])]
 
         for i, item in enumerate(items):
             data = item[DATA]
-            self.obj.move_to_parent(
-                item=self.obj.items_tree[str(i)],
+            self.getter().move_to_parent(
+                item=self.getter().items_tree[str(i)],
                 parent=parent(data["parent"]),
                 # this doesn't matter because we move below
                 to_position=0,
@@ -154,13 +154,13 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
             )
         )
         for i, item in sorted_items:
-            self.obj.move(
-                self.obj.items_tree[str(i)],
+            self.getter().move(
+                self.getter().items_tree[str(i)],
                 _or_default(item[DATA], bpy.types.NodeTreeInterfaceItem, "index"),
             )
 
         # this should be fine, we're not modifying the container anymore
-        sorted_objs = [self.obj.items_tree[str(i)] for i in range(len(items))]
+        sorted_objs = [self.getter().items_tree[str(i)] for i in range(len(items))]
         assert len(sorted_objs) == len(items)
         for obj, item in zip(sorted_objs, items):
             data = item[DATA]
@@ -205,7 +205,7 @@ class NodeImporter(SpecificImporter[bpy.types.Node]):
 class NodeInputsImporter(SpecificImporter[bpy.types.NodeInputs]):
     def deserialize(self):
         expected = len(self.serialization["items"])
-        current = len(self.obj)
+        current = len(self.getter())
         if current != expected:
             raise RuntimeError(
                 f"""{self.from_root.to_str()}
@@ -217,7 +217,7 @@ we currently don't support creating sockets"""
 class NodeOutputsImporter(SpecificImporter[bpy.types.NodeOutputs]):
     def deserialize(self):
         expected = len(self.serialization["items"])
-        current = len(self.obj)
+        current = len(self.getter())
         if current != expected:
             raise RuntimeError(
                 f"""{self.from_root.to_str()}
@@ -276,7 +276,7 @@ class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
                 print(
                     f"{self.from_root.to_str()}: linking {from_node}, {from_socket} to {to_node}, {to_socket}"
                 )
-            self.obj.new(
+            self.getter().new(
                 input=self.importer.current_tree.nodes[from_node].outputs[from_socket],
                 output=self.importer.current_tree.nodes[to_node].inputs[to_socket],
             )
@@ -304,12 +304,12 @@ class MenuSwitchImporter(SpecificImporter[bpy.types.GeometryNodeMenuSwitch]):
 
 class MenuSwitchItemsImporter(SpecificImporter[bpy.types.NodeMenuSwitchItems]):
     def deserialize(self):
-        self.obj.clear()
+        self.getter().clear()
         for item in self.serialization["items"]:
             name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding item {name}")
-            self.obj.new(name=name)
+            self.getter().new(name=name)
 
 
 class CaptureAttrExporter(SpecificExporter[bpy.types.GeometryNodeCaptureAttribute]):
@@ -331,7 +331,7 @@ class CaptureAttrItemsImporter(
     SpecificImporter[bpy.types.NodeGeometryCaptureAttributeItems]
 ):
     def deserialize(self):
-        self.obj.clear()
+        self.getter().clear()
         for item in self.serialization["items"]:
             name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
             socket_type = _map_attribute_type_to_socket_type(
@@ -341,7 +341,7 @@ class CaptureAttrItemsImporter(
             )
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding item {name} {socket_type}")
-            self.obj.new(socket_type=socket_type, name=name)
+            self.getter().new(socket_type=socket_type, name=name)
 
 
 class RepeatInputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatInput]):
@@ -397,13 +397,13 @@ class RepeatOutputItemsImporter(
     SpecificImporter[bpy.types.NodeGeometryRepeatOutputItems]
 ):
     def deserialize(self):
-        self.obj.clear()
+        self.getter().clear()
         for item in self.serialization["items"]:
             name = _or_default(item[DATA], bpy.types.NodeEnumItem, "name")
             socket_type = _or_default(item[DATA], bpy.types.RepeatItem, "socket_type")
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding item {name} {socket_type}")
-            self.obj.new(socket_type=socket_type, name=name)
+            self.getter().new(socket_type=socket_type, name=name)
 
 
 class IndexItemExporter(SpecificExporter[bpy.types.IndexSwitchItem]):
@@ -413,11 +413,11 @@ class IndexItemExporter(SpecificExporter[bpy.types.IndexSwitchItem]):
 
 class IndexItemsImporter(SpecificImporter[bpy.types.NodeIndexSwitchItems]):
     def deserialize(self):
-        self.obj.clear()
+        self.getter().clear()
         for _ in self.serialization["items"]:
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding index")
-            self.obj.new()
+            self.getter().new()
 
 
 class ViewerSpecificExporter(SpecificExporter[bpy.types.GeometryNodeViewer]):
@@ -437,7 +437,7 @@ class ViewerImporter(SpecificImporter[bpy.types.GeometryNodeViewer]):
 
 class ViewerItemsImporter(SpecificImporter[bpy.types.NodeGeometryViewerItems]):
     def deserialize(self):
-        self.obj.clear()
+        self.getter().clear()
         for item in self.serialization["items"]:
             data = item[DATA]
             name = _or_default(data, bpy.types.NodeGeometryViewerItem, "name")
@@ -448,7 +448,7 @@ class ViewerItemsImporter(SpecificImporter[bpy.types.NodeGeometryViewerItems]):
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding item {name} {socket_type}")
 
-            self.obj.new(socket_type=socket_type, name=name)
+            self.getter().new(socket_type=socket_type, name=name)
 
 
 class ViewerItemImporter(SpecificImporter[bpy.types.NodeGeometryViewerItem]):
@@ -482,15 +482,15 @@ color ramps need at least one element"""
             )
 
         # this will probably not happen
-        while len(self.obj) > number_needed:
+        while len(self.getter()) > number_needed:
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: removing element")
-            self.obj.remove(self.obj[-1])
+            self.getter().remove(self.getter()[-1])
 
-        while len(self.obj) < number_needed:
+        while len(self.getter()) < number_needed:
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding element")
-            self.obj.new(position=0)
+            self.getter().new(position=0)
 
 
 class SimulationInputExporter(SpecificExporter[bpy.types.GeometryNodeSimulationInput]):
@@ -550,7 +550,7 @@ class SimulationOutputItemsImporter(
     SpecificImporter[bpy.types.NodeGeometrySimulationOutputItems]
 ):
     def deserialize(self):
-        self.obj.clear()
+        self.getter().clear()
         for item in self.serialization["items"]:
             name = _or_default(item[DATA], bpy.types.SimulationStateItem, "name")
             socket_type = _or_default(
@@ -558,7 +558,7 @@ class SimulationOutputItemsImporter(
             )
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding item {name} {socket_type}")
-            self.obj.new(socket_type=socket_type, name=name)
+            self.getter().new(socket_type=socket_type, name=name)
 
 
 # now they are cooked and ready to use ~ bon appétit
