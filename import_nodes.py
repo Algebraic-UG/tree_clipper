@@ -332,25 +332,26 @@ From root: {from_root.to_str()}"""
             from_root: FromRoot,
         ) -> None:
             for prop in unhandled_properties:
+                prop_from_root = from_root.add_prop(prop)
                 if prop.type in PROPERTY_TYPES_SIMPLE:
                     if prop.is_readonly:
                         if self.debug_prints:
-                            print(f"{from_root.to_str()}: skipping readonly")
+                            print(f"{prop_from_root.to_str()}: skipping readonly")
                         continue
 
                 if prop.identifier not in serialization:
                     if prop.type in PROPERTY_TYPES_SIMPLE:
                         if self.debug_prints:
-                            print(f"{from_root.to_str()}: missing, assume default")
+                            print(f"{prop_from_root.to_str()}: missing, assume default")
                         continue
                     if prop.type == "POINTER" and not prop.is_readonly:
                         if self.debug_prints:
-                            print(f"{from_root.to_str()}: missing, assume not set")
+                            print(f"{prop_from_root.to_str()}: missing, assume not set")
                         continue
                     self._error_out(
                         getter=getter,
                         reason="missing property in serialization",
-                        from_root=from_root,
+                        from_root=prop_from_root,
                     )
 
                 # pylint: disable=protected-access
@@ -358,7 +359,7 @@ From root: {from_root.to_str()}"""
                     getter=getter,
                     prop=prop,
                     serialization=serialization[prop.identifier],
-                    from_root=from_root,
+                    from_root=prop_from_root,
                 )
 
             specific_handler(
