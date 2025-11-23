@@ -84,6 +84,8 @@ class NodesImporter(SpecificImporter[bpy.types.Nodes]):
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding {bl_idname}")
             new_node = self.obj.new(type=bl_idname)
+            # it's important to do this immediately because renaming later can change more than one name
+            new_node.name = _or_default(self.serialization, bpy.types.Node, "name")
             if node[ID] == active_id:
                 self.obj.active = new_node
 

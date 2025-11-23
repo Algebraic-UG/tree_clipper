@@ -66,6 +66,8 @@ class Importer:
         assumed_type: type,
         from_root: FromRoot,
     ):
+        assert getter() == obj
+
         for prop in assumed_type.bl_rna.properties:
             if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
                 continue
@@ -92,13 +94,12 @@ class Importer:
         properties: list[str],
         from_root: FromRoot,
     ):
-        def make_getter(identifier: str):
-            return lambda: getattr(getter(), identifier)
+        assert getter() == obj
 
         for prop in [obj.bl_rna.properties[p] for p in properties]:
             self._import_property(
                 obj=obj,
-                getter=make_getter(prop.identifier),
+                getter=getter,
                 prop=prop,
                 serialization=serialization[prop.identifier],
                 from_root=from_root.add_prop(prop),
@@ -117,32 +118,36 @@ class Importer:
         serialization: int | str,
         from_root: FromRoot,
     ):
+        assert getter() == obj
+
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing simple")
 
         assert prop.type in PROPERTY_TYPES_SIMPLE
         assert not prop.is_readonly
 
+        identifier = prop.identifier
+
         if (
             (
                 isinstance(obj, bpy.types.NodeSocket)
                 or isinstance(obj, bpy.types.NodeTreeInterfaceSocket)
             )
-            and prop.type == "ENUM"
-            and prop.identifier == "default"
+            and prop.type in "ENUM"
+            and identifier == "default_value"
         ):
             if self.debug_prints:
                 print(f"{from_root.to_str()}: defer setting enum default for now")
             self.set_socket_enum_defaults.append(
-                lambda: setattr(getter(), prop.identifier, serialization)
+                lambda: setattr(getter(), identifier, serialization)
             )
             return
 
         if prop.type == "ENUM" and prop.is_enum_flag:
             assert isinstance(serialization, list)
-            setattr(obj, prop.identifier, set(serialization))
+            setattr(obj, identifier, set(serialization))
         else:
-            setattr(obj, prop.identifier, serialization)
+            setattr(obj, identifier, serialization)
 
     def _import_property_pointer(
         self,
@@ -153,10 +158,13 @@ class Importer:
         serialization: dict | int,
         from_root: FromRoot,
     ):
+        assert getter() == obj
+
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing pointer")
 
         assert prop.type == "POINTER"
+        identifier = prop.identifier
 
         if isinstance(serialization, int):
             if prop.is_readonly:
@@ -169,12 +177,12 @@ class Importer:
                 print(f"{from_root.to_str()}: resolving {serialization}")
             setattr(obj, self.getters[serialization]())
         else:
-            attribute = getattr(obj, prop.identifier)
+            attribute = getattr(obj, identifier)
             if attribute is None:
                 raise RuntimeError("None pointer without deferring doesn't work")
             self._import_obj(
                 obj=attribute,
-                getter=getter,
+                getter=lambda: getattr(getter(), identifier),
                 serialization=serialization,
                 from_root=from_root,
             )
@@ -188,17 +196,20 @@ class Importer:
         serialization: dict,
         from_root: FromRoot,
     ):
+        assert getter() == obj
+
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing collection")
 
         assert prop.type == "COLLECTION"
         assert "items" in serialization[DATA]
 
-        attribute = getattr(obj, prop.identifier)
+        identifier = prop.identifier
+        attribute = getattr(obj, identifier)
 
         self._import_obj(
             obj=attribute,
-            getter=getter,
+            getter=lambda: getattr(getter(), identifier),
             serialization=serialization,
             from_root=from_root,
         )
@@ -211,7 +222,7 @@ class Importer:
             )
 
         def make_getter(i: int):
-            return lambda: getter()[i]
+            return lambda: getattr(getter(), identifier)[i]
 
         for i, item in enumerate(attribute):
             current_name = getattr(item, "name", "unnamed")
@@ -232,6 +243,8 @@ class Importer:
         serialization: dict,
         from_root: FromRoot,
     ):
+        assert getter() == obj
+
         if prop.type in PROPERTY_TYPES_SIMPLE:
             return self._import_property_simple(
                 obj=obj,
@@ -273,41 +286,6 @@ Reason: {reason}
 From root: {from_root.to_str()}"""
         )
 
-    def _attempt_import_property(
-        self,
-        obj: bpy.types.bpy_struct,
-        getter: GETTER,
-        prop: bpy.types.CollectionProperty,
-        obj_serialization: dict,
-        from_root: FromRoot,
-    ):
-        if prop.type in PROPERTY_TYPES_SIMPLE:
-            if prop.is_readonly:
-                if self.debug_prints:
-                    print(f"{from_root.to_str()}: skipping readonly")
-                return
-
-        if prop.identifier not in obj_serialization:
-            if prop.type in PROPERTY_TYPES_SIMPLE:
-                if self.debug_prints:
-                    print(f"{from_root.to_str()}: missing, assume default")
-                return
-            if prop.type == "POINTER" and not prop.is_readonly:
-                if self.debug_prints:
-                    print(f"{from_root.to_str()}: missing, assume not set")
-                return
-            self._error_out(
-                obj=obj, reason="missing property in serialization", from_root=from_root
-            )
-
-        self._import_property(
-            obj=obj,
-            getter=getter,
-            prop=prop,
-            serialization=obj_serialization[prop.identifier],
-            from_root=from_root,
-        )
-
     def _import_obj_with_deserializer(
         self,
         *,
@@ -317,6 +295,8 @@ From root: {from_root.to_str()}"""
         deserializer: DESERIALIZER,
         from_root: FromRoot,
     ):
+        assert getter() == obj
+
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing")
 
@@ -334,6 +314,8 @@ From root: {from_root.to_str()}"""
         serialization: dict,
         from_root: FromRoot,
     ):
+        assert getter() == obj
+
         # edge case for things like bpy_prop_collection that aren't real RNA types?
         if not hasattr(obj, "bl_rna"):
             assert isinstance(obj, bpy.types.bpy_prop_collection)
@@ -373,17 +355,37 @@ From root: {from_root.to_str()}"""
             serialization: dict,
             from_root: FromRoot,
         ):
-            def make_getter(identifier: str):
-                return lambda: getattr(getter(), identifier)
+            assert getter() == obj
 
             for prop in unhandled_properties:
+                if prop.type in PROPERTY_TYPES_SIMPLE:
+                    if prop.is_readonly:
+                        if self.debug_prints:
+                            print(f"{from_root.to_str()}: skipping readonly")
+                        continue
+
+                if prop.identifier not in serialization:
+                    if prop.type in PROPERTY_TYPES_SIMPLE:
+                        if self.debug_prints:
+                            print(f"{from_root.to_str()}: missing, assume default")
+                        continue
+                    if prop.type == "POINTER" and not prop.is_readonly:
+                        if self.debug_prints:
+                            print(f"{from_root.to_str()}: missing, assume not set")
+                        continue
+                    self._error_out(
+                        obj=obj,
+                        reason="missing property in serialization",
+                        from_root=from_root,
+                    )
+
                 # pylint: disable=protected-access
-                importer._attempt_import_property(
-                    obj,
-                    make_getter(prop.identifier),
-                    prop,
-                    serialization,
-                    from_root.add_prop(prop),
+                self._import_property(
+                    obj=obj,
+                    getter=getter,
+                    prop=prop,
+                    serialization=serialization[prop.identifier],
+                    from_root=from_root,
                 )
 
             specific_handler(importer, obj, getter, serialization, from_root)
