@@ -3,7 +3,7 @@ import gzip
 import json
 from pathlib import Path
 from types import NoneType
-from typing import Self
+from typing import Any, Self
 
 import bpy
 import tomllib
@@ -16,6 +16,7 @@ from .common import (
     MATERIAL_NAME,
     PROPERTY_TYPES_SIMPLE,
     SERIALIZER,
+    SIMPLE_DATA_TYPE,
     TREE_CLIPPER_VERSION,
     TREES,
     FromRoot,
@@ -28,10 +29,17 @@ class Pointer:
     def __init__(
         self,
         *,
+        obj: bpy.types.bpy_struct,
+        identifier: str,
+        pointer_id: int,
         from_root: FromRoot,
-    ):
+    ) -> None:
+        self.obj = obj
+        self.identifier = identifier
         self.from_root = from_root
-        self.id = None
+        self.pointer_id = pointer_id
+        # this is determined after all trees are serialized
+        self.pointee_id = None
 
 
 class Exporter:
@@ -40,12 +48,14 @@ class Exporter:
         *,
         specific_handlers: dict[type, SERIALIZER],
         skip_defaults: bool,
+        write_from_roots: bool,
         debug_prints: bool,
-    ):
+    ) -> None:
         self.next_id = 0
         self.specific_handlers = specific_handlers
         self.skip_defaults = skip_defaults
         self.debug_prints = debug_prints
+        self.write_from_roots = write_from_roots
         self.pointers = {}
         self.serialized = {}
         self.current_tree = None
@@ -60,7 +70,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         assumed_type: type,
         from_root: FromRoot,
-    ):
+    ) -> dict[str, SIMPLE_DATA_TYPE]:
         data = {}
         for prop in assumed_type.bl_rna.properties:
             if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
@@ -80,7 +90,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         properties: list[str],
         from_root: FromRoot,
-    ):
+    ) -> dict[str, Any]:
         data = {}
         for prop in [obj.bl_rna.properties[p] for p in properties]:
             data_prop = self._export_property(
@@ -102,7 +112,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
         from_root: FromRoot,
-    ):
+    ) -> None | SIMPLE_DATA_TYPE:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting simple")
 
@@ -139,7 +149,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         prop: bpy.types.PointerProperty,
         from_root: FromRoot,
-    ):
+    ) -> None | Pointer | dict[str, Any]:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting pointer")
 
@@ -155,7 +165,12 @@ class Exporter:
         if attribute.id_data == self.current_tree and prop.is_readonly:
             return self._export_obj(obj=attribute, from_root=from_root)
         else:
-            pointer = Pointer(from_root=from_root)
+            pointer = Pointer(
+                obj=obj,
+                identifier=prop.identifier,
+                pointer_id=self.next_id - 1,
+                from_root=from_root,
+            )
             self.pointers.setdefault(attribute, []).append(pointer)
             if self.debug_prints:
                 print(f"{from_root.to_str()}: deferring")
@@ -167,7 +182,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         prop: bpy.types.CollectionProperty,
         from_root: FromRoot,
-    ):
+    ) -> dict[str, Any]:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting collection")
 
@@ -177,7 +192,12 @@ class Exporter:
 
         data = self._export_obj(obj=attribute, from_root=from_root)
         items = [
-            self._export_obj(obj=element, from_root=from_root.add(f"[{i}]"))
+            self._export_obj(
+                obj=element,
+                from_root=from_root.add(
+                    f"[{i}] ({getattr(attribute[i], 'name', 'unnamed')})"
+                ),
+            )
             for i, element in enumerate(attribute)
         ]
         no_clobber(data[DATA], "items", items)
@@ -190,7 +210,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
         from_root: FromRoot,
-    ):
+    ) -> None | SIMPLE_DATA_TYPE | Pointer | dict[str, Any]:
         if prop.type in PROPERTY_TYPES_SIMPLE:
             return self._export_property_simple(
                 obj=obj,
@@ -218,7 +238,7 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
         from_root,
-    ):
+    ) -> None | SIMPLE_DATA_TYPE | Pointer | dict[str, Any]:
         def error_out(reason: str):
             raise RuntimeError(
                 f"""\
@@ -274,7 +294,7 @@ From root: {from_root.to_str()}"""
         obj: bpy.types.bpy_struct,
         serializer: SERIALIZER,
         from_root: FromRoot,
-    ):
+    ) -> dict[str, Any]:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting")
 
@@ -285,14 +305,20 @@ From root: {from_root.to_str()}"""
             raise RuntimeError(f"Double serialization: {from_root.to_str()}")
         self.serialized[obj] = this_id
 
-        return {ID: this_id, DATA: serializer(self, obj, from_root)}
+        data = {
+            ID: this_id,
+            DATA: serializer(exporter=self, obj=obj, from_root=from_root),
+        }
+        if self.write_from_roots:
+            data["from_root"] = from_root.to_str()
+        return data
 
     def _export_obj(
         self,
         *,
         obj: bpy.types.bpy_struct,
         from_root: FromRoot,
-    ):
+    ) -> dict[str, Any]:
         # edge case for things like bpy_prop_collection that aren't real RNA types?
         # https://projects.blender.org/blender/blender/issues/150092
         if not hasattr(obj, "bl_rna"):
@@ -317,8 +343,12 @@ From root: {from_root.to_str()}"""
             and prop.identifier not in ["rna_type"]
         ]
 
-        def serializer(exporter: Self, obj: bpy.types.bpy_struct, from_root: FromRoot):
-            data = specific_handler(exporter, obj, from_root)
+        def serializer(
+            exporter: Self,
+            obj: bpy.types.bpy_struct,
+            from_root: FromRoot,
+        ) -> dict[str, Any]:
+            data = specific_handler(exporter=exporter, obj=obj, from_root=from_root)
             for prop in unhandled_properties:
                 # pylint: disable=protected-access
                 prop_data = exporter._attempt_export_property(
@@ -342,7 +372,7 @@ From root: {from_root.to_str()}"""
         *,
         node_tree: bpy.types.NodeTree,
         from_root: FromRoot,
-    ):
+    ) -> dict[str, Any]:
         if self.debug_prints:
             print(f"{from_root.to_str()}: entering")
 
@@ -358,14 +388,15 @@ def _collect_sub_trees(
     current: bpy.types.NodeTree,
     trees: list[(bpy.types.NodeTree, FromRoot)],
     from_root: FromRoot,
-):
+) -> None:
     for node in current.nodes:
-        if hasattr(node, "node_tree"):
+        if isinstance(node, bpy.types.GeometryNodeGroup) and node.node_tree is not None:
             tree = node.node_tree
-            if all(tree != already_in[0] for already_in in trees):
+            if all(tree.name != already_in[0].name for already_in in trees):
                 sub_root = from_root.add(f"Group ({node.name}, {tree.name})")
-                trees.append((tree, sub_root))
                 _collect_sub_trees(current=tree, trees=trees, from_root=sub_root)
+    assert all(current.name != already_in[0].name for already_in in trees)
+    trees.append((current, from_root))
 
 
 ################################################################################
@@ -383,24 +414,33 @@ class ExportParameters:
         export_sub_trees: bool = True,
         skip_defaults: bool = True,
         debug_prints: bool,
-        compress: bool,
-        json_indent: int = 4,
-    ):
+        write_from_roots: bool,
+    ) -> None:
         self.is_material = is_material
         self.name = name
         self.specific_handlers = specific_handlers
         self.export_sub_trees = export_sub_trees
         self.skip_defaults = skip_defaults
         self.debug_prints = debug_prints
-        self.compress = compress
-        self.json_indent = json_indent
+        self.write_from_roots = write_from_roots
 
 
-def export_nodes_to_dict(parameters: ExportParameters) -> dict:
+class External:
+    def __init__(
+        self,
+        *,
+        pointed_to_by: list[Pointer],
+    ) -> None:
+        self.pointed_to_by = pointed_to_by
+        self.description = None
+
+
+def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
     exporter = Exporter(
         specific_handlers=parameters.specific_handlers,
         skip_defaults=parameters.skip_defaults,
         debug_prints=parameters.debug_prints,
+        write_from_roots=parameters.write_from_roots,
     )
 
     if parameters.is_material:
@@ -410,9 +450,11 @@ def export_nodes_to_dict(parameters: ExportParameters) -> dict:
         from_root = FromRoot([f"Root ({parameters.name})"])
         root = bpy.data.node_groups[parameters.name]
 
-    trees = [(root, from_root)]
+    trees = []
     if parameters.export_sub_trees:
         _collect_sub_trees(current=root, trees=trees, from_root=from_root)
+    else:
+        trees.append((root, from_root))
 
     manifest_path = Path(__file__).parent / "blender_manifest.toml"
     with manifest_path.open("rb") as file:
@@ -431,40 +473,58 @@ def export_nodes_to_dict(parameters: ExportParameters) -> dict:
     if parameters.is_material:
         data[MATERIAL_NAME] = parameters.name
 
+    external = {}
     for obj, pointers in exporter.pointers.items():
         if obj in exporter.serialized:
             for pointer in pointers:
-                pointer.id = exporter.serialized[obj]
+                pointer.pointee_id = exporter.serialized[obj]
         else:
-            # TODO
-            pass
+            external_id = exporter.next_id
+            exporter.next_id += 1
+            external[external_id] = External(pointed_to_by=pointers)
+            for pointer in pointers:
+                pointer.pointee_id = external_id
+
+    data["external"] = external
 
     return data
 
 
 class _Encoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj) -> int | str | Any:
         if isinstance(obj, Pointer):
-            return obj.id
+            return obj.pointee_id
+        if isinstance(obj, External):
+            return obj.description
         return super().default(obj)
 
 
-def export_nodes_to_str(parameters: ExportParameters) -> str:
-    data = export_nodes_to_dict(parameters)
-    if parameters.compress:
-        json_str = json.dumps(data, cls=_Encoder)
-        gzipped = gzip.compress(json_str.encode("utf-8"))
-        base64_str = base64.b64encode(gzipped).decode("utf-8")
-        return MAGIC_STRING + base64_str
-    else:
-        return json.dumps(data, cls=_Encoder, indent=parameters.json_indent)
+class ExportIntermediate:
+    def __init__(self, parameters: ExportParameters) -> None:
+        self.data = _export_nodes_to_dict(parameters=parameters)
 
-
-def export_nodes_to_file(*, file_path: Path, parameters: ExportParameters):
-    data = export_nodes_to_dict(parameters)
-    with file_path.open("w", encoding="utf-8") as file:
-        if parameters.compress:
-            compressed = export_nodes_to_str(parameters)
-            file.write(compressed)
+    def export_to_str(self, *, compress: bool, json_indent: int) -> str:
+        if compress:
+            json_str = json.dumps(self.data, cls=_Encoder)
+            gzipped = gzip.compress(json_str.encode("utf-8"))
+            base64_str = base64.b64encode(gzipped).decode("utf-8")
+            return MAGIC_STRING + base64_str
         else:
-            json.dump(data, file, cls=_Encoder, indent=parameters.json_indent)
+            return json.dumps(self.data, cls=_Encoder, indent=json_indent)
+
+    def export_to_file(
+        self,
+        *,
+        file_path: Path,
+        compress: bool,
+        json_indent: int,
+    ) -> None:
+        with file_path.open("w", encoding="utf-8") as file:
+            if compress:
+                string = self.export_to_str(compress=compress, json_indent=json_indent)
+                file.write(string)
+            else:
+                json.dump(self.data, file, cls=_Encoder, indent=json_indent)
+
+    def get_external(self) -> dict[int, External]:
+        return self.data["external"]

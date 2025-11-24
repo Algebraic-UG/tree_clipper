@@ -4,7 +4,7 @@ import json
 from types import NoneType
 import bpy
 
-from typing import Self
+from typing import Any, Self
 
 import sys
 import tomllib
@@ -18,6 +18,7 @@ from .common import (
     MATERIAL_NAME,
     PROPERTY_TYPES_SIMPLE,
     BLENDER_VERSION,
+    SIMPLE_DATA_TYPE,
     TREE_CLIPPER_VERSION,
     TREES,
     FromRoot,
@@ -32,7 +33,7 @@ class Importer:
         specific_handlers: dict[type, DESERIALIZER],
         getters: dict[int, GETTER],
         debug_prints: bool,
-    ):
+    ) -> None:
         self.specific_handlers = specific_handlers
         self.getters = getters
         self.debug_prints = debug_prints
@@ -60,12 +61,11 @@ class Importer:
     def import_all_simple_writable_properties(
         self,
         *,
-        obj: bpy.types.bpy_struct,
         getter: GETTER,
-        serialization: dict,
+        serialization: dict[str, Any],
         assumed_type: type,
         from_root: FromRoot,
-    ):
+    ) -> None:
         for prop in assumed_type.bl_rna.properties:
             if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
                 continue
@@ -76,7 +76,6 @@ class Importer:
                     )
                 continue
             self._import_property_simple(
-                obj=obj,
                 getter=getter,
                 prop=prop,
                 serialization=serialization[prop.identifier],
@@ -86,19 +85,14 @@ class Importer:
     def import_properties_from_id_list(
         self,
         *,
-        obj: bpy.types.bpy_struct,
         getter: GETTER,
-        serialization: dict,
+        serialization: dict[str, Any],
         properties: list[str],
         from_root: FromRoot,
-    ):
-        def make_getter(identifier: str):
-            return lambda: getattr(getter(), identifier)
-
-        for prop in [obj.bl_rna.properties[p] for p in properties]:
+    ) -> None:
+        for prop in [getter().bl_rna.properties[p] for p in properties]:
             self._import_property(
-                obj=obj,
-                getter=make_getter(prop.identifier),
+                getter=getter,
                 prop=prop,
                 serialization=serialization[prop.identifier],
                 from_root=from_root.add_prop(prop),
@@ -111,52 +105,53 @@ class Importer:
     def _import_property_simple(
         self,
         *,
-        obj: bpy.types.bpy_struct,
         getter: GETTER,
         prop: bpy.types.Property,
-        serialization: int | str,
+        serialization: SIMPLE_DATA_TYPE,
         from_root: FromRoot,
-    ):
+    ) -> None:
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing simple")
 
         assert prop.type in PROPERTY_TYPES_SIMPLE
         assert not prop.is_readonly
 
+        identifier = prop.identifier
+
         if (
             (
-                isinstance(obj, bpy.types.NodeSocket)
-                or isinstance(obj, bpy.types.NodeTreeInterfaceSocket)
+                isinstance(getter(), bpy.types.NodeSocket)
+                or isinstance(getter(), bpy.types.NodeTreeInterfaceSocket)
             )
-            and prop.type == "ENUM"
-            and prop.identifier == "default"
+            and prop.type in "ENUM"
+            and identifier == "default_value"
         ):
             if self.debug_prints:
                 print(f"{from_root.to_str()}: defer setting enum default for now")
             self.set_socket_enum_defaults.append(
-                lambda: setattr(getter(), prop.identifier, serialization)
+                lambda: setattr(getter(), identifier, serialization)
             )
             return
 
         if prop.type == "ENUM" and prop.is_enum_flag:
             assert isinstance(serialization, list)
-            setattr(obj, prop.identifier, set(serialization))
+            setattr(getter(), identifier, set(serialization))
         else:
-            setattr(obj, prop.identifier, serialization)
+            setattr(getter(), identifier, serialization)
 
     def _import_property_pointer(
         self,
         *,
-        obj: bpy.types.bpy_struct,
         getter: GETTER,
         prop: bpy.types.PointerProperty,
         serialization: dict | int,
         from_root: FromRoot,
-    ):
+    ) -> None:
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing pointer")
 
         assert prop.type == "POINTER"
+        identifier = prop.identifier
 
         if isinstance(serialization, int):
             if prop.is_readonly:
@@ -167,14 +162,13 @@ class Importer:
                 )
             if self.debug_prints:
                 print(f"{from_root.to_str()}: resolving {serialization}")
-            setattr(obj, self.getters[serialization]())
+            setattr(getter(), identifier, self.getters[serialization]())
         else:
-            attribute = getattr(obj, prop.identifier)
+            attribute = getattr(getter(), identifier)
             if attribute is None:
                 raise RuntimeError("None pointer without deferring doesn't work")
             self._import_obj(
-                obj=attribute,
-                getter=getter,
+                getter=lambda: getattr(getter(), identifier),
                 serialization=serialization,
                 from_root=from_root,
             )
@@ -182,23 +176,22 @@ class Importer:
     def _import_property_collection(
         self,
         *,
-        obj: bpy.types.bpy_struct,
         getter: GETTER,
         prop: bpy.types.CollectionProperty,
-        serialization: dict,
+        serialization: dict[str, Any],
         from_root: FromRoot,
-    ):
+    ) -> None:
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing collection")
 
         assert prop.type == "COLLECTION"
         assert "items" in serialization[DATA]
 
-        attribute = getattr(obj, prop.identifier)
+        identifier = prop.identifier
+        attribute = getattr(getter(), identifier)
 
         self._import_obj(
-            obj=attribute,
-            getter=getter,
+            getter=lambda: getattr(getter(), identifier),
             serialization=serialization,
             from_root=from_root,
         )
@@ -210,29 +203,28 @@ class Importer:
                 f"expected {len(serialized_items)} to be ready but deserialized {len(attribute)}"
             )
 
-        def make_getter(i: int):
-            return lambda: getter()[i]
+        def make_getter(i: int) -> GETTER:
+            return lambda: getattr(getter(), identifier)[i]
 
         for i, item in enumerate(attribute):
+            current_name = getattr(item, "name", "unnamed")
+            final_name = serialized_items[i][DATA].get("name", current_name)
             self._import_obj(
-                obj=item,
                 getter=make_getter(i),
                 serialization=serialized_items[i],
-                from_root=from_root.add(f"[{i}]"),
+                from_root=from_root.add(f"[{i}] ({final_name})"),
             )
 
     def _import_property(
         self,
         *,
-        obj: bpy.types.bpy_struct,
         getter: GETTER,
         prop: bpy.types.CollectionProperty,
-        serialization: dict,
+        serialization: dict[str, Any],
         from_root: FromRoot,
-    ):
+    ) -> None:
         if prop.type in PROPERTY_TYPES_SIMPLE:
             return self._import_property_simple(
-                obj=obj,
                 getter=getter,
                 prop=prop,
                 serialization=serialization,
@@ -240,7 +232,6 @@ class Importer:
             )
         elif prop.type == "POINTER":
             return self._import_property_pointer(
-                obj=obj,
                 getter=getter,
                 prop=prop,
                 serialization=serialization,
@@ -248,7 +239,6 @@ class Importer:
             )
         elif prop.type == "COLLECTION":
             return self._import_property_collection(
-                obj=obj,
                 getter=getter,
                 prop=prop,
                 serialization=serialization,
@@ -260,61 +250,25 @@ class Importer:
     def _error_out(
         self,
         *,
-        obj: bpy.types.bpy_struct,
+        getter: GETTER,
         reason: str,
         from_root: FromRoot,
-    ):
+    ) -> None:
         raise RuntimeError(
             f"""\
-More specific handler needed for type: {type(obj)}
+More specific handler needed for type: {type(getter())}
 Reason: {reason}
 From root: {from_root.to_str()}"""
-        )
-
-    def _attempt_import_property(
-        self,
-        obj: bpy.types.bpy_struct,
-        getter: GETTER,
-        prop: bpy.types.CollectionProperty,
-        obj_serialization: dict,
-        from_root: FromRoot,
-    ):
-        if prop.type in PROPERTY_TYPES_SIMPLE:
-            if prop.is_readonly:
-                if self.debug_prints:
-                    print(f"{from_root.to_str()}: skipping readonly")
-                return
-
-        if prop.identifier not in obj_serialization:
-            if prop.type in PROPERTY_TYPES_SIMPLE:
-                if self.debug_prints:
-                    print(f"{from_root.to_str()}: missing, assume default")
-                return
-            if prop.type == "POINTER" and not prop.is_readonly:
-                if self.debug_prints:
-                    print(f"{from_root.to_str()}: missing, assume not set")
-                return
-            self._error_out(
-                obj=obj, reason="missing property in serialization", from_root=from_root
-            )
-
-        self._import_property(
-            obj=obj,
-            getter=getter,
-            prop=prop,
-            serialization=obj_serialization[prop.identifier],
-            from_root=from_root,
         )
 
     def _import_obj_with_deserializer(
         self,
         *,
-        obj: bpy.types.bpy_struct,
         getter: GETTER,
-        serialization: dict,
+        serialization: dict[str, Any],
         deserializer: DESERIALIZER,
         from_root: FromRoot,
-    ):
+    ) -> None:
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing")
 
@@ -322,31 +276,37 @@ From root: {from_root.to_str()}"""
             raise RuntimeError(f"Double deserialization: {from_root.to_str()}")
         self.getters[serialization[ID]] = getter
 
-        deserializer(self, obj, getter, serialization[DATA], from_root)
+        deserializer(
+            importer=self,
+            getter=getter,
+            serialization=serialization[DATA],
+            from_root=from_root,
+        )
 
     def _import_obj(
         self,
         *,
-        obj: bpy.types.bpy_struct,
         getter: GETTER,
-        serialization: dict,
+        serialization: dict[str, Any],
         from_root: FromRoot,
-    ):
+    ) -> None:
         # edge case for things like bpy_prop_collection that aren't real RNA types?
-        if not hasattr(obj, "bl_rna"):
-            assert isinstance(obj, bpy.types.bpy_prop_collection)
+        if not hasattr(getter(), "bl_rna"):
+            assert isinstance(getter(), bpy.types.bpy_prop_collection)
             return self._import_obj_with_deserializer(
-                obj=obj,
                 getter=getter,
                 serialization=serialization,
                 deserializer=self.specific_handlers[NoneType],
                 from_root=from_root,
             )
 
-        assumed_type = most_specific_type_handled(self.specific_handlers, obj)
-        if isinstance(obj, bpy.types.bpy_prop_collection) and assumed_type is NoneType:
+        assumed_type = most_specific_type_handled(self.specific_handlers, getter())
+        if (
+            isinstance(getter(), bpy.types.bpy_prop_collection)
+            and assumed_type is NoneType
+        ):
             self._error_out(
-                obj=obj,
+                getter=getter,
                 reason="collections must be handled *specifically*",
                 from_root=from_root,
             )
@@ -359,35 +319,57 @@ From root: {from_root.to_str()}"""
         )
         unhandled_properties = [
             prop
-            for prop in obj.bl_rna.properties
+            for prop in getter().bl_rna.properties
             if prop.identifier not in handled_prop_ids
             and prop.identifier not in ["rna_type"]
         ]
 
         def deserializer(
+            *,
             importer: Self,
-            obj: bpy.types.bpy_struct,
             getter: GETTER,
-            serialization: dict,
+            serialization: dict[str, Any],
             from_root: FromRoot,
-        ):
-            def make_getter(identifier: str):
-                return lambda: getattr(getter(), identifier)
-
+        ) -> None:
             for prop in unhandled_properties:
+                prop_from_root = from_root.add_prop(prop)
+                if prop.type in PROPERTY_TYPES_SIMPLE:
+                    if prop.is_readonly:
+                        if self.debug_prints:
+                            print(f"{prop_from_root.to_str()}: skipping readonly")
+                        continue
+
+                if prop.identifier not in serialization:
+                    if prop.type in PROPERTY_TYPES_SIMPLE:
+                        if self.debug_prints:
+                            print(f"{prop_from_root.to_str()}: missing, assume default")
+                        continue
+                    if prop.type == "POINTER" and not prop.is_readonly:
+                        if self.debug_prints:
+                            print(f"{prop_from_root.to_str()}: missing, assume not set")
+                        continue
+                    self._error_out(
+                        getter=getter,
+                        reason="missing property in serialization",
+                        from_root=prop_from_root,
+                    )
+
                 # pylint: disable=protected-access
-                importer._attempt_import_property(
-                    obj,
-                    make_getter(prop.identifier),
-                    prop,
-                    serialization,
-                    from_root.add_prop(prop),
+                self._import_property(
+                    getter=getter,
+                    prop=prop,
+                    serialization=serialization[prop.identifier],
+                    from_root=prop_from_root,
                 )
 
-            specific_handler(importer, obj, getter, serialization, from_root)
+            specific_handler(
+                importer=importer,
+                getter=getter,
+                serialization=serialization,
+                from_root=from_root,
+            )
 
         self._import_obj_with_deserializer(
-            obj=obj,
             getter=getter,
             serialization=serialization,
             deserializer=deserializer,
@@ -397,10 +379,10 @@ From root: {from_root.to_str()}"""
     def _import_node_tree(
         self,
         *,
-        serialization: dict,
+        serialization: dict[str, Any],
         overwrite: bool,
         material_name: str = None,
-    ):
+    ) -> None:
         original_name = serialization[DATA]["name"]
 
         if material_name is None:
@@ -414,7 +396,7 @@ From root: {from_root.to_str()}"""
 
             from_root = FromRoot([f"Tree ({node_tree.name})"])
 
-            def getter():
+            def getter() -> bpy.types.NodeTree:
                 return bpy.data.node_groups[node_tree.name]
 
         else:
@@ -429,7 +411,7 @@ From root: {from_root.to_str()}"""
 
             from_root = FromRoot([f"Material ({mat.name})"])
 
-            def getter():
+            def getter() -> bpy.types.NodeTree:
                 return bpy.data.materials[mat.name].node_tree
 
         if self.debug_prints:
@@ -437,7 +419,6 @@ From root: {from_root.to_str()}"""
 
         self.current_tree = node_tree
         self._import_obj(
-            obj=node_tree,
             getter=getter,
             serialization=serialization,
             from_root=from_root,
@@ -449,7 +430,7 @@ From root: {from_root.to_str()}"""
         self.set_socket_enum_defaults.clear()
 
 
-def _check_version(data: dict):
+def _check_version(data: dict) -> None | str:
     exporter_blender_version = data[BLENDER_VERSION]
     importer_blender_version = bpy.app.version_string
     if exporter_blender_version != importer_blender_version:
@@ -480,7 +461,7 @@ class ImportParameters:
         getters: dict[int, GETTER],
         overwrite: bool,
         debug_prints: bool,
-    ):
+    ) -> None:
         self.specific_handlers = specific_handlers
         self.allow_version_mismatch = allow_version_mismatch
         self.getters = getters
@@ -488,7 +469,7 @@ class ImportParameters:
         self.debug_prints = debug_prints
 
 
-def import_nodes_from_dict(*, data: dict, parameters: ImportParameters):
+def _import_nodes_from_dict(*, data: dict, parameters: ImportParameters) -> None:
     importer = Importer(
         specific_handlers=parameters.specific_handlers,
         getters=parameters.getters,
@@ -502,41 +483,46 @@ def import_nodes_from_dict(*, data: dict, parameters: ImportParameters):
         else:
             raise RuntimeError(version_mismatch)
 
-    # important to construct in reverse order
-    for tree in reversed(data[TREES][1:]):
+    for tree in data[TREES][:-1]:
         # pylint: disable=protected-access
         importer._import_node_tree(serialization=tree, overwrite=parameters.overwrite)
 
     # root tree needs special treatment, might be material
     # pylint: disable=protected-access
     importer._import_node_tree(
-        serialization=data[TREES][0],
+        serialization=data[TREES][-1],
         overwrite=parameters.overwrite,
         material_name=None if MATERIAL_NAME not in data else data[MATERIAL_NAME],
     )
 
 
-def import_nodes_from_str(*, string: str, parameters: ImportParameters):
-    compressed = string.startswith(MAGIC_STRING)
-    if compressed:
-        base64_str = string[len(MAGIC_STRING) :]
-        gzipped = base64.b64decode(base64_str)
-        json_str = gzip.decompress(gzipped).decode("utf-8")
-        data = json.loads(json_str)
-    else:
-        data = json.loads(string)
+class ImportIntermediate:
+    def __init__(self) -> None:
+        self.data = None
 
-    import_nodes_from_dict(data=data, parameters=parameters)
-
-
-def import_nodes_from_file(*, file_path: Path, parameters: ImportParameters):
-    with file_path.open("r", encoding="utf-8") as file:
-        compressed = file.read(len(MAGIC_STRING)) == MAGIC_STRING
-
-    with file_path.open("r", encoding="utf-8") as file:
+    def from_str(self, string: str) -> None:
+        compressed = string.startswith(MAGIC_STRING)
         if compressed:
-            full = file.read()
-            import_nodes_from_str(string=full, parameters=parameters)
+            base64_str = string[len(MAGIC_STRING) :]
+            gzipped = base64.b64decode(base64_str)
+            json_str = gzip.decompress(gzipped).decode("utf-8")
+            data = json.loads(json_str)
         else:
-            data = json.load(file)
-            import_nodes_from_dict(data=data, parameters=parameters)
+            data = json.loads(string)
+
+        self.data = data
+
+    def from_file(self, file_path: Path) -> None:
+        with file_path.open("r", encoding="utf-8") as file:
+            compressed = file.read(len(MAGIC_STRING)) == MAGIC_STRING
+
+        with file_path.open("r", encoding="utf-8") as file:
+            if compressed:
+                full = file.read()
+                self.from_str(full)
+            else:
+                data = json.load(file)
+                self.data = data
+
+    def import_nodes(self, parameters: ImportParameters) -> None:
+        _import_nodes_from_dict(data=self.data, parameters=parameters)

@@ -14,24 +14,32 @@
 import bpy
 
 from .ui import (
-    SCENE_OT_Tree_Clipper_Export,
-    SCENE_OT_Tree_Clipper_Import,
+    Tree_Clipper_External_Item,
+    SCENE_UL_Tree_Clipper_External_List,
+    SCENE_OT_Tree_Clipper_Export_Cache,
+    SCENE_OT_Tree_Clipper_Export_Prepare,
+    SCENE_OT_Tree_Clipper_Import_Cache,
+    SCENE_OT_Tree_Clipper_Import_Prepare,
     SCENE_PT_Tree_Clipper_Panel,
 )
 
 classes = [
+    Tree_Clipper_External_Item,
+    SCENE_UL_Tree_Clipper_External_List,
+    SCENE_OT_Tree_Clipper_Export_Cache,
+    SCENE_OT_Tree_Clipper_Export_Prepare,
+    SCENE_OT_Tree_Clipper_Import_Cache,
+    SCENE_OT_Tree_Clipper_Import_Prepare,
     SCENE_PT_Tree_Clipper_Panel,
-    SCENE_OT_Tree_Clipper_Export,
-    SCENE_OT_Tree_Clipper_Import,
 ]
 
 
-def register():
+def register() -> None:
     print("reloaded")
     for cls in classes:
         bpy.utils.register_class(cls)
 
 
-def unregister():
+def unregister() -> None:
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

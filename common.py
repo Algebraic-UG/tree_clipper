@@ -1,7 +1,8 @@
 import bpy
 
 from types import NoneType
-from typing import Callable, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING, Self
+
 
 if TYPE_CHECKING:
     from .export_nodes import Exporter
@@ -50,30 +51,30 @@ DATA = "data"
 MAGIC_STRING = "TreeClipper::"
 
 
-def no_clobber(data: dict, key: str, value):
+def no_clobber(data: dict, key: str, value) -> None:
     if key in data:
         raise RuntimeError(f"Clobbering '{key}'")
     data[key] = value
 
 
 class FromRoot:
-    def __init__(self, path: list):
+    def __init__(self, path: list) -> None:
         self.path = path
 
-    def add(self, piece: str):
+    def add(self, piece: str) -> Self:
         return FromRoot(self.path + [piece])
 
-    def add_prop(self, prop: bpy.types.Property):
+    def add_prop(self, prop: bpy.types.Property) -> Self:
         return self.add(f"{prop.type} ({prop.identifier})")
 
-    def to_str(self):
+    def to_str(self) -> str:
         return str(" -> ".join(self.path))
 
 
 def most_specific_type_handled(
     specific_handlers: dict[type, Callable],
     obj: bpy.types.bpy_struct,
-):
+) -> type:
     # collections are too weird, this is False:
     # type(bpy.data.node_groups['Geometry Nodes'].nodes) == bpy.types.Nodes
     if isinstance(obj, bpy.types.bpy_prop_collection):
@@ -88,7 +89,7 @@ def most_specific_type_handled(
 
     ty = type(obj)
     while True:
-        if ty in specific_handlers:
+        if ty in specific_handlers.keys():
             return ty
         if len(ty.__bases__) == 0:
             return NoneType
@@ -98,7 +99,6 @@ def most_specific_type_handled(
 
 
 GETTER = Callable[[], bpy.types.bpy_struct]
-SERIALIZER = Callable[["Exporter", bpy.types.bpy_struct, FromRoot], dict]
-DESERIALIZER = Callable[
-    ["Importer", bpy.types.bpy_struct, GETTER, dict, FromRoot], None
-]
+SERIALIZER = Callable[["Exporter", bpy.types.bpy_struct, FromRoot], dict[str, Any]]
+DESERIALIZER = Callable[["Importer", GETTER, dict, FromRoot], None]
+SIMPLE_DATA_TYPE = list[str] | list[float] | list[int] | str | float | int
