@@ -111,66 +111,39 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
                 return bpy.types.NodeTreeInterfacePanel
             raise RuntimeError(f"item_type neither SOCKET nor PANEL but {item_type}")
 
-        items = self.serialization["items_tree"][DATA]["items"]
-        uid_map = {}
-        for i, item in enumerate(items):
+        for item in self.serialization["items_tree"][DATA]["items"]:
             data = item[DATA]
             ty = get_type(data)
+            name = _or_default(data, ty, "name")
+            description = _or_default(data, ty, "description")
+
+            if "parent_index" in data:
+                parent_index = data["parent_index"]
+                assert parent_index < len(self.getter().items_tree)
+                parent = self.getter().items_tree[parent_index]
+            else:
+                parent = None
+
             if ty == bpy.types.NodeTreeInterfaceSocket:
-                self.getter().new_socket(
-                    name=str(i),
-                    description=_or_default(data, ty, "description"),
+                new_item = self.getter().new_socket(
+                    name=name,
+                    description=description,
                     in_out=_or_default(data, ty, "in_out"),
                     socket_type=data["socket_type"],
-                    parent=None,
+                    parent=parent,
                 )
             else:
-                uid_map[
-                    _or_default(
-                        data, bpy.types.NodeTreeInterfacePanel, "persistent_uid"
-                    )
-                ] = i
-                self.getter().new_panel(
-                    name=str(i),
-                    description=_or_default(data, ty, "description"),
+                new_item = self.getter().new_panel(
+                    name=name,
+                    description=description,
                     default_closed=_or_default(data, ty, "default_closed"),
                 )
-
-        def parent(uid):
-            if uid not in uid_map:
-                return None
-            return self.getter().items_tree[str(uid_map[uid])]
-
-        for i, item in enumerate(items):
-            data = item[DATA]
-            self.getter().move_to_parent(
-                item=self.getter().items_tree[str(i)],
-                parent=parent(data["parent"]),
-                # this doesn't matter because we move below
-                to_position=0,
-            )
-
-        # we assume that the order in the serialization matches the one in original memory
-        # but the one displayed is something else, stored in 'index'
-        # we need to be careful how we move the items, hence the sorting
-        sorted_items = list(enumerate(items))
-        sorted_items.sort(
-            key=lambda index_and_item: _or_default(
-                index_and_item[1][DATA], bpy.types.NodeTreeInterfaceItem, "index"
-            )
-        )
-        for i, item in sorted_items:
-            self.getter().move(
-                self.getter().items_tree[str(i)],
-                _or_default(item[DATA], bpy.types.NodeTreeInterfaceItem, "index"),
-            )
-
-        # this should be fine, we're not modifying the container anymore
-        sorted_objs = [self.getter().items_tree[str(i)] for i in range(len(items))]
-        assert len(sorted_objs) == len(items)
-        for obj, item in zip(sorted_objs, items):
-            data = item[DATA]
-            obj.name = _or_default(data, get_type(data), "name")
+                if parent is not None:
+                    self.getter().move_to_parent(
+                        item=new_item,
+                        parent=parent,
+                        to_position=len(parent.interface_items),
+                    )
 
         self.import_all_simple_writable_properties_and_list(["items_tree"])
 
@@ -178,18 +151,18 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
 class TreeSocketExporter(SpecificExporter[bpy.types.NodeTreeInterfaceSocket]):
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            ["item_type", "index", IN_OUT]
+            ["item_type", IN_OUT]
         )
-        no_clobber(data, "parent", self.obj.parent.persistent_uid)
+        if self.obj.parent.index >= 0:
+            no_clobber(data, "parent_index", self.obj.parent.index)
         return data
 
 
 class TreePanelExporter(SpecificExporter[bpy.types.NodeTreeInterfacePanel]):
     def serialize(self):
-        data = self.export_all_simple_writable_properties_and_list(
-            ["item_type", "index", "persistent_uid"]
-        )
-        no_clobber(data, "parent", self.obj.parent.persistent_uid)
+        data = self.export_all_simple_writable_properties_and_list(["item_type"])
+        if self.obj.parent.index >= 0:
+            no_clobber(data, "parent_index", self.obj.parent.index)
         return data
 
 
