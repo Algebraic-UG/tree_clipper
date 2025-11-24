@@ -1,0 +1,45 @@
+name: CI
+
+on:
+    push:
+      branches: ["main"]
+    pull_request:
+      branches: ["*"]
+    workflow_dispatch:
+
+# Cancel in-progress runs when a new workflow with the same group is triggered
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+    lint:
+      name: Check code style
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v5
+        - uses: astral-sh/ruff-action@v3
+        - name: Check code formatting
+          run: ruff format --diff
+        - name: Lint code base
+          run: ruff check
+
+    test-bpy:
+      name: Test with bpy
+      needs: [lint]
+      runs-on: ${{ matrix.os }}
+      strategy:
+          max-parallel: 4
+          fail-fast: false
+          matrix:
+            os: [ubuntu-latest, macos-latest, windows-latest]
+      steps:
+          - uses: actions/checkout@v5
+
+          - name: Install uv
+            uses: astral-sh/setup-uv@v5
+          
+          - name: Install tree_clipper
+            run: uv sync --all-extras
+          - name: Run Tests
+            run: uv run pytest

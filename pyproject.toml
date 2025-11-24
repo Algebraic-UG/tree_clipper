@@ -1,0 +1,15 @@
+[project]
+name = "tree-clipper"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "bpy>=5.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "fake-bpy-module>=20251003",
+    "pytest>=9.0.1",
+]
