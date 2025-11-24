@@ -453,9 +453,8 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
     trees = []
     if parameters.export_sub_trees:
         _collect_sub_trees(current=root, trees=trees, from_root=from_root)
-
-    for tree in trees:
-        print(tree[0].name)
+    else:
+        trees.append((root, from_root))
 
     manifest_path = Path(__file__).parent / "blender_manifest.toml"
     with manifest_path.open("rb") as file:
