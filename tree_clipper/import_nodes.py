@@ -396,8 +396,10 @@ From root: {from_root.to_str()}"""
 
             from_root = FromRoot([f"Tree ({node_tree.name})"])
 
+            name = node_tree.name
+
             def getter() -> bpy.types.NodeTree:
-                return bpy.data.node_groups[node_tree.name]
+                return bpy.data.node_groups[name]
 
         else:
             # this can only happen for the top level
@@ -411,8 +413,10 @@ From root: {from_root.to_str()}"""
 
             from_root = FromRoot([f"Material ({mat.name})"])
 
+            name = mat.name
+
             def getter() -> bpy.types.NodeTree:
-                return bpy.data.materials[mat.name].node_tree
+                return bpy.data.materials[name].node_tree
 
         if self.debug_prints:
             print(f"{from_root.to_str()}: entering")
