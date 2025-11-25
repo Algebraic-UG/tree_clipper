@@ -48,7 +48,7 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
         )
 
         # seems impossible to use bl_idname here
-        bpy.ops.scene.tree_clipper_export_cache("INVOKE_DEFAULT")
+        bpy.ops.scene.tree_clipper_export_cache("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
         return {"FINISHED"}
 
     def draw(self, _context):
@@ -76,6 +76,7 @@ class SCENE_UL_Tree_Clipper_External_List(bpy.types.UIList):
         _active_data,
         _active_property,
     ):
+        assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
         external = _INTERMEDIATE_EXPORT_CACHE.get_external()[item.external_id]
         pointer = external.pointed_to_by[item.idx]
         row = layout.row()
@@ -108,6 +109,7 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
 
     def invoke(self, context, _):
         self.external_items.clear()
+        assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
         for external_id, external in _INTERMEDIATE_EXPORT_CACHE.get_external().items():
             for idx in range(len(external.pointed_to_by)):
                 item = self.external_items.add()
@@ -117,6 +119,7 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
 
     def execute(self, _context):
         global _INTERMEDIATE_EXPORT_CACHE
+        assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
         _INTERMEDIATE_EXPORT_CACHE.export_to_file(
             file_path=Path(self.output_file),
             compress=self.compress,
@@ -142,6 +145,7 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
             active_propname="selected_external_item",
         )
         external_item = self.external_items[self.selected_external_item]
+        assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
         external = _INTERMEDIATE_EXPORT_CACHE.get_external()[external_item.external_id]
         pointer = external.pointed_to_by[external_item.idx]
         head, body = self.layout.panel("details", default_closed=True)
@@ -172,7 +176,7 @@ class SCENE_OT_Tree_Clipper_Import_Prepare(bpy.types.Operator):
         _INTERMEDIATE_IMPORT_CACHE.from_file(Path(self.input_file))
 
         # seems impossible to use bl_idname here
-        bpy.ops.scene.tree_clipper_import_cache("INVOKE_DEFAULT")
+        bpy.ops.scene.tree_clipper_import_cache("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
         return {"FINISHED"}
 
 
@@ -191,6 +195,7 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
 
     def execute(self, _context):
         global _INTERMEDIATE_IMPORT_CACHE
+        assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
         _INTERMEDIATE_IMPORT_CACHE.import_nodes(
             ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,

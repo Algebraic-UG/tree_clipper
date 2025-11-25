@@ -16,20 +16,18 @@ AssumedType = TypeVar("AssumedType", bound=bpy.types.bpy_struct)
 
 
 def default_serializer(
-    *,
-    exporter: Exporter,
-    obj: AssumedType,
-    from_root: FromRoot,
+    _exporter: Exporter,
+    _obj: AssumedType,
+    _from_root: FromRoot,
 ) -> dict[str, Any]:
     return {}
 
 
 def default_deserializer(
-    *,
-    importer: Importer,
-    getter: GETTER,
-    serialization: dict[str, Any],
-    from_root: FromRoot,
+    _importer: Importer,
+    _getter: GETTER,
+    _serialization: dict[str, Any],
+    _from_root: FromRoot,
 ) -> None:
     pass
 
@@ -100,7 +98,6 @@ class SpecificExporter(Generic[AssumedType], ABC):
         # 2.
         # this is so much more convinient than writing this out for each function!
         def wrapper(
-            *,
             exporter: Exporter,
             obj: AssumedType,
             from_root: FromRoot,
@@ -119,7 +116,6 @@ class SpecificExporter(Generic[AssumedType], ABC):
     # this is only called in the wrapper
     def __init__(
         self,
-        *,
         exporter: Exporter,
         obj: AssumedType,
         from_root: FromRoot,
@@ -213,7 +209,6 @@ class SpecificImporter(Generic[AssumedType], ABC):
         # 2.
         # this is so much more convinient than writing this out for each function!
         def wrapper(
-            *,
             importer: Importer,
             getter: Callable[[], AssumedType],
             serialization: dict[str, Any],

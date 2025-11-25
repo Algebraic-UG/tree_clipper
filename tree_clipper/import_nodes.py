@@ -4,7 +4,7 @@ import json
 from types import NoneType
 import bpy
 
-from typing import Any, Self
+from typing import Any, Type
 
 import sys
 import tomllib
@@ -16,9 +16,11 @@ from .common import (
     GETTER,
     ID,
     MATERIAL_NAME,
-    PROPERTY_TYPES_SIMPLE,
+    SIMPLE_PROP_TYPE,
+    SIMPLE_PROPERTY_TYPES_AS_STRS,
     BLENDER_VERSION,
     SIMPLE_DATA_TYPE,
+    SIMPLE_PROP_TYPE_TUPLE,
     TREE_CLIPPER_VERSION,
     TREES,
     FromRoot,
@@ -63,11 +65,11 @@ class Importer:
         *,
         getter: GETTER,
         serialization: dict[str, Any],
-        assumed_type: type,
+        assumed_type: Type[bpy.types.bpy_struct],
         from_root: FromRoot,
     ) -> None:
         for prop in assumed_type.bl_rna.properties:
-            if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
+            if prop.is_readonly or prop.type not in SIMPLE_PROPERTY_TYPES_AS_STRS:
                 continue
             if prop.identifier not in serialization:
                 if self.debug_prints:
@@ -75,6 +77,7 @@ class Importer:
                         f"{from_root.add_prop(prop).to_str()}: missing, assuming default"
                     )
                 continue
+            assert isinstance(prop, SIMPLE_PROP_TYPE_TUPLE)
             self._import_property_simple(
                 getter=getter,
                 prop=prop,
@@ -106,14 +109,14 @@ class Importer:
         self,
         *,
         getter: GETTER,
-        prop: bpy.types.Property,
+        prop: SIMPLE_PROP_TYPE,
         serialization: SIMPLE_DATA_TYPE,
         from_root: FromRoot,
     ) -> None:
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing simple")
 
-        assert prop.type in PROPERTY_TYPES_SIMPLE
+        assert prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS
         assert not prop.is_readonly
 
         identifier = prop.identifier
@@ -144,7 +147,7 @@ class Importer:
         *,
         getter: GETTER,
         prop: bpy.types.PointerProperty,
-        serialization: dict | int,
+        serialization: dict[str, Any] | int,
         from_root: FromRoot,
     ) -> None:
         if self.debug_prints:
@@ -219,29 +222,32 @@ class Importer:
         self,
         *,
         getter: GETTER,
-        prop: bpy.types.CollectionProperty,
-        serialization: dict[str, Any],
+        prop: bpy.types.Property,
+        serialization: SIMPLE_DATA_TYPE | dict[str, Any],
         from_root: FromRoot,
     ) -> None:
-        if prop.type in PROPERTY_TYPES_SIMPLE:
+        if prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS:
+            assert isinstance(prop, SIMPLE_PROP_TYPE_TUPLE)
             return self._import_property_simple(
                 getter=getter,
                 prop=prop,
-                serialization=serialization,
+                serialization=serialization,  # type: ignore
                 from_root=from_root,
             )
         elif prop.type == "POINTER":
+            assert isinstance(prop, bpy.types.PointerProperty)
             return self._import_property_pointer(
                 getter=getter,
                 prop=prop,
-                serialization=serialization,
+                serialization=serialization,  # type: ignore
                 from_root=from_root,
             )
         elif prop.type == "COLLECTION":
+            assert isinstance(prop, bpy.types.CollectionProperty)
             return self._import_property_collection(
                 getter=getter,
                 prop=prop,
-                serialization=serialization,
+                serialization=serialization,  # type: ignore
                 from_root=from_root,
             )
         else:
@@ -277,10 +283,10 @@ From root: {from_root.to_str()}"""
         self.getters[serialization[ID]] = getter
 
         deserializer(
-            importer=self,
-            getter=getter,
-            serialization=serialization[DATA],
-            from_root=from_root,
+            self,
+            getter,
+            serialization[DATA],
+            from_root,
         )
 
     def _import_obj(
@@ -313,7 +319,7 @@ From root: {from_root.to_str()}"""
 
         specific_handler = self.specific_handlers[assumed_type]
         handled_prop_ids = (
-            [prop.identifier for prop in assumed_type.bl_rna.properties]
+            [prop.identifier for prop in assumed_type.bl_rna.properties]  # type: ignore
             if assumed_type is not NoneType
             else []
         )
@@ -325,22 +331,21 @@ From root: {from_root.to_str()}"""
         ]
 
         def deserializer(
-            *,
-            importer: Self,
+            importer: "Importer",
             getter: GETTER,
             serialization: dict[str, Any],
             from_root: FromRoot,
         ) -> None:
             for prop in unhandled_properties:
                 prop_from_root = from_root.add_prop(prop)
-                if prop.type in PROPERTY_TYPES_SIMPLE:
+                if prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS:
                     if prop.is_readonly:
                         if self.debug_prints:
                             print(f"{prop_from_root.to_str()}: skipping readonly")
                         continue
 
                 if prop.identifier not in serialization:
-                    if prop.type in PROPERTY_TYPES_SIMPLE:
+                    if prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS:
                         if self.debug_prints:
                             print(f"{prop_from_root.to_str()}: missing, assume default")
                         continue
@@ -362,12 +367,7 @@ From root: {from_root.to_str()}"""
                     from_root=prop_from_root,
                 )
 
-            specific_handler(
-                importer=importer,
-                getter=getter,
-                serialization=serialization,
-                from_root=from_root,
-            )
+            specific_handler(importer, getter, serialization, from_root)
 
         self._import_obj_with_deserializer(
             getter=getter,
@@ -381,7 +381,7 @@ From root: {from_root.to_str()}"""
         *,
         serialization: dict[str, Any],
         overwrite: bool,
-        material_name: str = None,
+        material_name: str | None = None,
     ) -> None:
         original_name = serialization[DATA]["name"]
 
@@ -415,8 +415,8 @@ From root: {from_root.to_str()}"""
 
             name = mat.name
 
-            def getter() -> bpy.types.NodeTree:
-                return bpy.data.materials[name].node_tree
+            def getter() -> bpy.types.ShaderNodeTree:
+                return bpy.data.materials[name].node_tree  # type: ignore
 
         if self.debug_prints:
             print(f"{from_root.to_str()}: entering")
@@ -529,4 +529,7 @@ class ImportIntermediate:
                 self.data = data
 
     def import_nodes(self, parameters: ImportParameters) -> None:
-        _import_nodes_from_dict(data=self.data, parameters=parameters)
+        _import_nodes_from_dict(
+            data=self.data,  # type: ignore
+            parameters=parameters,
+        )
