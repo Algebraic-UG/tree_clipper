@@ -3,7 +3,7 @@ import gzip
 import json
 from pathlib import Path
 from types import NoneType
-from typing import Any, Self
+from typing import Any, Self, cast, Type
 
 import bpy
 import tomllib
@@ -14,9 +14,11 @@ from .common import (
     ID,
     MAGIC_STRING,
     MATERIAL_NAME,
-    PROPERTY_TYPES_SIMPLE,
+    SIMPLE_PROPERTY_TYPES_AS_STRS,
     SERIALIZER,
     SIMPLE_DATA_TYPE,
+    SIMPLE_PROP_TYPE,
+    SIMPLE_PROP_TYPE_TUPLE,
     TREE_CLIPPER_VERSION,
     TREES,
     FromRoot,
@@ -68,16 +70,16 @@ class Exporter:
         self,
         *,
         obj: bpy.types.bpy_struct,
-        assumed_type: type,
+        assumed_type: Type[bpy.types.bpy_struct],
         from_root: FromRoot,
     ) -> dict[str, SIMPLE_DATA_TYPE]:
         data = {}
         for prop in assumed_type.bl_rna.properties:
-            if prop.is_readonly or prop.type not in PROPERTY_TYPES_SIMPLE:
+            if prop.is_readonly or prop.type not in SIMPLE_PROPERTY_TYPES_AS_STRS:
                 continue
             data_prop = self._export_property_simple(
                 obj=obj,
-                prop=prop,
+                prop=prop,  # type: ignore
                 from_root=from_root.add_prop(prop),
             )
             if data_prop is not None:
@@ -110,17 +112,25 @@ class Exporter:
         self,
         *,
         obj: bpy.types.bpy_struct,
-        prop: bpy.types.Property,
+        prop: SIMPLE_PROP_TYPE,
         from_root: FromRoot,
     ) -> None | SIMPLE_DATA_TYPE:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting simple")
 
-        assert prop.type in PROPERTY_TYPES_SIMPLE
+        assert prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS
 
         attribute = getattr(obj, prop.identifier)
-
         if prop.type in ["BOOLEAN", "INT", "FLOAT"]:
+            assert isinstance(
+                prop,
+                (
+                    bpy.types.BoolProperty,
+                    bpy.types.IntProperty,
+                    bpy.types.FloatProperty,
+                ),
+            )
+
             if prop.is_array:
                 if self.skip_defaults and prop.default_array == attribute:
                     if self.debug_prints:
@@ -129,6 +139,8 @@ class Exporter:
                 return list(attribute)
 
         if prop.type == "ENUM":
+            assert isinstance(prop, bpy.types.EnumProperty)
+
             if prop.is_enum_flag:
                 if self.skip_defaults and prop.default_flag == attribute:
                     if self.debug_prints:
@@ -211,19 +223,21 @@ class Exporter:
         prop: bpy.types.Property,
         from_root: FromRoot,
     ) -> None | SIMPLE_DATA_TYPE | Pointer | dict[str, Any]:
-        if prop.type in PROPERTY_TYPES_SIMPLE:
+        if prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS:
             return self._export_property_simple(
                 obj=obj,
-                prop=prop,
+                prop=prop,  # type: ignore
                 from_root=from_root,
             )
         elif prop.type == "POINTER":
+            assert isinstance(prop, bpy.types.PointerProperty)
             return self._export_property_pointer(
                 obj=obj,
                 prop=prop,
                 from_root=from_root,
             )
         elif prop.type == "COLLECTION":
+            assert isinstance(prop, bpy.types.CollectionProperty)
             return self._export_property_collection(
                 obj=obj,
                 prop=prop,
@@ -247,12 +261,12 @@ Reason: {reason}
 From root: {from_root.to_str()}"""
             )
 
-        if prop.type in PROPERTY_TYPES_SIMPLE:
+        if prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS:
             if prop.is_readonly:
                 return None
             return self._export_property_simple(
                 obj=obj,
-                prop=prop,
+                prop=prop,  # type: ignore
                 from_root=from_root,
             )
 
@@ -265,11 +279,12 @@ From root: {from_root.to_str()}"""
                 error_out("readonly pointer to external")
             return self._export_property_pointer(
                 obj=obj,
-                prop=prop,
+                prop=cast(bpy.types.PointerProperty, prop),
                 from_root=from_root,
             )
 
         if prop.type == "COLLECTION":
+            prop = cast(bpy.types.CollectionProperty, prop)
             if (
                 hasattr(attribute, "bl_rna")
                 and any(
@@ -307,7 +322,7 @@ From root: {from_root.to_str()}"""
 
         data = {
             ID: this_id,
-            DATA: serializer(exporter=self, obj=obj, from_root=from_root),
+            DATA: serializer(self, obj, from_root),
         }
         if self.write_from_roots:
             data["from_root"] = from_root.to_str()
@@ -332,7 +347,7 @@ From root: {from_root.to_str()}"""
         assumed_type = most_specific_type_handled(self.specific_handlers, obj)
         specific_handler = self.specific_handlers[assumed_type]
         handled_prop_ids = (
-            [prop.identifier for prop in assumed_type.bl_rna.properties]
+            [prop.identifier for prop in assumed_type.bl_rna.properties]  # type: ignore
             if assumed_type is not NoneType
             else []
         )
@@ -344,11 +359,11 @@ From root: {from_root.to_str()}"""
         ]
 
         def serializer(
-            exporter: Self,
+            exporter: "Exporter",
             obj: bpy.types.bpy_struct,
             from_root: FromRoot,
         ) -> dict[str, Any]:
-            data = specific_handler(exporter=exporter, obj=obj, from_root=from_root)
+            data = specific_handler(exporter, obj, from_root)
             for prop in unhandled_properties:
                 # pylint: disable=protected-access
                 prop_data = exporter._attempt_export_property(
@@ -386,7 +401,7 @@ From root: {from_root.to_str()}"""
 def _collect_sub_trees(
     *,
     current: bpy.types.NodeTree,
-    trees: list[(bpy.types.NodeTree, FromRoot)],
+    trees: list[tuple[bpy.types.NodeTree, FromRoot]],
     from_root: FromRoot,
 ) -> None:
     for node in current.nodes:
@@ -449,6 +464,8 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
     else:
         from_root = FromRoot([f"Root ({parameters.name})"])
         root = bpy.data.node_groups[parameters.name]
+
+    assert root is not None
 
     trees = []
     if parameters.export_sub_trees:

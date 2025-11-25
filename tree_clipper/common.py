@@ -1,14 +1,14 @@
 import bpy
 
 from types import NoneType
-from typing import Any, Callable, TYPE_CHECKING, Self
+from typing import Any, Callable, TYPE_CHECKING, Self, Type
 
 
 if TYPE_CHECKING:
     from .export_nodes import Exporter
     from .import_nodes import Importer
 
-PROPERTY_TYPES_SIMPLE = set(
+SIMPLE_PROPERTY_TYPES_AS_STRS = set(
     [
         "BOOLEAN",
         "INT",
@@ -61,10 +61,10 @@ class FromRoot:
     def __init__(self, path: list) -> None:
         self.path = path
 
-    def add(self, piece: str) -> Self:
+    def add(self, piece: str) -> "FromRoot":
         return FromRoot(self.path + [piece])
 
-    def add_prop(self, prop: bpy.types.Property) -> Self:
+    def add_prop(self, prop: bpy.types.Property) -> "FromRoot":
         return self.add(f"{prop.type} ({prop.identifier})")
 
     def to_str(self) -> str:
@@ -82,7 +82,7 @@ def most_specific_type_handled(
             (
                 ty
                 for ty in specific_handlers.keys()
-                if ty != NoneType and ty.bl_rna.identifier == obj.bl_rna.identifier
+                if ty != NoneType and ty.bl_rna.identifier == obj.bl_rna.identifier  # type: ignore
             ),
             NoneType,
         )
@@ -102,3 +102,18 @@ GETTER = Callable[[], bpy.types.bpy_struct]
 SERIALIZER = Callable[["Exporter", bpy.types.bpy_struct, FromRoot], dict[str, Any]]
 DESERIALIZER = Callable[["Importer", GETTER, dict, FromRoot], None]
 SIMPLE_DATA_TYPE = list[str] | list[float] | list[int] | str | float | int
+SIMPLE_PROP_TYPE = (
+    bpy.types.BoolProperty
+    | bpy.types.IntProperty
+    | bpy.types.FloatProperty
+    | bpy.types.StringProperty
+    | bpy.types.EnumProperty
+)
+SIMPLE_DATA_TYPE_TUPLE = (list[str], list[float], list[int], str, float, int)
+SIMPLE_PROP_TYPE_TUPLE = (
+    bpy.types.BoolProperty,
+    bpy.types.IntProperty,
+    bpy.types.FloatProperty,
+    bpy.types.StringProperty,
+    bpy.types.EnumProperty,
+)
