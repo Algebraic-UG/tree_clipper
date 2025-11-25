@@ -4,7 +4,7 @@ import json
 from types import NoneType
 import bpy
 
-from typing import Any, Self, Type
+from typing import Any, Type
 
 import sys
 import tomllib
@@ -16,7 +16,6 @@ from .common import (
     GETTER,
     ID,
     MATERIAL_NAME,
-    SIMPLE_DATA_TYPE_TUPLE,
     SIMPLE_PROP_TYPE,
     SIMPLE_PROPERTY_TYPES_AS_STRS,
     BLENDER_VERSION,

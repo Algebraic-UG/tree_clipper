@@ -1,8 +1,7 @@
 import bpy
 
 from types import NoneType
-from typing import Any, Callable, TYPE_CHECKING, Self, Type
-
+from typing import Any, Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .export_nodes import Exporter
@@ -109,7 +108,6 @@ SIMPLE_PROP_TYPE = (
     | bpy.types.StringProperty
     | bpy.types.EnumProperty
 )
-SIMPLE_DATA_TYPE_TUPLE = (list[str], list[float], list[int], str, float, int)
 SIMPLE_PROP_TYPE_TUPLE = (
     bpy.types.BoolProperty,
     bpy.types.IntProperty,

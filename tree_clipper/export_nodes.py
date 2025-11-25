@@ -3,7 +3,7 @@ import gzip
 import json
 from pathlib import Path
 from types import NoneType
-from typing import Any, Self, cast, Type
+from typing import Any, cast, Type
 
 import bpy
 import tomllib
@@ -18,7 +18,6 @@ from .common import (
     SERIALIZER,
     SIMPLE_DATA_TYPE,
     SIMPLE_PROP_TYPE,
-    SIMPLE_PROP_TYPE_TUPLE,
     TREE_CLIPPER_VERSION,
     TREES,
     FromRoot,
