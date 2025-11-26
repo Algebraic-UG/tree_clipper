@@ -219,6 +219,9 @@ class SocketExporter(SpecificExporter[bpy.types.NodeSocket]):
 
 class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
     def deserialize(self):
+        # https://github.com/Algebraic-UG/tree_clipper/issues/43
+        if "dimensions" in self.serialization:
+            self.getter().dimensions = self.serialization["dimensions"]  # ty: ignore[invalid-assignment]
         self.import_all_simple_writable_properties()
 
 
