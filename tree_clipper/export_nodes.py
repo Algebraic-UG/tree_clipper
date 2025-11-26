@@ -120,11 +120,12 @@ class Exporter:
 
         assert prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS
 
-        if prop.identifier in FORBIDDEN_PROPERTIES and (
-            # we do need to export bl_idname for nodes and tree so we can construct them
-            prop.identifier != "bl_idname"
-            or not isinstance(obj, (bpy.types.Node, bpy.types.NodeTree))
-        ):
+        # we do need to export bl_idname for nodes and tree so we can construct them
+        bl_idname_exception = (
+            isinstance(obj, (bpy.types.Node, bpy.types.NodeTree))
+            and prop.identifier == "bl_idname"
+        )
+        if prop.identifier in FORBIDDEN_PROPERTIES and not bl_idname_exception:
             if self.debug_prints:
                 print(f"{from_root.to_str()}: forbidden")
             return None
