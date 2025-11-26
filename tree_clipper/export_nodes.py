@@ -11,6 +11,7 @@ import tomllib
 from .common import (
     BLENDER_VERSION,
     DATA,
+    FORBIDDEN_PROPERTIES,
     ID,
     MAGIC_STRING,
     MATERIAL_NAME,
@@ -118,6 +119,16 @@ class Exporter:
             print(f"{from_root.to_str()}: exporting simple")
 
         assert prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS
+
+        # we do need to export bl_idname for nodes and tree so we can construct them
+        bl_idname_exception = (
+            isinstance(obj, (bpy.types.Node, bpy.types.NodeTree))
+            and prop.identifier == "bl_idname"
+        )
+        if prop.identifier in FORBIDDEN_PROPERTIES and not bl_idname_exception:
+            if self.debug_prints:
+                print(f"{from_root.to_str()}: forbidden")
+            return None
 
         attribute = getattr(obj, prop.identifier)
         if prop.type in ["BOOLEAN", "INT", "FLOAT"]:

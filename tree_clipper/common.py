@@ -49,6 +49,24 @@ DATA = "data"
 
 MAGIC_STRING = "TreeClipper::"
 
+# bl_* properties can be dangerous to set
+# https://github.com/Algebraic-UG/tree_clipper/issues/39
+# they should probably be read-only in most cases?
+FORBIDDEN_PROPERTIES = [
+    "bl_idname",
+    "bl_label",
+    "bl_subtype_label",
+    "bl_static_type",
+    "bl_description",
+    "bl_icon",
+    "bl_width_default",
+    "bl_width_min",
+    "bl_width_max",
+    "bl_height_default",
+    "bl_height_min",
+    "bl_height_max",
+]
+
 
 def no_clobber(data: dict, key: str, value) -> None:
     if key in data:

@@ -1,5 +1,7 @@
 import bpy
 
+from typing import Type
+
 from .specific_abstract import (
     _BUILT_IN_EXPORTER,
     _BUILT_IN_IMPORTER,
@@ -25,8 +27,8 @@ from .common import (
 )
 
 
-def _or_default(serialization: dict, ty: type, identifier: str):
-    return serialization.get(identifier, ty.bl_rna.properties[identifier].default)
+def _or_default(serialization: dict, ty: Type[bpy.types.bpy_struct], identifier: str):
+    return serialization.get(identifier, ty.bl_rna.properties[identifier].default)  # ty: ignore[unresolved-attribute]
 
 
 # Possible socket data types: https://docs.blender.org/api/current/bpy_types_enum_items/node_socket_data_type_items.html#rna-enum-node-socket-data-type-items
