@@ -93,11 +93,12 @@ class Importer:
         properties: list[str],
         from_root: FromRoot,
     ) -> None:
-        for prop in [getter().bl_rna.properties[p] for p in properties]:
+        for identifier in properties:
+            prop = getter().bl_rna.properties[identifier]
             self._import_property(
                 getter=getter,
                 prop=prop,
-                serialization=serialization[prop.identifier],
+                serialization=serialization[identifier],
                 from_root=from_root.add_prop(prop),
             )
 
@@ -323,8 +324,8 @@ From root: {from_root.to_str()}"""
             if assumed_type is not NoneType
             else []
         )
-        unhandled_properties = [
-            prop
+        unhandled_prop_ids = [
+            prop.identifier
             for prop in getter().bl_rna.properties
             if prop.identifier not in handled_prop_ids
             and prop.identifier not in ["rna_type"]
@@ -336,7 +337,8 @@ From root: {from_root.to_str()}"""
             serialization: dict[str, Any],
             from_root: FromRoot,
         ) -> None:
-            for prop in unhandled_properties:
+            for identifier in unhandled_prop_ids:
+                prop = getter().bl_rna.properties[identifier]
                 prop_from_root = from_root.add_prop(prop)
                 if prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS:
                     if prop.is_readonly:
@@ -363,7 +365,7 @@ From root: {from_root.to_str()}"""
                 self._import_property(
                     getter=getter,
                     prop=prop,
-                    serialization=serialization[prop.identifier],
+                    serialization=serialization[identifier],
                     from_root=prop_from_root,
                 )
 
