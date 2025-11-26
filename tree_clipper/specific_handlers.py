@@ -31,6 +31,22 @@ def _or_default(serialization: dict, ty: Type[bpy.types.bpy_struct], identifier:
     return serialization.get(identifier, ty.bl_rna.properties[identifier].default)  # ty: ignore[unresolved-attribute]
 
 
+def _import_node_parent(specific_importer: SpecificImporter) -> None:
+    assert isinstance(specific_importer.getter(), bpy.types.Node)
+    if "parent" not in specific_importer.serialization:
+        return
+
+    parent_id = specific_importer.serialization["parent"]
+    assert isinstance(parent_id, int)
+
+    def deferred():
+        specific_importer.getter().parent = specific_importer.importer.getters[
+            parent_id
+        ]()  # ty: ignore[invalid-assignment]
+
+    specific_importer.importer.create_special_node_connections.append(deferred)
+
+
 # Possible socket data types: https://docs.blender.org/api/current/bpy_types_enum_items/node_socket_data_type_items.html#rna-enum-node-socket-data-type-items
 # Only a subset of those are supported on the capture attribute node: FLOAT, INT, VECTOR, RGBA, BOOLEAN, QUATERNION, MATRIX
 # TODO this is incomplete?
@@ -188,6 +204,7 @@ class NodeExporter(SpecificExporter[bpy.types.Node]):
 class NodeImporter(SpecificImporter[bpy.types.Node]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        _import_node_parent(self)
 
 
 class NodeInputsImporter(SpecificImporter[bpy.types.NodeInputs]):
@@ -291,6 +308,7 @@ class MenuSwitchImporter(SpecificImporter[bpy.types.GeometryNodeMenuSwitch]):
             # ordering is important, the enum_items implicitly create sockets
             ["enum_items", INPUTS, OUTPUTS],
         )
+        _import_node_parent(self)
 
 
 class MenuSwitchItemsImporter(SpecificImporter[bpy.types.NodeMenuSwitchItems]):
@@ -316,6 +334,7 @@ class CaptureAttrImporter(SpecificImporter[bpy.types.GeometryNodeCaptureAttribut
             # ordering is important, the capture_items implicitly create sockets
             ["capture_items", INPUTS, OUTPUTS],
         )
+        _import_node_parent(self)
 
 
 class CaptureAttrItemsImporter(
@@ -369,6 +388,7 @@ class RepeatInputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatInput]):
         # defer connection until we've created the output node
         # only then, import the sockets
         self.importer.create_special_node_connections.append(deferred)
+        _import_node_parent(self)
 
 
 class RepeatOutputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatOutput]):
@@ -384,6 +404,7 @@ class RepeatOutputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatOutput])
             # ordering is important, the repeat_items implicitly create sockets
             ["repeat_items", INPUTS, OUTPUTS]
         )
+        _import_node_parent(self)
 
 
 class RepeatOutputItemsImporter(
@@ -426,6 +447,7 @@ class ViewerImporter(SpecificImporter[bpy.types.GeometryNodeViewer]):
             # ordering is important, the viewer_items implicitly create sockets
             ["viewer_items", INPUTS, OUTPUTS],
         )
+        _import_node_parent(self)
 
 
 class ViewerItemsImporter(SpecificImporter[bpy.types.NodeGeometryViewerItems]):
@@ -520,6 +542,7 @@ class SimulationInputImporter(SpecificImporter[bpy.types.GeometryNodeSimulationI
         # defer connection until we've created the output node
         # only then, import the sockets
         self.importer.create_special_node_connections.append(deferred)
+        _import_node_parent(self)
 
 
 class SimulationOutputExporter(
@@ -539,6 +562,7 @@ class SimulationOutputImporter(
             # ordering is important, the state_items implicitly create sockets
             ["state_items", INPUTS, OUTPUTS]
         )
+        _import_node_parent(self)
 
 
 class SimulationOutputItemsImporter(
@@ -568,6 +592,7 @@ class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
 
     def deserialize(self):
         self.import_all_simple_writable_properties()
+        _import_node_parent(self)
 
 
 # now they are cooked and ready to use ~ bon appétit
