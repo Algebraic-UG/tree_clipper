@@ -55,7 +55,7 @@ def _map_attribute_type_to_socket_type(attr_type: str):
 class NodeTreeExporter(SpecificExporter[bpy.types.NodeTree]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [NODE_TREE_INTERFACE, NODE_TREE_NODES, NODE_TREE_LINKS, "bl_idname"]
+            [NODE_TREE_INTERFACE, NODE_TREE_NODES, NODE_TREE_LINKS]
         )
 
 
@@ -180,9 +180,7 @@ class TreePanelImporter(SpecificImporter[bpy.types.NodeTreeInterfacePanel]):
 
 class NodeExporter(SpecificExporter[bpy.types.Node]):
     def serialize(self):
-        return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "bl_idname"]
-        )
+        return self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
 
 
 class NodeImporter(SpecificImporter[bpy.types.Node]):
@@ -278,7 +276,7 @@ class LinkImporter(SpecificImporter[bpy.types.NodeLink]):
 class MenuSwitchExporter(SpecificExporter[bpy.types.GeometryNodeMenuSwitch]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "enum_items", "bl_idname"]
+            [INPUTS, OUTPUTS, "enum_items"]
         )
 
 
@@ -303,7 +301,7 @@ class MenuSwitchItemsImporter(SpecificImporter[bpy.types.NodeMenuSwitchItems]):
 class CaptureAttrExporter(SpecificExporter[bpy.types.GeometryNodeCaptureAttribute]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "capture_items", "bl_idname"],
+            [INPUTS, OUTPUTS, "capture_items"],
         )
 
 
@@ -334,9 +332,7 @@ class CaptureAttrItemsImporter(
 
 class RepeatInputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatInput]):
     def serialize(self):
-        data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "bl_idname"]
-        )
+        data = self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
         if self.obj.paired_output is None:
             raise RuntimeError(
                 f"""{self.from_root.to_str()}
@@ -371,7 +367,7 @@ class RepeatInputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatInput]):
 class RepeatOutputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatOutput]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "repeat_items", "bl_idname"]
+            [INPUTS, OUTPUTS, "repeat_items"]
         )
 
 
@@ -413,7 +409,7 @@ class IndexItemsImporter(SpecificImporter[bpy.types.NodeIndexSwitchItems]):
 class ViewerSpecificExporter(SpecificExporter[bpy.types.GeometryNodeViewer]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "viewer_items", "bl_idname"]
+            [INPUTS, OUTPUTS, "viewer_items"]
         )
 
 
@@ -485,9 +481,7 @@ color ramps need at least one element"""
 
 class SimulationInputExporter(SpecificExporter[bpy.types.GeometryNodeSimulationInput]):
     def serialize(self):
-        data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "bl_idname"]
-        )
+        data = self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
         if self.obj.paired_output is None:
             raise RuntimeError(
                 f"""{self.from_root.to_str()}
@@ -524,7 +518,7 @@ class SimulationOutputExporter(
 ):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "state_items", "bl_idname"]
+            [INPUTS, OUTPUTS, "state_items"]
         )
 
 
