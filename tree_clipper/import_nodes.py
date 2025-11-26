@@ -13,6 +13,7 @@ from pathlib import Path
 from .common import (
     DATA,
     DESERIALIZER,
+    FORBIDDEN_PROPERTIES,
     GETTER,
     ID,
     MATERIAL_NAME,
@@ -121,6 +122,11 @@ class Importer:
         assert not prop.is_readonly
 
         identifier = prop.identifier
+
+        if identifier in FORBIDDEN_PROPERTIES:
+            if self.debug_prints:
+                print(f"{from_root.to_str()}: forbidden")
+            return
 
         if (
             (
