@@ -219,6 +219,9 @@ class SocketExporter(SpecificExporter[bpy.types.NodeSocket]):
 
 class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
     def deserialize(self):
+        # https://github.com/Algebraic-UG/tree_clipper/issues/43
+        if "dimensions" in self.serialization:
+            self.getter().dimensions = self.serialization["dimensions"]  # ty: ignore[invalid-assignment]
         self.import_all_simple_writable_properties()
 
 
@@ -545,6 +548,20 @@ class SimulationOutputItemsImporter(
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding item {name} {socket_type}")
             self.getter().new(socket_type=socket_type, name=name)
+
+
+class RerouteExporter(SpecificExporter[bpy.types.NodeReroute]):
+    """The reroute's sockets are not needed and can cause problems"""
+
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
+
+
+class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
+    """The reroute's sockets are not needed and can cause problems"""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties()
 
 
 # now they are cooked and ready to use ~ bon appétit
