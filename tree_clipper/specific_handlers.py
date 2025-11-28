@@ -282,7 +282,11 @@ class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
             assert new_link.multi_input_sort_id + 1 == len(multi_links)
             while new_link.multi_input_sort_id > multi_input_sort_id:
                 new_link.swap_multi_input_sort_id(
-                    multi_links[new_link.multi_input_sort_id - 1]
+                    next(
+                        other
+                        for other in multi_links
+                        if other.multi_input_sort_id == new_link.multi_input_sort_id - 1
+                    )
                 )
 
 
