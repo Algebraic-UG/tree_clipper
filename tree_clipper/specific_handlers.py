@@ -227,7 +227,9 @@ class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
 
 class LinkExporter(SpecificExporter[bpy.types.NodeLink]):
     def serialize(self):
-        data = self.export_all_simple_writable_properties()
+        data = self.export_all_simple_writable_properties_and_list(
+            ["multi_input_sort_id"]
+        )
 
         no_clobber(data, FROM_NODE, self.obj.from_node.name)
         no_clobber(
