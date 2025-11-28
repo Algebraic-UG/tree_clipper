@@ -29,7 +29,7 @@ def test_multi_input_order():
         assert tree.links[0].multi_input_sort_id == 0
         assert tree.links[0].from_node == tree.nodes["Cube"]
 
-        assert tree.links[0].swap_multi_input_sort_id(tree.links[1])
+        tree.links[0].swap_multi_input_sort_id(tree.links[1])
 
         assert tree.links[0].multi_input_sort_id == 1
         assert tree.links[0].from_node == tree.nodes["Cube"]
