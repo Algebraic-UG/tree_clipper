@@ -31,6 +31,22 @@ def _or_default(serialization: dict, ty: Type[bpy.types.bpy_struct], identifier:
     return serialization.get(identifier, ty.bl_rna.properties[identifier].default)  # ty: ignore[unresolved-attribute]
 
 
+def _import_node_parent(specific_importer: SpecificImporter) -> None:
+    assert isinstance(specific_importer.getter(), bpy.types.Node)
+    if "parent" not in specific_importer.serialization:
+        return
+
+    parent_id = specific_importer.serialization["parent"]
+    assert isinstance(parent_id, int)
+
+    def deferred():
+        specific_importer.getter().parent = specific_importer.importer.getters[
+            parent_id
+        ]()  # ty: ignore[invalid-assignment]
+
+    specific_importer.importer.create_special_node_connections.append(deferred)
+
+
 # Possible socket data types: https://docs.blender.org/api/current/bpy_types_enum_items/node_socket_data_type_items.html#rna-enum-node-socket-data-type-items
 # Only a subset of those are supported on the capture attribute node: FLOAT, INT, VECTOR, RGBA, BOOLEAN, QUATERNION, MATRIX
 # TODO this is incomplete?
@@ -180,12 +196,15 @@ class TreePanelImporter(SpecificImporter[bpy.types.NodeTreeInterfacePanel]):
 
 class NodeExporter(SpecificExporter[bpy.types.Node]):
     def serialize(self):
-        return self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        return self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, "parent"]
+        )
 
 
 class NodeImporter(SpecificImporter[bpy.types.Node]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        _import_node_parent(self)
 
 
 class NodeInputsImporter(SpecificImporter[bpy.types.NodeInputs]):
@@ -279,7 +298,7 @@ class LinkImporter(SpecificImporter[bpy.types.NodeLink]):
 class MenuSwitchExporter(SpecificExporter[bpy.types.GeometryNodeMenuSwitch]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "enum_items"]
+            [INPUTS, OUTPUTS, "parent", "enum_items"]
         )
 
 
@@ -289,6 +308,7 @@ class MenuSwitchImporter(SpecificImporter[bpy.types.GeometryNodeMenuSwitch]):
             # ordering is important, the enum_items implicitly create sockets
             ["enum_items", INPUTS, OUTPUTS],
         )
+        _import_node_parent(self)
 
 
 class MenuSwitchItemsImporter(SpecificImporter[bpy.types.NodeMenuSwitchItems]):
@@ -304,7 +324,7 @@ class MenuSwitchItemsImporter(SpecificImporter[bpy.types.NodeMenuSwitchItems]):
 class CaptureAttrExporter(SpecificExporter[bpy.types.GeometryNodeCaptureAttribute]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "capture_items"],
+            [INPUTS, OUTPUTS, "parent", "capture_items"],
         )
 
 
@@ -314,6 +334,7 @@ class CaptureAttrImporter(SpecificImporter[bpy.types.GeometryNodeCaptureAttribut
             # ordering is important, the capture_items implicitly create sockets
             ["capture_items", INPUTS, OUTPUTS],
         )
+        _import_node_parent(self)
 
 
 class CaptureAttrItemsImporter(
@@ -335,7 +356,9 @@ class CaptureAttrItemsImporter(
 
 class RepeatInputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatInput]):
     def serialize(self):
-        data = self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        data = self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, "parent"]
+        )
         if self.obj.paired_output is None:
             raise RuntimeError(
                 f"""{self.from_root.to_str()}
@@ -365,12 +388,13 @@ class RepeatInputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatInput]):
         # defer connection until we've created the output node
         # only then, import the sockets
         self.importer.create_special_node_connections.append(deferred)
+        _import_node_parent(self)
 
 
 class RepeatOutputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatOutput]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "repeat_items"]
+            [INPUTS, OUTPUTS, "parent", "repeat_items"]
         )
 
 
@@ -380,6 +404,7 @@ class RepeatOutputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatOutput])
             # ordering is important, the repeat_items implicitly create sockets
             ["repeat_items", INPUTS, OUTPUTS]
         )
+        _import_node_parent(self)
 
 
 class RepeatOutputItemsImporter(
@@ -412,7 +437,7 @@ class IndexItemsImporter(SpecificImporter[bpy.types.NodeIndexSwitchItems]):
 class ViewerSpecificExporter(SpecificExporter[bpy.types.GeometryNodeViewer]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "viewer_items"]
+            [INPUTS, OUTPUTS, "parent", "viewer_items"]
         )
 
 
@@ -422,6 +447,7 @@ class ViewerImporter(SpecificImporter[bpy.types.GeometryNodeViewer]):
             # ordering is important, the viewer_items implicitly create sockets
             ["viewer_items", INPUTS, OUTPUTS],
         )
+        _import_node_parent(self)
 
 
 class ViewerItemsImporter(SpecificImporter[bpy.types.NodeGeometryViewerItems]):
@@ -484,7 +510,9 @@ color ramps need at least one element"""
 
 class SimulationInputExporter(SpecificExporter[bpy.types.GeometryNodeSimulationInput]):
     def serialize(self):
-        data = self.export_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        data = self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, "parent"]
+        )
         if self.obj.paired_output is None:
             raise RuntimeError(
                 f"""{self.from_root.to_str()}
@@ -514,6 +542,7 @@ class SimulationInputImporter(SpecificImporter[bpy.types.GeometryNodeSimulationI
         # defer connection until we've created the output node
         # only then, import the sockets
         self.importer.create_special_node_connections.append(deferred)
+        _import_node_parent(self)
 
 
 class SimulationOutputExporter(
@@ -521,7 +550,7 @@ class SimulationOutputExporter(
 ):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "state_items"]
+            [INPUTS, OUTPUTS, "parent", "state_items"]
         )
 
 
@@ -533,6 +562,7 @@ class SimulationOutputImporter(
             # ordering is important, the state_items implicitly create sockets
             ["state_items", INPUTS, OUTPUTS]
         )
+        _import_node_parent(self)
 
 
 class SimulationOutputItemsImporter(
@@ -554,7 +584,7 @@ class RerouteExporter(SpecificExporter[bpy.types.NodeReroute]):
     """The reroute's sockets are not needed and can cause problems"""
 
     def serialize(self):
-        return self.export_all_simple_writable_properties()
+        return self.export_all_simple_writable_properties_and_list(["parent"])
 
 
 class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
@@ -562,6 +592,7 @@ class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
 
     def deserialize(self):
         self.import_all_simple_writable_properties()
+        _import_node_parent(self)
 
 
 # now they are cooked and ready to use ~ bon appétit
