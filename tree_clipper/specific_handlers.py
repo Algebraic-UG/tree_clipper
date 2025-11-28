@@ -267,10 +267,23 @@ class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
                 print(
                     f"{self.from_root.to_str()}: linking {from_node}, {from_socket} to {to_node}, {to_socket}"
                 )
-            self.getter().new(
+            new_link = self.getter().new(
                 input=self.importer.current_tree.nodes[from_node].outputs[from_socket],
                 output=self.importer.current_tree.nodes[to_node].inputs[to_socket],
             )
+
+            # bubble the link to the correct position
+            multi_input_sort_id = _or_default(
+                link, bpy.types.NodeLink, "multi_input_sort_id"
+            )
+            multi_links = (
+                self.importer.current_tree.nodes[to_node].inputs[to_socket].links
+            )
+            assert new_link.multi_input_sort_id + 1 == len(multi_links)
+            while new_link.multi_input_sort_id > multi_input_sort_id:
+                new_link.swap_multi_input_sort_id(
+                    multi_links[new_link.multi_input_sort_id - 1]
+                )
 
 
 class LinkImporter(SpecificImporter[bpy.types.NodeLink]):
