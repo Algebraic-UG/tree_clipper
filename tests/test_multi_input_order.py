@@ -1,6 +1,6 @@
 import bpy
 
-from tests.util import round_trip
+from .util import round_trip
 
 
 def test_multi_input_order():
