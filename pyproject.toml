@@ -5,8 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "bpy>=5.0.0",
+    "bpy>=5.0.1",
 ]
+
+[[tool.uv.index]]
+name = "bpy"
+url = "https://bradyajohnston.github.io/dailybpy/"
 
 [dependency-groups]
 dev = [

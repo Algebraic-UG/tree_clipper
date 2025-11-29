@@ -246,7 +246,9 @@ class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
 
 class LinkExporter(SpecificExporter[bpy.types.NodeLink]):
     def serialize(self):
-        data = self.export_all_simple_writable_properties()
+        data = self.export_all_simple_writable_properties_and_list(
+            ["multi_input_sort_id"]
+        )
 
         no_clobber(data, FROM_NODE, self.obj.from_node.name)
         no_clobber(
@@ -284,10 +286,27 @@ class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
                 print(
                     f"{self.from_root.to_str()}: linking {from_node}, {from_socket} to {to_node}, {to_socket}"
                 )
-            self.getter().new(
+            new_link = self.getter().new(
                 input=self.importer.current_tree.nodes[from_node].outputs[from_socket],
                 output=self.importer.current_tree.nodes[to_node].inputs[to_socket],
             )
+
+            # bubble the link to the correct position
+            multi_input_sort_id = _or_default(
+                data, bpy.types.NodeLink, "multi_input_sort_id"
+            )
+            multi_links = (
+                self.importer.current_tree.nodes[to_node].inputs[to_socket].links
+            )
+            assert new_link.multi_input_sort_id + 1 == len(multi_links)
+            while new_link.multi_input_sort_id > multi_input_sort_id:
+                new_link.swap_multi_input_sort_id(
+                    next(
+                        other
+                        for other in multi_links
+                        if other.multi_input_sort_id == new_link.multi_input_sort_id - 1
+                    )
+                )
 
 
 class LinkImporter(SpecificImporter[bpy.types.NodeLink]):
