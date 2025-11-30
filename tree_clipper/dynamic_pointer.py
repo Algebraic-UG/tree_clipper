@@ -1,4 +1,3 @@
-from typing import Type
 import bpy
 
 from .common import no_clobber
