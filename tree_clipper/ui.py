@@ -244,6 +244,4 @@ class SCENE_PT_Tree_Clipper_Panel(bpy.types.Panel):
         export_op.is_material = is_material
         export_op.name = name
 
-        self.layout.separator()
-
         self.layout.operator(SCENE_OT_Tree_Clipper_Import_Prepare.bl_idname)
