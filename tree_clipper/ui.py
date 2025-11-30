@@ -243,15 +243,34 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
 
         return context.window_manager.invoke_props_dialog(self)
 
-    def execute(self, _context):
+    def execute(self, context):
         global _INTERMEDIATE_IMPORT_CACHE
         assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
+        getters = {}
+        getters.clear()
+        for external_item in context.scene.tree_clipper_external_import_items.items:
+            ptr = getattr(external_item, external_item.get_active_pointer_identifier())
+            if ptr is None:
+                getters[external_item.external_id] = lambda: None
+            else:
+                # TODO: very ugly!
+                # but this might work for all ID types?
+
+                def make_getter(lookup: str):
+                    return lambda: eval(lookup)
+
+                getters[external_item.external_id] = make_getter(ptr.path_from_module())
+        for (
+            external_id,
+            external_item,
+        ) in _INTERMEDIATE_IMPORT_CACHE.get_external().items():
+            if external_item["skip"]:
+                getters[int(external_id)] = lambda: None
         _INTERMEDIATE_IMPORT_CACHE.import_nodes(
             ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
                 allow_version_mismatch=self.allow_version_mismatch,
-                # TODO: put external things here https://github.com/Algebraic-UG/tree_clipper/issues/16
-                getters={},
+                getters=getters,
                 overwrite=self.overwrite,
                 debug_prints=self.debug_prints,
             )
