@@ -78,16 +78,17 @@ class SCENE_UL_Tree_Clipper_External_List(bpy.types.UIList):
     ):
         assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
         external = _INTERMEDIATE_EXPORT_CACHE.get_external()[item.external_id]
-        pointer = external.pointed_to_by[item.idx]
+        pointer = external.pointed_to_by
         row = layout.row()
         row.prop(item, "description")
         row.prop(pointer.obj, pointer.identifier)
+        row.prop(item, "skip")
 
 
 class Tree_Clipper_External_Item(bpy.types.PropertyGroup):
     external_id: bpy.props.IntProperty()  # type: ignore
-    idx: bpy.props.IntProperty()  # type: ignore
     description: bpy.props.StringProperty(name="", default="Hint for Import")  # type: ignore
+    skip: bpy.props.BoolProperty(name="Hide in Import", default=False)  # type: ignore
 
 
 class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
@@ -110,11 +111,9 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
     def invoke(self, context, _):
         self.external_items.clear()
         assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
-        for external_id, external in _INTERMEDIATE_EXPORT_CACHE.get_external().items():
-            for idx in range(len(external.pointed_to_by)):
-                item = self.external_items.add()
-                item.external_id = external_id
-                item.idx = idx
+        for external_id in _INTERMEDIATE_EXPORT_CACHE.get_external().keys():
+            item = self.external_items.add()
+            item.external_id = external_id
         return context.window_manager.invoke_props_dialog(self, width=600)
 
     def execute(self, _context):
@@ -147,10 +146,11 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
         external_item = self.external_items[self.selected_external_item]
         assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
         external = _INTERMEDIATE_EXPORT_CACHE.get_external()[external_item.external_id]
-        pointer = external.pointed_to_by[external_item.idx]
+        pointer = external.pointed_to_by
         head, body = self.layout.panel("details", default_closed=True)
         head.label(text="Item Details")
         if body is not None:
+            body.label(text=f"Id in JSON: {pointer.pointer_id}")
             body.label(text="Referenced at:")
             for path_elem in pointer.from_root.path:
                 body.label(text="    -> " + path_elem)

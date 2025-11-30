@@ -458,10 +458,15 @@ class External:
     def __init__(
         self,
         *,
-        pointed_to_by: list[Pointer],
+        pointed_to_by: Pointer,
     ) -> None:
         self.pointed_to_by = pointed_to_by
+
+        # this should be further specified by user of the export
         self.description = None
+
+        # if the user decides this doesn't need setting by the importer
+        self.skip = False
 
 
 def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
@@ -510,10 +515,13 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
             for pointer in pointers:
                 pointer.pointee_id = exporter.serialized[obj]
         else:
-            external_id = exporter.next_id
-            exporter.next_id += 1
-            external[external_id] = External(pointed_to_by=pointers)
+            # Maybe it could be beneficial in some cases to have the option to have a single external item,
+            # but it's also possible to use an additional group node to avieve the same thing.
+            # Let's rather keep it simple here for now.
             for pointer in pointers:
+                external_id = exporter.next_id
+                exporter.next_id += 1
+                external[external_id] = External(pointed_to_by=pointer)
                 pointer.pointee_id = external_id
 
     data["external"] = external
@@ -526,7 +534,7 @@ class _Encoder(json.JSONEncoder):
         if isinstance(obj, Pointer):
             return obj.pointee_id
         if isinstance(obj, External):
-            return obj.description
+            return None if obj.skip else obj.description
         return super().default(obj)
 
 
