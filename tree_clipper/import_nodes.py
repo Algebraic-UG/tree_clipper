@@ -536,6 +536,10 @@ class ImportIntermediate:
                 data = json.load(file)
                 self.data = data
 
+    def get_external(self) -> dict[int, None | str]:
+        assert isinstance(self.data, dict)
+        return self.data["external"]
+
     def import_nodes(self, parameters: ImportParameters) -> None:
         _import_nodes_from_dict(
             data=self.data,  # type: ignore

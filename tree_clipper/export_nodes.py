@@ -34,6 +34,7 @@ class Pointer:
         obj: bpy.types.bpy_struct,
         identifier: str,
         pointer_id: int,
+        fixed_type_name: str,
         from_root: FromRoot,
     ) -> None:
         # we need these to show a pointer property in the UI
@@ -46,6 +47,9 @@ class Pointer:
 
         # this is determined after everything is serialized and is used in deserialization
         self.pointee_id = None
+
+        # needed for the selection on import
+        self.fixed_type_name = fixed_type_name
 
 
 class Exporter:
@@ -191,10 +195,12 @@ class Exporter:
         if attribute.id_data == self.current_tree and prop.is_readonly:
             return self._export_obj(obj=attribute, from_root=from_root)
         else:
+            assert prop.fixed_type is not None
             pointer = Pointer(
                 obj=obj,
                 identifier=prop.identifier,
                 pointer_id=self.next_id - 1,
+                fixed_type_name=prop.fixed_type.bl_rna.identifier,  # ty: ignore[unresolved-attribute]
                 from_root=from_root,
             )
             self.pointers.setdefault(attribute, []).append(pointer)
@@ -534,7 +540,11 @@ class _Encoder(json.JSONEncoder):
         if isinstance(obj, Pointer):
             return obj.pointee_id
         if isinstance(obj, External):
-            return None if obj.skip else obj.description
+            return {
+                "skip": obj.skip,
+                "description": obj.description,
+                "fixed_type_name": obj.pointed_to_by.fixed_type_name,
+            }
         return super().default(obj)
 
 

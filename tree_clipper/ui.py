@@ -4,6 +4,8 @@ import bpy
 from pathlib import Path
 import tempfile
 
+from .dynamic_pointer import add_all_known_pointer_properties
+
 from .specific_handlers import (
     BUILT_IN_EXPORTER,
     BUILT_IN_IMPORTER,
@@ -65,7 +67,7 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
             body.prop(self, "write_from_roots")
 
 
-class SCENE_UL_Tree_Clipper_External_List(bpy.types.UIList):
+class SCENE_UL_Tree_Clipper_External_Export_List(bpy.types.UIList):
     def draw_item(
         self,
         _context,
@@ -85,7 +87,7 @@ class SCENE_UL_Tree_Clipper_External_List(bpy.types.UIList):
         row.prop(item, "skip")
 
 
-class Tree_Clipper_External_Item(bpy.types.PropertyGroup):
+class Tree_Clipper_External_Export_Item(bpy.types.PropertyGroup):
     external_id: bpy.props.IntProperty()  # type: ignore
     description: bpy.props.StringProperty(name="", default="Hint for Import")  # type: ignore
     skip: bpy.props.BoolProperty(name="Hide in Import", default=False)  # type: ignore
@@ -105,7 +107,7 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
     compress: bpy.props.BoolProperty(name="Compress", default=True)  # type: ignore
     json_indent: bpy.props.IntProperty(name="JSON Indent", default=4, min=0)  # type: ignore
 
-    external_items: bpy.props.CollectionProperty(type=Tree_Clipper_External_Item)  # type: ignore
+    external_items: bpy.props.CollectionProperty(type=Tree_Clipper_External_Export_Item)  # type: ignore
     selected_external_item: bpy.props.IntProperty()  # type: ignore
 
     def invoke(self, context, _):
@@ -140,7 +142,7 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
             return
         self.layout.label(text="References to External:")
         self.layout.template_list(
-            listtype_name="SCENE_UL_Tree_Clipper_External_List",
+            listtype_name="SCENE_UL_Tree_Clipper_External_Export_List",
             list_id="",
             dataptr=self,
             propname="external_items",
@@ -184,6 +186,36 @@ class SCENE_OT_Tree_Clipper_Import_Prepare(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SCENE_UL_Tree_Clipper_External_Import_List(bpy.types.UIList):
+    def draw_item(
+        self,
+        _context,
+        layout,
+        _data,
+        item,
+        _icon,
+        _active_data,
+        _active_property,
+    ):
+        row = layout.row()
+        row.label(text=item.description)
+        row.prop(item, item.get_active_pointer_identifier(), text="")
+
+
+class Tree_Clipper_External_Import_Item(bpy.types.PropertyGroup):
+    external_id: bpy.props.IntProperty()  # type: ignore
+    description: bpy.props.StringProperty()  # type: ignore
+
+
+# note that this adds the member functions set_active_pointer_type and get_active_pointer_identifier
+add_all_known_pointer_properties(cls=Tree_Clipper_External_Import_Item, prefix="ptr_")
+
+
+class Tree_Clipper_External_Import_Items(bpy.types.PropertyGroup):
+    items: bpy.props.CollectionProperty(type=Tree_Clipper_External_Import_Item)  # type: ignore
+    selected: bpy.props.IntProperty()  # type: ignore
+
+
 class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_cache"
     bl_label = "Import Cache"
@@ -195,6 +227,20 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
     debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=False)  # type: ignore
 
     def invoke(self, context, _):
+        assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
+
+        context.scene.tree_clipper_external_import_items.items.clear()
+        for (
+            external_id,
+            external_item,
+        ) in _INTERMEDIATE_IMPORT_CACHE.get_external().items():
+            if external_item["skip"]:
+                continue
+            item = context.scene.tree_clipper_external_import_items.items.add()
+            item.external_id = int(external_id)
+            item.description = external_item["description"]
+            item.set_active_pointer_type(external_item["fixed_type_name"])
+
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, _context):
@@ -213,13 +259,24 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
         _INTERMEDIATE_IMPORT_CACHE = None
         return {"FINISHED"}
 
-    def draw(self, _context):
+    def draw(self, context):
         self.layout.prop(self, "overwrite")
         head, body = self.layout.panel("advanced", default_closed=True)
         head.label(text="Advanced")
         if body is not None:
             body.prop(self, "allow_version_mismatch")
             body.prop(self, "debug_prints")
+        if len(context.scene.tree_clipper_external_import_items.items) == 0:
+            return
+        self.layout.label(text="References to External:")
+        self.layout.template_list(
+            listtype_name="SCENE_UL_Tree_Clipper_External_Import_List",
+            list_id="",
+            dataptr=context.scene.tree_clipper_external_import_items,
+            propname="items",
+            active_dataptr=context.scene.tree_clipper_external_import_items,
+            active_propname="selected",
+        )
 
 
 class SCENE_PT_Tree_Clipper_Panel(bpy.types.Panel):
