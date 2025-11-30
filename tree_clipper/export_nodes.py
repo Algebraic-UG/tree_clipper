@@ -36,11 +36,15 @@ class Pointer:
         pointer_id: int,
         from_root: FromRoot,
     ) -> None:
+        # we need these to show a pointer property in the UI
         self.obj = obj
         self.identifier = identifier
+
+        # so the user can find the pointer it the tree and serialization
         self.from_root = from_root
         self.pointer_id = pointer_id
-        # this is determined after all trees are serialized
+
+        # this is determined after everything is serialized and is used in deserialization
         self.pointee_id = None
 
 
