@@ -9,7 +9,9 @@ if TYPE_CHECKING:
 from pathlib import Path
 import tempfile
 
+from .id_data_getter import make_id_data_getter
 from .dynamic_pointer import add_all_known_pointer_properties
+from .common import GETTER
 
 from .specific_handlers import (
     BUILT_IN_EXPORTER,
@@ -282,26 +284,30 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             context.scene.tree_clipper_external_import_items,
             Tree_Clipper_External_Import_Items,
         )
-        getters = {}
-        getters.clear()
-        for external_item in context.scene.tree_clipper_external_import_items.items:
-            ptr = getattr(external_item, external_item.get_active_pointer_identifier())
-            if ptr is None:
-                getters[external_item.external_id] = lambda: None
-            else:
-                # TODO: very ugly!
-                # but this might work for all ID types?
 
-                def make_getter(lookup: str):
-                    return lambda: eval(lookup)
+        # collect what is set from the UI
+        getters: dict[int, GETTER] = dict(
+            (
+                external_item.external_id,
+                make_id_data_getter(
+                    getattr(
+                        external_item, external_item.get_active_pointer_identifier()
+                    )
+                ),
+            )
+            for external_item in context.scene.tree_clipper_external_import_items.items
+        )
 
-                getters[external_item.external_id] = make_getter(ptr.path_from_module())
+        # double check that only skipped ones are missing
         for (
             external_id,
             external_item,
         ) in _INTERMEDIATE_IMPORT_CACHE.get_external().items():
             if external_item["skip"]:
                 getters[int(external_id)] = lambda: None
+            else:
+                assert int(external_id) in getters
+
         _INTERMEDIATE_IMPORT_CACHE.import_nodes(
             ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
