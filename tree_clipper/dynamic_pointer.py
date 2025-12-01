@@ -1,5 +1,7 @@
 import bpy
 
+from typing import Type
+
 from .common import no_clobber
 
 
@@ -10,7 +12,11 @@ def _all_subclasses(cls):
     return subclasses
 
 
-def add_all_known_pointer_properties(*, cls: bpy.types.PropertyGroup, prefix: str):
+def add_all_known_pointer_properties(
+    *,
+    cls: Type[bpy.types.PropertyGroup],
+    prefix: str,
+):
     def get_pointer_property_name(ty: type):
         return f"{prefix}{ty.__name__}"
 
