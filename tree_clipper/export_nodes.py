@@ -536,16 +536,16 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
 
 
 class _Encoder(json.JSONEncoder):
-    def default(self, obj) -> int | str | Any:
-        if isinstance(obj, Pointer):
-            return obj.pointee_id
-        if isinstance(obj, External):
+    def default(self, o) -> int | str | Any:
+        if isinstance(o, Pointer):
+            return o.pointee_id
+        if isinstance(o, External):
             return {
-                "skip": obj.skip,
-                "description": obj.description,
-                "fixed_type_name": obj.pointed_to_by.fixed_type_name,
+                "skip": o.skip,
+                "description": o.description,
+                "fixed_type_name": o.pointed_to_by.fixed_type_name,
             }
-        return super().default(obj)
+        return super().default(o)
 
 
 class ExportIntermediate:
