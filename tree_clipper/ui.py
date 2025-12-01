@@ -1,6 +1,11 @@
 import bpy
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import bpy._typing.rna_enums as rna_enums  # ty: ignore[unresolved-import]
+
+
 from pathlib import Path
 import tempfile
 
@@ -32,10 +37,14 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
     debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=False)  # type: ignore
     write_from_roots: bpy.props.BoolProperty(name="Add Paths", default=False)  # type: ignore
 
-    def invoke(self, context, _):
+    def invoke(
+        self, context: bpy.types.Context, event: bpy.types.Event
+    ) -> set["rna_enums.OperatorReturnItems"]:
         return context.window_manager.invoke_props_dialog(self)
 
-    def execute(self, _context):
+    def execute(
+        self, context: bpy.types.Context
+    ) -> set["rna_enums.OperatorReturnItems"]:
         global _INTERMEDIATE_EXPORT_CACHE
         _INTERMEDIATE_EXPORT_CACHE = ExportIntermediate(
             ExportParameters(
@@ -53,7 +62,7 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
         bpy.ops.scene.tree_clipper_export_cache("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
         return {"FINISHED"}
 
-    def draw(self, _context):
+    def draw(self, context: bpy.types.Context) -> None:
         self.layout.prop(self, "is_material")
         self.layout.prop(
             self, "name", text="Material" if self.is_material else "Node Tree"
@@ -113,7 +122,9 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
     external_items: bpy.props.CollectionProperty(type=Tree_Clipper_External_Export_Item)  # type: ignore
     selected_external_item: bpy.props.IntProperty()  # type: ignore
 
-    def invoke(self, context, _):
+    def invoke(
+        self, context: bpy.types.Context, event: bpy.types.Event
+    ) -> set["rna_enums.OperatorReturnItems"]:
         self.external_items.clear()
         assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
         for external_id in _INTERMEDIATE_EXPORT_CACHE.get_external().keys():
@@ -121,7 +132,9 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
             item.external_id = external_id
         return context.window_manager.invoke_props_dialog(self, width=600)
 
-    def execute(self, _context):
+    def execute(
+        self, context: bpy.types.Context
+    ) -> set["rna_enums.OperatorReturnItems"]:
         global _INTERMEDIATE_EXPORT_CACHE
         assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
         for item in self.external_items:
@@ -136,7 +149,7 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
         _INTERMEDIATE_EXPORT_CACHE = None
         return {"FINISHED"}
 
-    def draw(self, _context):
+    def draw(self, context: bpy.types.Context) -> None:
         self.layout.prop(self, "output_file")
         self.layout.prop(self, "compress")
         if not self.compress:
@@ -176,10 +189,14 @@ class SCENE_OT_Tree_Clipper_Import_Prepare(bpy.types.Operator):
         subtype="FILE_PATH",
     )  # type: ignore
 
-    def invoke(self, context, _):
+    def invoke(
+        self, context: bpy.types.Context, event: bpy.types.Event
+    ) -> set["rna_enums.OperatorReturnItems"]:
         return context.window_manager.invoke_props_dialog(self)
 
-    def execute(self, _context):
+    def execute(
+        self, context: bpy.types.Context
+    ) -> set["rna_enums.OperatorReturnItems"]:
         global _INTERMEDIATE_IMPORT_CACHE
         _INTERMEDIATE_IMPORT_CACHE = ImportIntermediate()
         _INTERMEDIATE_IMPORT_CACHE.from_file(Path(self.input_file))
@@ -232,9 +249,15 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
     allow_version_mismatch: bpy.props.BoolProperty(name="Ignore Version", default=False)  # type: ignore
     debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=False)  # type: ignore
 
-    def invoke(self, context, _):
+    def invoke(
+        self, context: bpy.types.Context, event: bpy.types.Event
+    ) -> set["rna_enums.OperatorReturnItems"]:
         assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
-
+        assert hasattr(context.scene, "tree_clipper_external_import_items")
+        assert isinstance(
+            context.scene.tree_clipper_external_import_items,
+            Tree_Clipper_External_Import_Items,
+        )
         context.scene.tree_clipper_external_import_items.items.clear()
         for (
             external_id,
@@ -249,9 +272,16 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
 
         return context.window_manager.invoke_props_dialog(self)
 
-    def execute(self, context):
+    def execute(
+        self, context: bpy.types.Context
+    ) -> set["rna_enums.OperatorReturnItems"]:
         global _INTERMEDIATE_IMPORT_CACHE
         assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
+        assert hasattr(context.scene, "tree_clipper_external_import_items")
+        assert isinstance(
+            context.scene.tree_clipper_external_import_items,
+            Tree_Clipper_External_Import_Items,
+        )
         getters = {}
         getters.clear()
         for external_item in context.scene.tree_clipper_external_import_items.items:
@@ -284,7 +314,12 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
         _INTERMEDIATE_IMPORT_CACHE = None
         return {"FINISHED"}
 
-    def draw(self, context):
+    def draw(self, context: bpy.types.Context) -> None:
+        assert hasattr(context.scene, "tree_clipper_external_import_items")
+        assert isinstance(
+            context.scene.tree_clipper_external_import_items,
+            Tree_Clipper_External_Import_Items,
+        )
         self.layout.prop(self, "overwrite")
         head, body = self.layout.panel("advanced", default_closed=True)
         head.label(text="Advanced")
@@ -310,7 +345,9 @@ class SCENE_PT_Tree_Clipper_Panel(bpy.types.Panel):
     bl_region_type = "UI"
     bl_category = "Tree Clipper"
 
-    def draw(self, context):
+    def draw(self, context: bpy.types.Context) -> None:
+        assert isinstance(context.space_data, bpy.types.SpaceNodeEditor)
+
         node_tree = context.space_data.node_tree
         if node_tree is None:
             self.layout.label(text="No node tree.")
