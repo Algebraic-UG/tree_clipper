@@ -1,6 +1,6 @@
 import bpy
 
-
+from typing import Any
 from pathlib import Path
 import tempfile
 
@@ -70,15 +70,18 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
 class SCENE_UL_Tree_Clipper_External_Export_List(bpy.types.UIList):
     def draw_item(
         self,
-        _context,
-        layout,
-        _data,
-        item,
-        _icon,
-        _active_data,
-        _active_property,
-    ):
+        context: bpy.types.Context,
+        layout: bpy.types.UILayout,
+        data: Any | None,
+        item: Any | None,
+        icon: int | None,
+        active_data: Any,
+        active_property: str | None,
+        index: int | None,
+        flt_flag: int | None,
+    ) -> None:
         assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
+        assert isinstance(item, Tree_Clipper_External_Export_Item)
         external = _INTERMEDIATE_EXPORT_CACHE.get_external()[item.external_id]
         pointer = external.pointed_to_by
         row = layout.row()
@@ -189,14 +192,17 @@ class SCENE_OT_Tree_Clipper_Import_Prepare(bpy.types.Operator):
 class SCENE_UL_Tree_Clipper_External_Import_List(bpy.types.UIList):
     def draw_item(
         self,
-        _context,
-        layout,
-        _data,
-        item,
-        _icon,
-        _active_data,
-        _active_property,
-    ):
+        context: bpy.types.Context,
+        layout: bpy.types.UILayout,
+        data: Any | None,
+        item: Any | None,
+        icon: int | None,
+        active_data: Any,
+        active_property: str | None,
+        index: int | None,
+        flt_flag: int | None,
+    ) -> None:
+        assert isinstance(item, Tree_Clipper_External_Import_Item)
         row = layout.row()
         row.label(text=item.description)
         row.prop(item, item.get_active_pointer_identifier(), text="")
