@@ -86,7 +86,7 @@ class SCENE_UL_Tree_Clipper_External_Export_List(bpy.types.UIList):
         pointer = external.pointed_to_by
         row = layout.row()
         row.prop(item, "description")
-        row.prop(pointer.obj, pointer.identifier)
+        row.prop(pointer.obj, pointer.identifier, text="")
         row.prop(item, "skip")
 
 
