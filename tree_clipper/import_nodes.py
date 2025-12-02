@@ -565,7 +565,7 @@ class ImportIntermediate:
             external_id,
             external_item,
         ) in self.get_external().items():
-            if external_item["skip"]:
+            if external_item["description"] is None:
                 self.getters[int(external_id)] = lambda: None
             else:
                 assert int(external_id) in self.getters

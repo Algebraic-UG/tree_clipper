@@ -105,7 +105,7 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             external_id,
             external_item,
         ) in _INTERMEDIATE_IMPORT_CACHE.get_external().items():
-            if external_item["skip"]:
+            if external_item["description"] is None:
                 continue
             item = context.scene.tree_clipper_external_import_items.items.add()
             item.external_id = int(external_id)

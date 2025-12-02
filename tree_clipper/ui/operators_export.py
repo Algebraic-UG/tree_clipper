@@ -132,10 +132,11 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
     ) -> set["rna_enums.OperatorReturnItems"]:
         global _INTERMEDIATE_EXPORT_CACHE
         assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
-        for item in self.external_items:
-            cached_item = _INTERMEDIATE_EXPORT_CACHE.get_external()[item.external_id]
-            cached_item.description = item.description
-            cached_item.skip = item.skip
+        _INTERMEDIATE_EXPORT_CACHE.set_external(
+            (external_item.external_id, external_item.description)
+            for external_item in self.external_items
+            if not external_item.skip
+        )
         _INTERMEDIATE_EXPORT_CACHE.export_to_file(
             file_path=Path(self.output_file),
             compress=self.compress,

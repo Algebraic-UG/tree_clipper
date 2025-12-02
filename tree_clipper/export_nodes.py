@@ -1,11 +1,12 @@
+import bpy
+
 import base64
 import gzip
 import json
 from pathlib import Path
 from types import NoneType
-from typing import Any, cast, Type
+from typing import Any, cast, Type, Iterator, Tuple
 
-import bpy
 import tomllib
 
 from .common import (
@@ -470,6 +471,7 @@ class External:
         self.pointed_to_by = pointed_to_by
 
         # this should be further specified by user of the export
+        # if it remains none, it'll be skipped on import
         self.description = None
 
         # if the user decides this doesn't need setting by the importer
@@ -537,9 +539,7 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
 
 
 def _encode_external(obj: External) -> EXTERNAL_SERIALIZATION:
-    assert isinstance(obj.description, str)
     return {
-        "skip": obj.skip,
         "description": obj.description,
         "fixed_type_name": obj.pointed_to_by.fixed_type_name,
     }
@@ -583,3 +583,10 @@ class ExportIntermediate:
 
     def get_external(self) -> dict[int, External]:
         return self.data["external"]
+
+    def set_external(
+        self,
+        ids_and_descriptions: Iterator[Tuple[int, str]],
+    ) -> None:
+        for external_id, description in ids_and_descriptions:
+            self.data["external"][external_id].description = description
