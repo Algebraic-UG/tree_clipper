@@ -15,9 +15,11 @@ _EXTERNAL_ITEM_MAKER: dict[str, Callable[[], bpy.types.ID]] = {
     "Material": lambda: bpy.data.materials.new(name="test"),
     "Text": lambda: bpy.data.texts.new(name="test"),
     "Annotation": lambda: bpy.data.annotations.new(name="test"),
+    # TODO: could this be a Blender bug?
     # special: they can cause something like ERROR ID user decrement error: GRtest (from '[Main]'): 0 <= 0
     "Object": make_test_object,
     "Collection": make_test_collection,
+    # this is just so that the tree stays alive in the savefile
     "NodeTree": make_test_node_tree,
 }
 
@@ -148,7 +150,8 @@ def test_external_items():
         string = export_intermediate.export_to_str(compress=False, json_indent=4)
         print(string)
 
-        bpy.data.node_groups.remove(bpy.data.node_groups[name])
+        bpy.data.node_groups[name].nodes.clear()
+        bpy.data.node_groups[name].annotation = None
 
         import_intermediate = ImportIntermediate()
         import_intermediate.from_str(string)
