@@ -552,14 +552,11 @@ class ImportIntermediate:
 
     def set_external(
         self,
-        ids_and_pointers: Iterator[Tuple[int, bpy.types.PointerProperty]],
+        ids_and_references: Iterator[Tuple[int, bpy.types.ID]],
     ) -> None:
         self.getters = dict(
-            (
-                external_id,
-                make_id_data_getter(pointer),
-            )
-            for external_id, pointer in ids_and_pointers
+            (external_id, make_id_data_getter(obj))
+            for external_id, obj in ids_and_references
         )
 
         # double check that only skipped ones are missing

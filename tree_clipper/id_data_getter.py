@@ -51,11 +51,11 @@ def _make_getter(
     return lambda: block[name]  # ty: ignore[non-subscriptable]
 
 
-def make_id_data_getter(ptr: bpy.types.PointerProperty) -> Callable[[], bpy.types.ID]:
-    if ptr is None:
+def make_id_data_getter(obj: bpy.types.ID) -> Callable[[], bpy.types.ID]:
+    if obj is None:
         return lambda: None
-    assert isinstance(ptr, bpy.types.ID)
-    if ptr.id_type not in _ID_TYPE_TO_DATA_BLOCK:
-        raise RuntimeError(f"Can not create getter for pointer to {ptr.id_type}")
+    assert isinstance(obj, bpy.types.ID)
+    if obj.id_type not in _ID_TYPE_TO_DATA_BLOCK:
+        raise RuntimeError(f"Can not create getter for pointer to {obj.id_type}")
 
-    return _make_getter(_ID_TYPE_TO_DATA_BLOCK[ptr.id_type](), ptr.name)
+    return _make_getter(_ID_TYPE_TO_DATA_BLOCK[obj.id_type](), obj.name)
