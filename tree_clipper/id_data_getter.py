@@ -12,7 +12,7 @@ _ID_TYPE_TO_DATA_BLOCK: dict[str, Callable[[], bpy.types.bpy_prop_collection]] =
     "CURVE": lambda: bpy.data.curves,
     # "CURVES": ???,
     "FONT": lambda: bpy.data.fonts,
-    # "GREASEPENCIL": ???,
+    "GREASEPENCIL": lambda: bpy.data.annotations,
     "GREASEPENCIL_V3": lambda: bpy.data.grease_pencils,
     "IMAGE": lambda: bpy.data.images,
     "KEY": lambda: bpy.data.shape_keys,

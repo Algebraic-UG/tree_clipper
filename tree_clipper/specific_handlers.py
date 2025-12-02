@@ -71,14 +71,14 @@ def _map_attribute_type_to_socket_type(attr_type: str):
 class NodeTreeExporter(SpecificExporter[bpy.types.NodeTree]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [NODE_TREE_INTERFACE, NODE_TREE_NODES, NODE_TREE_LINKS]
+            [NODE_TREE_INTERFACE, NODE_TREE_NODES, NODE_TREE_LINKS, "annotation"]
         )
 
 
 class NodeTreeImporter(SpecificImporter[bpy.types.NodeTree]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
-            [NODE_TREE_INTERFACE, NODE_TREE_NODES]
+            [NODE_TREE_INTERFACE, NODE_TREE_NODES, "annotation"]
         )
 
         # one thing that requires this is the repeat zone
