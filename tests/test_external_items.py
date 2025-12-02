@@ -109,7 +109,7 @@ def _check_before_import(external_items: list[EXTERNAL_SERIALIZATION]):
 
 def _check_after_import(name: str):
     tree = bpy.data.node_groups[name]
-    assert tree.animation_data is not None
+    assert tree.annotation is not None
     assert tree.nodes["Group"].node_tree is not None  # ty: ignore[unresolved-attribute]
     assert tree.nodes["Frame"].text is not None  # ty: ignore[unresolved-attribute]
     assert tree.nodes["Image"].image is not None  # ty: ignore[unresolved-attribute]
@@ -145,7 +145,8 @@ def test_external_items():
             for external_id, external_item in export_intermediate.get_external().items()
         )
 
-        string = export_intermediate.export_to_str(compress=True, json_indent=0)
+        string = export_intermediate.export_to_str(compress=False, json_indent=4)
+        print(string)
 
         bpy.data.node_groups.remove(bpy.data.node_groups[name])
 

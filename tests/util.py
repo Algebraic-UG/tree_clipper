@@ -15,7 +15,10 @@ def round_trip_without_external(name: str):
             write_from_roots=False,
         )
     )
-    string = export_intermediate.export_to_str(compress=True, json_indent=0)
+
+    string = export_intermediate.export_to_str(compress=False, json_indent=4)
+    print(string)
+
     import_intermediate = ImportIntermediate()
     import_intermediate.from_str(string)
     import_intermediate.import_nodes(
