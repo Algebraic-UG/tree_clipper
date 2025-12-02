@@ -49,12 +49,12 @@ def register() -> None:
     for cls in classes:
         bpy.utils.register_class(cls)
     # the pointer properties in the items make it impossible to store on the operator
-    bpy.types.Scene.tree_clipper_external_import_items = bpy.props.PointerProperty(
+    bpy.types.Scene.tree_clipper_external_import_items = bpy.props.PointerProperty(  # ty: ignore[unresolved-attribute]
         type=Tree_Clipper_External_Import_Items
-    )  # ty: ignore[unresolved-attribute]
+    )
 
 
 def unregister() -> None:
-    del bpy.types.Scene.tree_clipper_external_import_items
+    del bpy.types.Scene.tree_clipper_external_import_items  # ty: ignore[unresolved-attribute]
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
