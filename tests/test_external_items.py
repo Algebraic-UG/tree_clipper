@@ -53,13 +53,20 @@ def _create_setup():
 
 def _check_before_export(external_items: list[External]):
     for external_item in external_items:
-        pointer = getattr(
+        prop = external_item.pointed_to_by.obj.bl_rna.properties[
+            external_item.pointed_to_by.identifier
+        ]
+        assert isinstance(prop, bpy.types.PointerProperty)
+
+        obj = getattr(
             external_item.pointed_to_by.obj,
             external_item.pointed_to_by.identifier,
         )
-        assert isinstance(pointer, bpy.types.PointerProperty)
+        assert isinstance(obj, bpy.types.ID)
+
+        assert prop.fixed_type is not None
         assert (
-            pointer.fixed_type.bl_rna.identifier
+            prop.fixed_type.bl_rna.identifier  # ty: ignore[unresolved-attribute]
             == external_item.pointed_to_by.fixed_type_name
         )
 
