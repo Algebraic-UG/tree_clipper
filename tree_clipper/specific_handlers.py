@@ -71,7 +71,7 @@ def _map_attribute_type_to_socket_type(attr_type: str):
 class NodeTreeExporter(SpecificExporter[bpy.types.NodeTree]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [NODE_TREE_INTERFACE, NODE_TREE_NODES, NODE_TREE_LINKS, "annotation"]
+            [NODE_TREE_INTERFACE, NODE_TREE_NODES, NODE_TREE_LINKS, "annotation", "bl_idname"],
         )
 
 
@@ -197,7 +197,7 @@ class TreePanelImporter(SpecificImporter[bpy.types.NodeTreeInterfacePanel]):
 class NodeExporter(SpecificExporter[bpy.types.Node]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, "parent"]
+            [INPUTS, OUTPUTS, "bl_idname", "parent"],
         )
 
 

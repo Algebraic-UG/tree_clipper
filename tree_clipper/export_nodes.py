@@ -87,13 +87,15 @@ class Exporter:
         for prop in assumed_type.bl_rna.properties:
             if prop.is_readonly or prop.type not in SIMPLE_PROPERTY_TYPES_AS_STRS:
                 continue
-            data_prop = self._export_property_simple(
+            if prop.identifier in FORBIDDEN_PROPERTIES:
+                if self.debug_prints:
+                    print(f"{from_root.to_str()}: forbidden")
+                continue
+            data[prop.identifier] = self._export_property_simple(
                 obj=obj,
                 prop=prop,  # type: ignore
                 from_root=from_root.add_prop(prop),
             )
-            if data_prop is not None:
-                data[prop.identifier] = data_prop
         return data
 
     def export_properties_from_id_list(
@@ -105,13 +107,11 @@ class Exporter:
     ) -> dict[str, Any]:
         data = {}
         for prop in [obj.bl_rna.properties[p] for p in properties]:
-            data_prop = self._export_property(
+            data[prop.identifier] = self._export_property(
                 obj=obj,
                 prop=prop,
                 from_root=from_root.add_prop(prop),
             )
-            if data_prop is not None:
-                data[prop.identifier] = data_prop
         return data
 
     ################################################################################
@@ -124,21 +124,11 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         prop: SIMPLE_PROP_TYPE,
         from_root: FromRoot,
-    ) -> None | SIMPLE_DATA_TYPE:
+    ) -> SIMPLE_DATA_TYPE:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting simple")
 
         assert prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS
-
-        # we do need to export bl_idname for nodes and tree so we can construct them
-        bl_idname_exception = (
-            isinstance(obj, (bpy.types.Node, bpy.types.NodeTree))
-            and prop.identifier == "bl_idname"
-        )
-        if prop.identifier in FORBIDDEN_PROPERTIES and not bl_idname_exception:
-            if self.debug_prints:
-                print(f"{from_root.to_str()}: forbidden")
-            return None
 
         attribute = getattr(obj, prop.identifier)
         if prop.type in ["BOOLEAN", "INT", "FLOAT"]:
@@ -152,27 +142,15 @@ class Exporter:
             )
 
             if prop.is_array:
-                if self.skip_defaults and prop.default_array == attribute:
-                    if self.debug_prints:
-                        print(f"{from_root.to_str()}: skipping default")
-                    return None
                 return list(attribute)
 
         if prop.type == "ENUM":
             assert isinstance(prop, bpy.types.EnumProperty)
 
             if prop.is_enum_flag:
-                if self.skip_defaults and prop.default_flag == attribute:
-                    if self.debug_prints:
-                        print(f"{from_root.to_str()}: skipping default")
-                    return None
                 assert isinstance(attribute, set)
                 return list(attribute)
 
-        if self.skip_defaults and prop.default == attribute:
-            if self.debug_prints:
-                print(f"{from_root.to_str()}: skipping default")
-            return None
         return attribute
 
     def _export_property_pointer(
