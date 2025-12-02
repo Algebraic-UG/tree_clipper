@@ -3,7 +3,7 @@ from tree_clipper.import_nodes import ImportIntermediate, ImportParameters
 from tree_clipper.specific_handlers import BUILT_IN_EXPORTER, BUILT_IN_IMPORTER
 
 
-def round_trip(name: str):
+def round_trip_without_external(name: str):
     export_intermediate = ExportIntermediate(
         parameters=ExportParameters(
             is_material=False,
@@ -22,7 +22,6 @@ def round_trip(name: str):
         parameters=ImportParameters(
             specific_handlers=BUILT_IN_IMPORTER,
             allow_version_mismatch=False,
-            getters={},
             overwrite=True,
             debug_prints=True,
         )

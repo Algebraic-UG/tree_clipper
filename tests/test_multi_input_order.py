@@ -1,6 +1,6 @@
 import bpy
 
-from .util import round_trip
+from .util import round_trip_without_external
 
 
 def test_multi_input_order():
@@ -24,7 +24,7 @@ def test_multi_input_order():
         assert tree.links[0].multi_input_sort_id == 0
         assert tree.links[0].from_node == tree.nodes["Cube"]
 
-        round_trip(tree.name)
+        round_trip_without_external(tree.name)
 
         assert tree.links[0].multi_input_sort_id == 0
         assert tree.links[0].from_node == tree.nodes["Cube"]
@@ -34,7 +34,7 @@ def test_multi_input_order():
         assert tree.links[0].multi_input_sort_id == 1
         assert tree.links[0].from_node == tree.nodes["Cube"]
 
-        round_trip(tree.name)
+        round_trip_without_external(tree.name)
 
         assert tree.links[0].multi_input_sort_id == 1
         assert tree.links[0].from_node == tree.nodes["Cube"]
