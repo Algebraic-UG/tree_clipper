@@ -167,7 +167,9 @@ class Importer:
         assert prop.type == "POINTER"
         identifier = prop.identifier
 
-        if isinstance(serialization, int):
+        if serialization is None:
+            setattr(getter(), identifier, None)
+        elif isinstance(serialization, int):
             if prop.is_readonly:
                 raise RuntimeError("Readonly pointer can't deferred in json")
             if serialization not in self.getters:

@@ -103,6 +103,7 @@ class Exporter:
         *,
         obj: bpy.types.bpy_struct,
         properties: list[str],
+        serialize_pointees: bool,
         from_root: FromRoot,
     ) -> dict[str, Any]:
         data = {}
@@ -110,6 +111,7 @@ class Exporter:
             data[prop.identifier] = self._export_property(
                 obj=obj,
                 prop=prop,
+                serialize_pointee=serialize_pointees,
                 from_root=from_root.add_prop(prop),
             )
         return data
@@ -158,6 +160,7 @@ class Exporter:
         *,
         obj: bpy.types.bpy_struct,
         prop: bpy.types.PointerProperty,
+        serialize_pointee: bool,
         from_root: FromRoot,
     ) -> None | Pointer | dict[str, Any]:
         if self.debug_prints:
@@ -172,21 +175,22 @@ class Exporter:
                 print(f"{from_root.to_str()}: skipping not set")
             return None
 
-        if attribute.id_data == self.current_tree and prop.is_readonly:
+        if serialize_pointee:
             return self._export_obj(obj=attribute, from_root=from_root)
-        else:
-            assert prop.fixed_type is not None
-            pointer = Pointer(
-                obj=obj,
-                identifier=prop.identifier,
-                pointer_id=self.next_id - 1,
-                fixed_type_name=prop.fixed_type.bl_rna.identifier,  # ty: ignore[unresolved-attribute]
-                from_root=from_root,
-            )
-            self.pointers.setdefault(attribute, []).append(pointer)
-            if self.debug_prints:
-                print(f"{from_root.to_str()}: deferring")
-            return pointer
+
+        assert prop.fixed_type is not None
+        pointer = Pointer(
+            obj=obj,
+            identifier=prop.identifier,
+            pointer_id=self.next_id - 1,
+            fixed_type_name=prop.fixed_type.bl_rna.identifier,  # ty: ignore[unresolved-attribute]
+            from_root=from_root,
+        )
+        self.pointers.setdefault(attribute, []).append(pointer)
+
+        if self.debug_prints:
+            print(f"{from_root.to_str()}: deferring")
+        return pointer
 
     def _export_property_collection(
         self,
@@ -221,6 +225,7 @@ class Exporter:
         *,
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
+        serialize_pointee: bool,
         from_root: FromRoot,
     ) -> None | SIMPLE_DATA_TYPE | Pointer | dict[str, Any]:
         if prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS:
@@ -234,6 +239,7 @@ class Exporter:
             return self._export_property_pointer(
                 obj=obj,
                 prop=prop,
+                serialize_pointee=serialize_pointee,
                 from_root=from_root,
             )
         elif prop.type == "COLLECTION":
@@ -272,14 +278,20 @@ From root: {from_root.to_str()}"""
 
         attribute = getattr(obj, prop.identifier)
         if attribute is None:
+            if self.debug_prints:
+                print(f"{from_root.to_str()}: skipping not set")
             return None
 
         if prop.type == "POINTER":
             if prop.is_readonly and attribute.id_data != self.current_tree:
                 error_out("readonly pointer to external")
+            serialize_pointee = (
+                attribute.id_data == self.current_tree and prop.is_readonly
+            )
             return self._export_property_pointer(
                 obj=obj,
                 prop=cast(bpy.types.PointerProperty, prop),
+                serialize_pointee=serialize_pointee,
                 from_root=from_root,
             )
 
