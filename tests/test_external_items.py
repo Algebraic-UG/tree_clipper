@@ -1,3 +1,4 @@
+from tests.util import make_test_object, make_test_collection, make_test_node_tree
 import bpy
 
 from typing import Callable
@@ -8,22 +9,21 @@ from tree_clipper.import_nodes import ImportIntermediate, ImportParameters
 from tree_clipper.specific_handlers import BUILT_IN_EXPORTER, BUILT_IN_IMPORTER
 from tree_clipper.export_nodes import ExportIntermediate, ExportParameters, External
 
+
 _EXTERNAL_ITEM_MAKER: dict[str, Callable[[], bpy.types.ID]] = {
-    "NodeTree": lambda: bpy.data.node_groups.new(name="test", type="GeometryNodeTree"),
-    "Object": lambda: bpy.data.objects.new(name="test", object_data=None),
     "Image": lambda: bpy.data.images.new(name="test", width=10, height=10),
     "Material": lambda: bpy.data.materials.new(name="test"),
     "Text": lambda: bpy.data.texts.new(name="test"),
     "Annotation": lambda: bpy.data.annotations.new(name="test"),
-    "Collection": lambda: bpy.data.collections.new(name="test"),
+    # special: they can cause something like ERROR ID user decrement error: GRtest (from '[Main]'): 0 <= 0
+    "Object": make_test_object,
+    "Collection": make_test_collection,
+    "NodeTree": make_test_node_tree,
 }
 
 
 def _create_setup():
-    tree = bpy.data.node_groups.new(name="test", type="GeometryNodeTree")
-    assert isinstance(tree, bpy.types.GeometryNodeTree)
-    tree.is_modifier = True
-    tree.use_fake_user = True
+    tree = make_test_node_tree()
 
     tree.annotation = _EXTERNAL_ITEM_MAKER["Annotation"]()  # ty: ignore[invalid-assignment]
 

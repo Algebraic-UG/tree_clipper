@@ -1,6 +1,31 @@
+import bpy
+
 from tree_clipper.export_nodes import ExportIntermediate, ExportParameters
 from tree_clipper.import_nodes import ImportIntermediate, ImportParameters
 from tree_clipper.specific_handlers import BUILT_IN_EXPORTER, BUILT_IN_IMPORTER
+
+
+def make_test_object() -> bpy.types.Object:
+    obj = bpy.data.objects.new(name="test", object_data=None)
+    bpy.context.scene.collection.objects.link(  # ty :ignore[possibly-missing-attribute]
+        obj
+    )
+    return obj
+
+
+def make_test_collection() -> bpy.types.Collection:
+    collection = bpy.data.collections.new(name="test")
+    bpy.context.scene.collection.children.link(  # ty :ignore[possibly-missing-attribute]
+        collection
+    )
+    return collection
+
+
+def make_test_node_tree() -> bpy.types.NodeTree:
+    tree = bpy.data.node_groups.new(name="test", type="GeometryNodeTree")
+    tree.use_fake_user = True
+    tree.is_modifier = True  # ty: ignore[unresolved-attribute]
+    return tree
 
 
 def round_trip_without_external(name: str):

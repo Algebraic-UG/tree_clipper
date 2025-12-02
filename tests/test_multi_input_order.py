@@ -1,14 +1,11 @@
 import bpy
 
-from .util import round_trip_without_external
+from .util import round_trip_without_external, make_test_node_tree
 
 
 def test_multi_input_order():
     try:
-        tree = bpy.data.node_groups.new(name="test", type="GeometryNodeTree")
-        assert isinstance(tree, bpy.types.GeometryNodeTree)
-        tree.is_modifier = True
-        tree.use_fake_user = True
+        tree = make_test_node_tree()
 
         tree.nodes.new(type="GeometryNodeJoinGeometry")
         tree.nodes.new(type="GeometryNodeMeshCube")
