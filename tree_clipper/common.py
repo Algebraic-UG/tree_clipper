@@ -136,5 +136,6 @@ SIMPLE_PROP_TYPE_TUPLE = (
     bpy.types.StringProperty,
     bpy.types.EnumProperty,
 )
+EXTERNAL_SERIALIZATION = dict[str, bool | str]
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")

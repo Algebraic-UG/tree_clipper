@@ -24,6 +24,7 @@ from .common import (
     FromRoot,
     most_specific_type_handled,
     no_clobber,
+    EXTERNAL_SERIALIZATION,
 )
 
 
@@ -535,16 +536,21 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
     return data
 
 
+def _encode_external(obj: External) -> EXTERNAL_SERIALIZATION:
+    assert isinstance(obj.description, str)
+    return {
+        "skip": obj.skip,
+        "description": obj.description,
+        "fixed_type_name": obj.pointed_to_by.fixed_type_name,
+    }
+
+
 class _Encoder(json.JSONEncoder):
     def default(self, o) -> int | str | Any:
         if isinstance(o, Pointer):
             return o.pointee_id
         if isinstance(o, External):
-            return {
-                "skip": o.skip,
-                "description": o.description,
-                "fixed_type_name": o.pointed_to_by.fixed_type_name,
-            }
+            return _encode_external(o)
         return super().default(o)
 
 

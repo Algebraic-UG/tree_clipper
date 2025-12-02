@@ -58,11 +58,17 @@ def add_all_known_pointer_properties(
         for ty in pointables:
             setattr(self, get_pointer_property_name(ty), None)
 
-    # lookup which one is active and return that one
+    # this is needed to display the property
     def get_active_pointer_identifier(self) -> str:
         return f"{prefix}{self.active_ptr_type_name}"
+
+    # directly return the pointer
+    def get_active_pointer(self) -> bpy.types.PointerProperty:
+        return getattr(self, self.get_active_pointer_identifier())
 
     assert not hasattr(cls, set_active_pointer_type.__name__)
     setattr(cls, set_active_pointer_type.__name__, set_active_pointer_type)
     assert not hasattr(cls, get_active_pointer_identifier.__name__)
     setattr(cls, get_active_pointer_identifier.__name__, get_active_pointer_identifier)
+    assert not hasattr(cls, get_active_pointer.__name__)
+    setattr(cls, get_active_pointer.__name__, get_active_pointer)
