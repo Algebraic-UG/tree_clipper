@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 from pathlib import Path
 
 from ..dynamic_pointer import add_all_known_pointer_properties
-from ..common import GETTER, DEFAULT_FILE
+from ..common import DEFAULT_FILE
 
 from ..specific_handlers import (
     BUILT_IN_IMPORTER,
