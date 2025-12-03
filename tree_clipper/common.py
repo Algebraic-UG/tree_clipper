@@ -2,6 +2,9 @@ import bpy
 
 from types import NoneType
 from typing import Any, Callable, TYPE_CHECKING
+from pathlib import Path
+import tempfile
+
 
 if TYPE_CHECKING:
     from .export_nodes import Exporter
@@ -133,3 +136,6 @@ SIMPLE_PROP_TYPE_TUPLE = (
     bpy.types.StringProperty,
     bpy.types.EnumProperty,
 )
+EXTERNAL_SERIALIZATION = dict[str, str | None]
+
+DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")

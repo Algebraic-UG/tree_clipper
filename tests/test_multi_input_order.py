@@ -1,14 +1,11 @@
 import bpy
 
-from .util import round_trip
+from .util import round_trip_without_external, make_test_node_tree
 
 
 def test_multi_input_order():
     try:
-        tree = bpy.data.node_groups.new(name="test", type="GeometryNodeTree")
-        assert isinstance(tree, bpy.types.GeometryNodeTree)
-        tree.is_modifier = True
-        tree.use_fake_user = True
+        tree = make_test_node_tree()
 
         tree.nodes.new(type="GeometryNodeJoinGeometry")
         tree.nodes.new(type="GeometryNodeMeshCube")
@@ -24,7 +21,7 @@ def test_multi_input_order():
         assert tree.links[0].multi_input_sort_id == 0
         assert tree.links[0].from_node == tree.nodes["Cube"]
 
-        round_trip(tree.name)
+        round_trip_without_external(tree.name)
 
         assert tree.links[0].multi_input_sort_id == 0
         assert tree.links[0].from_node == tree.nodes["Cube"]
@@ -34,7 +31,7 @@ def test_multi_input_order():
         assert tree.links[0].multi_input_sort_id == 1
         assert tree.links[0].from_node == tree.nodes["Cube"]
 
-        round_trip(tree.name)
+        round_trip_without_external(tree.name)
 
         assert tree.links[0].multi_input_sort_id == 1
         assert tree.links[0].from_node == tree.nodes["Cube"]

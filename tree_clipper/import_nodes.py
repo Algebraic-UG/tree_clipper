@@ -1,10 +1,11 @@
+import bpy
+
 import base64
 import gzip
 import json
 from types import NoneType
-import bpy
 
-from typing import Any, Type
+from typing import Any, Type, Tuple, Iterator
 
 import sys
 import tomllib
@@ -27,7 +28,10 @@ from .common import (
     FromRoot,
     most_specific_type_handled,
     MAGIC_STRING,
+    EXTERNAL_SERIALIZATION,
 )
+
+from .id_data_getter import make_id_data_getter
 
 
 class Importer:
@@ -163,7 +167,9 @@ class Importer:
         assert prop.type == "POINTER"
         identifier = prop.identifier
 
-        if isinstance(serialization, int):
+        if serialization is None:
+            setattr(getter(), identifier, None)
+        elif isinstance(serialization, int):
             if prop.is_readonly:
                 raise RuntimeError("Readonly pointer can't deferred in json")
             if serialization not in self.getters:
@@ -470,21 +476,24 @@ class ImportParameters:
         *,
         specific_handlers: dict[type, DESERIALIZER],
         allow_version_mismatch: bool,
-        getters: dict[int, GETTER],
         overwrite: bool,
         debug_prints: bool,
     ) -> None:
         self.specific_handlers = specific_handlers
         self.allow_version_mismatch = allow_version_mismatch
-        self.getters = getters
         self.overwrite = overwrite
         self.debug_prints = debug_prints
 
 
-def _import_nodes_from_dict(*, data: dict, parameters: ImportParameters) -> None:
+def _import_nodes_from_dict(
+    *,
+    data: dict[str, Any],
+    getters: dict[int, GETTER],
+    parameters: ImportParameters,
+) -> None:
     importer = Importer(
         specific_handlers=parameters.specific_handlers,
-        getters=parameters.getters,
+        getters=getters,
         debug_prints=parameters.debug_prints,
     )
 
@@ -510,7 +519,8 @@ def _import_nodes_from_dict(*, data: dict, parameters: ImportParameters) -> None
 
 class ImportIntermediate:
     def __init__(self) -> None:
-        self.data = None
+        self.data: dict[str, Any] = None
+        self.getters: dict[int, GETTER] = {}
 
     def from_str(self, string: str) -> None:
         compressed = string.startswith(MAGIC_STRING)
@@ -536,8 +546,32 @@ class ImportIntermediate:
                 data = json.load(file)
                 self.data = data
 
+    def get_external(self) -> dict[int, EXTERNAL_SERIALIZATION]:
+        assert isinstance(self.data, dict)
+        return self.data["external"]
+
+    def set_external(
+        self,
+        ids_and_references: Iterator[Tuple[int, bpy.types.ID]],
+    ) -> None:
+        self.getters = dict(
+            (external_id, make_id_data_getter(obj))
+            for external_id, obj in ids_and_references
+        )
+
+        # double check that only skipped ones are missing
+        for (
+            external_id,
+            external_item,
+        ) in self.get_external().items():
+            if external_item["description"] is None:
+                self.getters[int(external_id)] = lambda: None
+            else:
+                assert int(external_id) in self.getters
+
     def import_nodes(self, parameters: ImportParameters) -> None:
         _import_nodes_from_dict(
-            data=self.data,  # type: ignore
+            data=self.data,
+            getters=self.getters,
             parameters=parameters,
         )

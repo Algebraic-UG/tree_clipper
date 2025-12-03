@@ -131,19 +131,33 @@ class SpecificExporter(Generic[AssumedType], ABC):
             from_root=self.from_root,
         )
 
-    def export_properties_from_id_list(self, id_list: list[str]):
+    def export_properties_from_id_list(
+        self,
+        id_list: list[str],
+        serialize_pointees: bool = True,
+    ):
         return self.exporter.export_properties_from_id_list(
             obj=self.obj,
             properties=id_list,
+            serialize_pointees=serialize_pointees,
             from_root=self.from_root,
         )
 
-    def export_all_simple_writable_properties_and_list(self, id_list: list[str]):
+    def export_all_simple_writable_properties_and_list(
+        self, id_list_serialize: list[str], id_list_reference: list[str] | None = None
+    ):
         data = self.export_all_simple_writable_properties()
         for identifier, data_prop in self.export_properties_from_id_list(
-            id_list
+            id_list_serialize
         ).items():
             no_clobber(data, identifier, data_prop)
+        if id_list_reference is None:
+            return data
+        for identifier, data_prop in self.export_properties_from_id_list(
+            id_list_reference, False
+        ).items():
+            no_clobber(data, identifier, data_prop)
+
         return data
 
     @abstractmethod

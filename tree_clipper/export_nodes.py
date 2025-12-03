@@ -1,11 +1,12 @@
+import bpy
+
 import base64
 import gzip
 import json
 from pathlib import Path
 from types import NoneType
-from typing import Any, cast, Type
+from typing import Any, cast, Type, Iterator, Tuple
 
-import bpy
 import tomllib
 
 from .common import (
@@ -24,6 +25,7 @@ from .common import (
     FromRoot,
     most_specific_type_handled,
     no_clobber,
+    EXTERNAL_SERIALIZATION,
 )
 
 
@@ -34,14 +36,22 @@ class Pointer:
         obj: bpy.types.bpy_struct,
         identifier: str,
         pointer_id: int,
+        fixed_type_name: str,
         from_root: FromRoot,
     ) -> None:
+        # we need these to show a pointer property in the UI
         self.obj = obj
         self.identifier = identifier
+
+        # so the user can find the pointer it the tree and serialization
         self.from_root = from_root
         self.pointer_id = pointer_id
-        # this is determined after all trees are serialized
+
+        # this is determined after everything is serialized and is used in deserialization
         self.pointee_id = None
+
+        # needed for the selection on import
+        self.fixed_type_name = fixed_type_name
 
 
 class Exporter:
@@ -77,13 +87,15 @@ class Exporter:
         for prop in assumed_type.bl_rna.properties:
             if prop.is_readonly or prop.type not in SIMPLE_PROPERTY_TYPES_AS_STRS:
                 continue
-            data_prop = self._export_property_simple(
+            if prop.identifier in FORBIDDEN_PROPERTIES:
+                if self.debug_prints:
+                    print(f"{from_root.to_str()}: forbidden")
+                continue
+            data[prop.identifier] = self._export_property_simple(
                 obj=obj,
                 prop=prop,  # type: ignore
                 from_root=from_root.add_prop(prop),
             )
-            if data_prop is not None:
-                data[prop.identifier] = data_prop
         return data
 
     def export_properties_from_id_list(
@@ -91,17 +103,17 @@ class Exporter:
         *,
         obj: bpy.types.bpy_struct,
         properties: list[str],
+        serialize_pointees: bool,
         from_root: FromRoot,
     ) -> dict[str, Any]:
         data = {}
         for prop in [obj.bl_rna.properties[p] for p in properties]:
-            data_prop = self._export_property(
+            data[prop.identifier] = self._export_property(
                 obj=obj,
                 prop=prop,
+                serialize_pointee=serialize_pointees,
                 from_root=from_root.add_prop(prop),
             )
-            if data_prop is not None:
-                data[prop.identifier] = data_prop
         return data
 
     ################################################################################
@@ -114,21 +126,11 @@ class Exporter:
         obj: bpy.types.bpy_struct,
         prop: SIMPLE_PROP_TYPE,
         from_root: FromRoot,
-    ) -> None | SIMPLE_DATA_TYPE:
+    ) -> SIMPLE_DATA_TYPE:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting simple")
 
         assert prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS
-
-        # we do need to export bl_idname for nodes and tree so we can construct them
-        bl_idname_exception = (
-            isinstance(obj, (bpy.types.Node, bpy.types.NodeTree))
-            and prop.identifier == "bl_idname"
-        )
-        if prop.identifier in FORBIDDEN_PROPERTIES and not bl_idname_exception:
-            if self.debug_prints:
-                print(f"{from_root.to_str()}: forbidden")
-            return None
 
         attribute = getattr(obj, prop.identifier)
         if prop.type in ["BOOLEAN", "INT", "FLOAT"]:
@@ -142,27 +144,15 @@ class Exporter:
             )
 
             if prop.is_array:
-                if self.skip_defaults and prop.default_array == attribute:
-                    if self.debug_prints:
-                        print(f"{from_root.to_str()}: skipping default")
-                    return None
                 return list(attribute)
 
         if prop.type == "ENUM":
             assert isinstance(prop, bpy.types.EnumProperty)
 
             if prop.is_enum_flag:
-                if self.skip_defaults and prop.default_flag == attribute:
-                    if self.debug_prints:
-                        print(f"{from_root.to_str()}: skipping default")
-                    return None
                 assert isinstance(attribute, set)
                 return list(attribute)
 
-        if self.skip_defaults and prop.default == attribute:
-            if self.debug_prints:
-                print(f"{from_root.to_str()}: skipping default")
-            return None
         return attribute
 
     def _export_property_pointer(
@@ -170,6 +160,7 @@ class Exporter:
         *,
         obj: bpy.types.bpy_struct,
         prop: bpy.types.PointerProperty,
+        serialize_pointee: bool,
         from_root: FromRoot,
     ) -> None | Pointer | dict[str, Any]:
         if self.debug_prints:
@@ -184,19 +175,22 @@ class Exporter:
                 print(f"{from_root.to_str()}: skipping not set")
             return None
 
-        if attribute.id_data == self.current_tree and prop.is_readonly:
+        if serialize_pointee:
             return self._export_obj(obj=attribute, from_root=from_root)
-        else:
-            pointer = Pointer(
-                obj=obj,
-                identifier=prop.identifier,
-                pointer_id=self.next_id - 1,
-                from_root=from_root,
-            )
-            self.pointers.setdefault(attribute, []).append(pointer)
-            if self.debug_prints:
-                print(f"{from_root.to_str()}: deferring")
-            return pointer
+
+        assert prop.fixed_type is not None
+        pointer = Pointer(
+            obj=obj,
+            identifier=prop.identifier,
+            pointer_id=self.next_id - 1,
+            fixed_type_name=prop.fixed_type.bl_rna.identifier,  # ty: ignore[unresolved-attribute]
+            from_root=from_root,
+        )
+        self.pointers.setdefault(attribute, []).append(pointer)
+
+        if self.debug_prints:
+            print(f"{from_root.to_str()}: deferring")
+        return pointer
 
     def _export_property_collection(
         self,
@@ -231,6 +225,7 @@ class Exporter:
         *,
         obj: bpy.types.bpy_struct,
         prop: bpy.types.Property,
+        serialize_pointee: bool,
         from_root: FromRoot,
     ) -> None | SIMPLE_DATA_TYPE | Pointer | dict[str, Any]:
         if prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS:
@@ -244,6 +239,7 @@ class Exporter:
             return self._export_property_pointer(
                 obj=obj,
                 prop=prop,
+                serialize_pointee=serialize_pointee,
                 from_root=from_root,
             )
         elif prop.type == "COLLECTION":
@@ -282,14 +278,20 @@ From root: {from_root.to_str()}"""
 
         attribute = getattr(obj, prop.identifier)
         if attribute is None:
+            if self.debug_prints:
+                print(f"{from_root.to_str()}: skipping not set")
             return None
 
         if prop.type == "POINTER":
             if prop.is_readonly and attribute.id_data != self.current_tree:
                 error_out("readonly pointer to external")
+            serialize_pointee = (
+                attribute.id_data == self.current_tree and prop.is_readonly
+            )
             return self._export_property_pointer(
                 obj=obj,
                 prop=cast(bpy.types.PointerProperty, prop),
+                serialize_pointee=serialize_pointee,
                 from_root=from_root,
             )
 
@@ -454,10 +456,16 @@ class External:
     def __init__(
         self,
         *,
-        pointed_to_by: list[Pointer],
+        pointed_to_by: Pointer,
     ) -> None:
         self.pointed_to_by = pointed_to_by
+
+        # this should be further specified by user of the export
+        # if it remains none, it'll be skipped on import
         self.description = None
+
+        # if the user decides this doesn't need setting by the importer
+        self.skip = False
 
 
 def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
@@ -506,10 +514,13 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
             for pointer in pointers:
                 pointer.pointee_id = exporter.serialized[obj]
         else:
-            external_id = exporter.next_id
-            exporter.next_id += 1
-            external[external_id] = External(pointed_to_by=pointers)
+            # Maybe it could be beneficial in some cases to have the option to have a single external item,
+            # but it's also possible to use an additional group node to avieve the same thing.
+            # Let's rather keep it simple here for now.
             for pointer in pointers:
+                external_id = exporter.next_id
+                exporter.next_id += 1
+                external[external_id] = External(pointed_to_by=pointer)
                 pointer.pointee_id = external_id
 
     data["external"] = external
@@ -517,13 +528,20 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
     return data
 
 
+def _encode_external(obj: External) -> EXTERNAL_SERIALIZATION:
+    return {
+        "description": obj.description,
+        "fixed_type_name": obj.pointed_to_by.fixed_type_name,
+    }
+
+
 class _Encoder(json.JSONEncoder):
-    def default(self, obj) -> int | str | Any:
-        if isinstance(obj, Pointer):
-            return obj.pointee_id
-        if isinstance(obj, External):
-            return obj.description
-        return super().default(obj)
+    def default(self, o) -> int | str | Any:
+        if isinstance(o, Pointer):
+            return o.pointee_id
+        if isinstance(o, External):
+            return _encode_external(o)
+        return super().default(o)
 
 
 class ExportIntermediate:
@@ -555,3 +573,10 @@ class ExportIntermediate:
 
     def get_external(self) -> dict[int, External]:
         return self.data["external"]
+
+    def set_external(
+        self,
+        ids_and_descriptions: Iterator[Tuple[int, str]],
+    ) -> None:
+        for external_id, description in ids_and_descriptions:
+            self.data["external"][external_id].description = description
