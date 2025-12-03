@@ -10,47 +10,48 @@ if TYPE_CHECKING:
     from .export_nodes import Exporter
     from .import_nodes import Importer
 
-SIMPLE_PROPERTY_TYPES_AS_STRS = set(
-    [
-        "BOOLEAN",
-        "INT",
-        "FLOAT",
-        "STRING",
-        "ENUM",
-    ]
-)
-
+# these fields are in the top level JSON object
 BLENDER_VERSION = "blender_version"
 TREE_CLIPPER_VERSION = "tree_clipper_version"
 MATERIAL_NAME = "name"
 TREES = "node_trees"
+EXTERNAL = "external"
 
-SOCKET_IDENTIFIER = "identifier"
-IS_MULTI_INPUT = "is_multi_input"
+# within each external item
+EXTERNAL_DESCRIPTION = "description"
+EXTERNAL_FIXED_TYPE_NAME = "fixed_type_name"
 
-FROM_NODE = "from_node"
-FROM_SOCKET = "from_socket"
-TO_NODE = "to_node"
-TO_SOCKET = "to_socket"
+# for every object
+ID = "id"  # to reference it from elsewhere
+DATA = "data"  # the actual data
+FROM_ROOT = "from_root"  # optional, for debugging
 
-INPUTS = "inputs"
-OUTPUTS = "outputs"
-
-IN_OUT = "in_out"
-
-INTERFACE_ITEMS = "interface_items"
-INTERFACE_ITEMS_TREE = "items_tree"
-INTERFACE_ITEMS_ACTIVE = "active"
-
-NODE_TREE_TYPE = "rna_type"
-NODE_TREE_INTERFACE = "interface"
-NODE_TREE_LINKS = "links"
-NODE_TREE_NODES = "nodes"
-
-ID = "id"
-DATA = "data"
-
+# every compressed serialization starts with this
 MAGIC_STRING = "TreeClipper::"
+
+# to help prevent typos
+BL_RNA = "bl_rna"
+BL_IDNAME = "bl_idname"
+RNA_TYPE = "rna_type"  # TODO: another 'forbidden' category?
+DEFAULT_VALUE = "default_value"
+ITEMS = "items"
+NAME = "name"
+PROP_TYPE_BOOLEAN = "BOOLEAN"
+PROP_TYPE_INT = "INT"
+PROP_TYPE_FLOAT = "FLOAT"
+PROP_TYPE_STRING = "STRING"
+PROP_TYPE_ENUM = "ENUM"
+PROP_TYPE_POINTER = "POINTER"
+PROP_TYPE_COLLECTION = "COLLECTION"
+SIMPLE_PROPERTY_TYPES_AS_STRS = set(
+    [
+        PROP_TYPE_BOOLEAN,
+        PROP_TYPE_INT,
+        PROP_TYPE_FLOAT,
+        PROP_TYPE_STRING,
+        PROP_TYPE_ENUM,
+    ]
+)
 
 # bl_* properties can be dangerous to set
 # https://github.com/Algebraic-UG/tree_clipper/issues/39

@@ -12,6 +12,7 @@ import tomllib
 from .common import (
     BLENDER_VERSION,
     DATA,
+    EXTERNAL_DESCRIPTION,
     FORBIDDEN_PROPERTIES,
     ID,
     MAGIC_STRING,
@@ -26,6 +27,19 @@ from .common import (
     most_specific_type_handled,
     no_clobber,
     EXTERNAL_SERIALIZATION,
+    PROP_TYPE_BOOLEAN,
+    PROP_TYPE_INT,
+    PROP_TYPE_FLOAT,
+    PROP_TYPE_ENUM,
+    PROP_TYPE_POINTER,
+    PROP_TYPE_COLLECTION,
+    NAME,
+    ITEMS,
+    BL_RNA,
+    FROM_ROOT,
+    RNA_TYPE,
+    EXTERNAL,
+    EXTERNAL_FIXED_TYPE_NAME,
 )
 
 
@@ -133,7 +147,7 @@ class Exporter:
         assert prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS
 
         attribute = getattr(obj, prop.identifier)
-        if prop.type in ["BOOLEAN", "INT", "FLOAT"]:
+        if prop.type in [PROP_TYPE_BOOLEAN, PROP_TYPE_INT, PROP_TYPE_FLOAT]:
             assert isinstance(
                 prop,
                 (
@@ -146,7 +160,7 @@ class Exporter:
             if prop.is_array:
                 return list(attribute)
 
-        if prop.type == "ENUM":
+        if prop.type == PROP_TYPE_ENUM:
             assert isinstance(prop, bpy.types.EnumProperty)
 
             if prop.is_enum_flag:
@@ -166,7 +180,7 @@ class Exporter:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting pointer")
 
-        assert prop.type == "POINTER"
+        assert prop.type == PROP_TYPE_POINTER
 
         attribute = getattr(obj, prop.identifier)
 
@@ -202,7 +216,7 @@ class Exporter:
         if self.debug_prints:
             print(f"{from_root.to_str()}: exporting collection")
 
-        assert prop.type == "COLLECTION"
+        assert prop.type == PROP_TYPE_COLLECTION
 
         attribute = getattr(obj, prop.identifier)
 
@@ -211,12 +225,12 @@ class Exporter:
             self._export_obj(
                 obj=element,
                 from_root=from_root.add(
-                    f"[{i}] ({getattr(attribute[i], 'name', 'unnamed')})"
+                    f"[{i}] ({getattr(attribute[i], NAME, 'unnamed')})"
                 ),
             )
             for i, element in enumerate(attribute)
         ]
-        no_clobber(data[DATA], "items", items)
+        no_clobber(data[DATA], ITEMS, items)
 
         return data
 
@@ -234,7 +248,7 @@ class Exporter:
                 prop=prop,  # type: ignore
                 from_root=from_root,
             )
-        elif prop.type == "POINTER":
+        elif prop.type == PROP_TYPE_POINTER:
             assert isinstance(prop, bpy.types.PointerProperty)
             return self._export_property_pointer(
                 obj=obj,
@@ -242,7 +256,7 @@ class Exporter:
                 serialize_pointee=serialize_pointee,
                 from_root=from_root,
             )
-        elif prop.type == "COLLECTION":
+        elif prop.type == PROP_TYPE_COLLECTION:
             assert isinstance(prop, bpy.types.CollectionProperty)
             return self._export_property_collection(
                 obj=obj,
@@ -282,7 +296,7 @@ From root: {from_root.to_str()}"""
                 print(f"{from_root.to_str()}: skipping not set")
             return None
 
-        if prop.type == "POINTER":
+        if prop.type == PROP_TYPE_POINTER:
             if prop.is_readonly and attribute.id_data != self.current_tree:
                 error_out("readonly pointer to external")
             serialize_pointee = (
@@ -295,10 +309,10 @@ From root: {from_root.to_str()}"""
                 from_root=from_root,
             )
 
-        if prop.type == "COLLECTION":
+        if prop.type == PROP_TYPE_COLLECTION:
             prop = cast(bpy.types.CollectionProperty, prop)
             if (
-                hasattr(attribute, "bl_rna")
+                hasattr(attribute, BL_RNA)
                 and any(
                     len(func.parameters) != 0 for func in attribute.bl_rna.functions
                 )
@@ -337,7 +351,7 @@ From root: {from_root.to_str()}"""
             DATA: serializer(self, obj, from_root),
         }
         if self.write_from_roots:
-            data["from_root"] = from_root.to_str()
+            data[FROM_ROOT] = from_root.to_str()
         return data
 
     def _export_obj(
@@ -348,7 +362,7 @@ From root: {from_root.to_str()}"""
     ) -> dict[str, Any]:
         # edge case for things like bpy_prop_collection that aren't real RNA types?
         # https://projects.blender.org/blender/blender/issues/150092
-        if not hasattr(obj, "bl_rna"):
+        if not hasattr(obj, BL_RNA):
             assert isinstance(obj, bpy.types.bpy_prop_collection)
             return self._export_obj_with_serializer(
                 obj=obj,
@@ -367,7 +381,7 @@ From root: {from_root.to_str()}"""
             prop
             for prop in obj.bl_rna.properties
             if prop.identifier not in handled_prop_ids
-            and prop.identifier not in ["rna_type"]
+            and prop.identifier not in [RNA_TYPE]
         ]
 
         def serializer(
@@ -523,15 +537,15 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
                 external[external_id] = External(pointed_to_by=pointer)
                 pointer.pointee_id = external_id
 
-    data["external"] = external
+    data[EXTERNAL] = external
 
     return data
 
 
 def _encode_external(obj: External) -> EXTERNAL_SERIALIZATION:
     return {
-        "description": obj.description,
-        "fixed_type_name": obj.pointed_to_by.fixed_type_name,
+        EXTERNAL_DESCRIPTION: obj.description,
+        EXTERNAL_FIXED_TYPE_NAME: obj.pointed_to_by.fixed_type_name,
     }
 
 
@@ -572,11 +586,11 @@ class ExportIntermediate:
                 json.dump(self.data, file, cls=_Encoder, indent=json_indent)
 
     def get_external(self) -> dict[int, External]:
-        return self.data["external"]
+        return self.data[EXTERNAL]
 
     def set_external(
         self,
         ids_and_descriptions: Iterator[Tuple[int, str]],
     ) -> None:
         for external_id, description in ids_and_descriptions:
-            self.data["external"][external_id].description = description
+            self.data[EXTERNAL][external_id].description = description
