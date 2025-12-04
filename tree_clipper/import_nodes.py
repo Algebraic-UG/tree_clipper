@@ -29,6 +29,17 @@ from .common import (
     most_specific_type_handled,
     MAGIC_STRING,
     EXTERNAL_SERIALIZATION,
+    PROP_TYPE_ENUM,
+    DEFAULT_VALUE,
+    PROP_TYPE_POINTER,
+    PROP_TYPE_COLLECTION,
+    ITEMS,
+    NAME,
+    BL_RNA,
+    RNA_TYPE,
+    BL_IDNAME,
+    EXTERNAL_DESCRIPTION,
+    EXTERNAL,
 )
 
 from .id_data_getter import make_id_data_getter
@@ -137,8 +148,8 @@ class Importer:
                 isinstance(getter(), bpy.types.NodeSocket)
                 or isinstance(getter(), bpy.types.NodeTreeInterfaceSocket)
             )
-            and prop.type in "ENUM"
-            and identifier == "default_value"
+            and prop.type == PROP_TYPE_ENUM
+            and identifier == DEFAULT_VALUE
         ):
             if self.debug_prints:
                 print(f"{from_root.to_str()}: defer setting enum default for now")
@@ -147,7 +158,7 @@ class Importer:
             )
             return
 
-        if prop.type == "ENUM" and prop.is_enum_flag:
+        if prop.type == PROP_TYPE_ENUM and prop.is_enum_flag:
             assert isinstance(serialization, list)
             setattr(getter(), identifier, set(serialization))
         else:
@@ -164,7 +175,7 @@ class Importer:
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing pointer")
 
-        assert prop.type == "POINTER"
+        assert prop.type == PROP_TYPE_POINTER
         identifier = prop.identifier
 
         if serialization is None:
@@ -200,7 +211,7 @@ class Importer:
         if self.debug_prints:
             print(f"{from_root.to_str()}: importing collection")
 
-        assert prop.type == "COLLECTION"
+        assert prop.type == PROP_TYPE_COLLECTION
         assert "items" in serialization[DATA]
 
         identifier = prop.identifier
@@ -212,7 +223,7 @@ class Importer:
             from_root=from_root,
         )
 
-        serialized_items = serialization[DATA]["items"]
+        serialized_items = serialization[DATA][ITEMS]
 
         if len(serialized_items) != len(attribute):
             raise RuntimeError(
@@ -223,8 +234,8 @@ class Importer:
             return lambda: getattr(getter(), identifier)[i]
 
         for i, item in enumerate(attribute):
-            current_name = getattr(item, "name", "unnamed")
-            final_name = serialized_items[i][DATA].get("name", current_name)
+            current_name = getattr(item, NAME, "unnamed")
+            final_name = serialized_items[i][DATA].get(NAME, current_name)
             self._import_obj(
                 getter=make_getter(i),
                 serialization=serialized_items[i],
@@ -247,7 +258,7 @@ class Importer:
                 serialization=serialization,  # type: ignore
                 from_root=from_root,
             )
-        elif prop.type == "POINTER":
+        elif prop.type == PROP_TYPE_POINTER:
             assert isinstance(prop, bpy.types.PointerProperty)
             return self._import_property_pointer(
                 getter=getter,
@@ -255,7 +266,7 @@ class Importer:
                 serialization=serialization,  # type: ignore
                 from_root=from_root,
             )
-        elif prop.type == "COLLECTION":
+        elif prop.type == PROP_TYPE_COLLECTION:
             assert isinstance(prop, bpy.types.CollectionProperty)
             return self._import_property_collection(
                 getter=getter,
@@ -310,7 +321,7 @@ From root: {from_root.to_str()}"""
         from_root: FromRoot,
     ) -> None:
         # edge case for things like bpy_prop_collection that aren't real RNA types?
-        if not hasattr(getter(), "bl_rna"):
+        if not hasattr(getter(), BL_RNA):
             assert isinstance(getter(), bpy.types.bpy_prop_collection)
             return self._import_obj_with_deserializer(
                 getter=getter,
@@ -340,7 +351,7 @@ From root: {from_root.to_str()}"""
             prop.identifier
             for prop in getter().bl_rna.properties
             if prop.identifier not in handled_prop_ids
-            and prop.identifier not in ["rna_type"]
+            and prop.identifier not in [RNA_TYPE]
         ]
 
         def deserializer(
@@ -363,7 +374,7 @@ From root: {from_root.to_str()}"""
                         if self.debug_prints:
                             print(f"{prop_from_root.to_str()}: missing, assume default")
                         continue
-                    if prop.type == "POINTER" and not prop.is_readonly:
+                    if prop.type == PROP_TYPE_POINTER and not prop.is_readonly:
                         if self.debug_prints:
                             print(f"{prop_from_root.to_str()}: missing, assume not set")
                         continue
@@ -397,14 +408,14 @@ From root: {from_root.to_str()}"""
         overwrite: bool,
         material_name: str | None = None,
     ) -> None:
-        original_name = serialization[DATA]["name"]
+        original_name = serialization[DATA][NAME]
 
         if material_name is None:
             if overwrite and original_name in bpy.data.node_groups:
                 node_tree = bpy.data.node_groups[original_name]
             else:
                 node_tree = bpy.data.node_groups.new(
-                    type=serialization[DATA]["bl_idname"],
+                    type=serialization[DATA][BL_IDNAME],
                     name=original_name,
                 )
 
@@ -548,7 +559,7 @@ class ImportIntermediate:
 
     def get_external(self) -> dict[int, EXTERNAL_SERIALIZATION]:
         assert isinstance(self.data, dict)
-        return self.data["external"]
+        return self.data[EXTERNAL]
 
     def set_external(
         self,
@@ -564,7 +575,7 @@ class ImportIntermediate:
             external_id,
             external_item,
         ) in self.get_external().items():
-            if external_item["description"] is None:
+            if external_item[EXTERNAL_DESCRIPTION] is None:
                 self.getters[int(external_id)] = lambda: None
             else:
                 assert int(external_id) in self.getters
