@@ -1,6 +1,5 @@
 import bpy
 
-from pathlib import Path
 from typing import Type
 
 from .util import make_test_node_tree, round_trip_without_external, save_failed

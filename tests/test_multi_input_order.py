@@ -1,5 +1,3 @@
-import bpy
-
 from .util import round_trip_without_external, make_test_node_tree, save_failed
 
 
