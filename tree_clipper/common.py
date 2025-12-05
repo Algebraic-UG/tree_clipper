@@ -34,6 +34,7 @@ BL_RNA = "bl_rna"
 BL_IDNAME = "bl_idname"
 RNA_TYPE = "rna_type"  # TODO: another 'forbidden' category?
 DEFAULT_VALUE = "default_value"
+DISPLAY_SHAPE = "display_shape"
 ITEMS = "items"
 NAME = "name"
 PROP_TYPE_BOOLEAN = "BOOLEAN"

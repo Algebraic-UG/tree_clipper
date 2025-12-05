@@ -50,6 +50,13 @@ TO_NODE = "to_node"
 TO_SOCKET = "to_socket"
 VIEWER_ITEMS = "viewer_items"
 ANNOTATION = "annotation"
+LOCATION = "location"
+CURVES = "curves"
+DISPLAY_SETTINGS = "display_settings"
+DISPLAY_DEVICE = "display_device"
+VIEW_SETTINGS = "view_settings"
+VIEW_TRANSFORM = "view_transform"
+LOOK = "look"
 
 
 def _or_default(serialization: dict, ty: Type[bpy.types.bpy_struct], identifier: str):
@@ -70,7 +77,7 @@ def _import_node_parent(specific_importer: SpecificImporter) -> None:
             parent_id
         ]()  # ty: ignore[invalid-assignment]
 
-    specific_importer.importer.create_special_node_connections.append(deferred)
+    specific_importer.importer.defer_after_nodes_before_links.append(deferred)
 
 
 # Possible socket data types: https://docs.blender.org/api/current/bpy_types_enum_items/node_socket_data_type_items.html#rna-enum-node-socket-data-type-items
@@ -110,9 +117,9 @@ class NodeTreeImporter(SpecificImporter[bpy.types.NodeTree]):
 
         # one thing that requires this is the repeat zone
         # after this more sockets are available for linking
-        for func in self.importer.create_special_node_connections:
+        for func in self.importer.defer_after_nodes_before_links:
             func()
-        self.importer.create_special_node_connections.clear()
+        self.importer.defer_after_nodes_before_links.clear()
 
         self.import_properties_from_id_list([NODE_TREE_LINKS])
 
@@ -343,7 +350,7 @@ class LinkImporter(SpecificImporter[bpy.types.NodeLink]):
 class MenuSwitchExporter(SpecificExporter[bpy.types.GeometryNodeMenuSwitch]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, ENUM_ITEMS],
+            [INPUTS, OUTPUTS, BL_IDNAME, ENUM_ITEMS],
             [PARENT],
         )
 
@@ -370,7 +377,7 @@ class MenuSwitchItemsImporter(SpecificImporter[bpy.types.NodeMenuSwitchItems]):
 class CaptureAttrExporter(SpecificExporter[bpy.types.GeometryNodeCaptureAttribute]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, CAPTURE_ITEMS],
+            [INPUTS, OUTPUTS, BL_IDNAME, CAPTURE_ITEMS],
             [PARENT],
         )
 
@@ -404,7 +411,7 @@ class CaptureAttrItemsImporter(
 class RepeatInputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatInput]):
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS],
+            [INPUTS, OUTPUTS, BL_IDNAME],
             [PARENT],
         )
         if self.obj.paired_output is None:
@@ -435,14 +442,14 @@ class RepeatInputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatInput]):
 
         # defer connection until we've created the output node
         # only then, import the sockets
-        self.importer.create_special_node_connections.append(deferred)
+        self.importer.defer_after_nodes_before_links.append(deferred)
         _import_node_parent(self)
 
 
 class RepeatOutputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatOutput]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, REPEAT_ITEMS],
+            [INPUTS, OUTPUTS, BL_IDNAME, REPEAT_ITEMS],
             [PARENT],
         )
 
@@ -486,7 +493,7 @@ class IndexItemsImporter(SpecificImporter[bpy.types.NodeIndexSwitchItems]):
 class ViewerSpecificExporter(SpecificExporter[bpy.types.GeometryNodeViewer]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, VIEWER_ITEMS],
+            [INPUTS, OUTPUTS, BL_IDNAME, VIEWER_ITEMS],
             [PARENT],
         )
 
@@ -561,7 +568,7 @@ color ramps need at least one element"""
 class SimulationInputExporter(SpecificExporter[bpy.types.GeometryNodeSimulationInput]):
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS],
+            [INPUTS, OUTPUTS, BL_IDNAME],
             [PARENT],
         )
         if self.obj.paired_output is None:
@@ -592,7 +599,7 @@ class SimulationInputImporter(SpecificImporter[bpy.types.GeometryNodeSimulationI
 
         # defer connection until we've created the output node
         # only then, import the sockets
-        self.importer.create_special_node_connections.append(deferred)
+        self.importer.defer_after_nodes_before_links.append(deferred)
         _import_node_parent(self)
 
 
@@ -601,7 +608,7 @@ class SimulationOutputExporter(
 ):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, STATE_ITEMS],
+            [INPUTS, OUTPUTS, BL_IDNAME, STATE_ITEMS],
             [PARENT],
         )
 
@@ -636,7 +643,10 @@ class RerouteExporter(SpecificExporter[bpy.types.NodeReroute]):
     """The reroute's sockets are not needed and can cause problems"""
 
     def serialize(self):
-        return self.export_all_simple_writable_properties_and_list([], [PARENT])
+        return self.export_all_simple_writable_properties_and_list(
+            [BL_IDNAME],
+            [PARENT],
+        )
 
 
 class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
@@ -645,6 +655,55 @@ class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
     def deserialize(self):
         self.import_all_simple_writable_properties()
         _import_node_parent(self)
+
+
+class CurveMapPointExporter(SpecificExporter[bpy.types.CurveMapPoint]):
+    f"""The container constructs them using the {LOCATION}"""
+
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
+
+
+class CurveMapPointsImporter(SpecificImporter[bpy.types.CurveMapPoints]):
+    f"""The {LOCATION} needs to be picked apart into argumets
+and there are always at least two points, so we must skip first and last"""
+
+    def deserialize(self):
+        for item in self.serialization[ITEMS][1:-1]:
+            location = item[DATA][LOCATION]
+            self.getter().new(position=location[0], value=location[1])
+
+
+class CurveMappingImporter(SpecificImporter[bpy.types.CurveMapping]):
+    """After the points are added to the curves we need to call update"""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list([CURVES])
+
+        def deferred():
+            self.getter().update()
+
+        self.importer.defer_after_nodes_before_links.append(deferred)
+
+
+class ConvertToDisplayImporter(
+    SpecificImporter[bpy.types.CompositorNodeConvertToDisplay]
+):
+    f"""The properties on this one are special.
+The properties of the pointees {DISPLAY_SETTINGS} and {VIEW_SETTINGS} are set implicitly
+by setting certain enums values.
+They also have an implicit ordering, first the display needs to be set, then the view."""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        _import_node_parent(self)
+
+        display_device = self.serialization[DISPLAY_SETTINGS][DATA][DISPLAY_DEVICE]
+        view_transform = self.serialization[VIEW_SETTINGS][DATA][VIEW_TRANSFORM]
+        look = self.serialization[VIEW_SETTINGS][DATA][LOOK]
+        self.getter().display_settings.display_device = display_device  # ty: ignore[invalid-assignment]
+        self.getter().view_settings.view_transform = view_transform  # ty: ignore[invalid-assignment]
+        self.getter().view_settings.look = look  # ty: ignore[invalid-assignment]
 
 
 # now they are cooked and ready to use ~ bon appétit

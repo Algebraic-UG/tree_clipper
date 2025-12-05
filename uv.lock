@@ -256,7 +256,7 @@ wheels = [
 [[package]]
 name = "tree-clipper"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "bpy" },
 ]
@@ -268,7 +268,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "bpy", specifier = ">=5.0.0" }]
+requires-dist = [{ name = "bpy", specifier = ">=5" }]
 
 [package.metadata.requires-dev]
 dev = [

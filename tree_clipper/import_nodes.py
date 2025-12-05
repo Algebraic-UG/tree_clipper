@@ -67,7 +67,7 @@ class Importer:
         # for special nodes like the ones spanniung a repeat zone
         # we must defer things until all nodes are created
         # but it must happen before constructing the links
-        self.create_special_node_connections = []
+        self.defer_after_nodes_before_links = []
 
         # we need to lookup nodes and their sockets for linking them
         self.current_tree = None
