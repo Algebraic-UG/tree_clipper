@@ -52,6 +52,11 @@ VIEWER_ITEMS = "viewer_items"
 ANNOTATION = "annotation"
 LOCATION = "location"
 CURVES = "curves"
+DISPLAY_SETTINGS = "display_settings"
+DISPLAY_DEVICE = "display_device"
+VIEW_SETTINGS = "view_settings"
+VIEW_TRANSFORM = "view_transform"
+LOOK = "look"
 
 
 def _or_default(serialization: dict, ty: Type[bpy.types.bpy_struct], identifier: str):
@@ -679,6 +684,26 @@ class CurveMappingImporter(SpecificImporter[bpy.types.CurveMapping]):
             self.getter().update()
 
         self.importer.defer_after_nodes_before_links.append(deferred)
+
+
+class ConvertToDisplayImporter(
+    SpecificImporter[bpy.types.CompositorNodeConvertToDisplay]
+):
+    f"""The properties on this one are special.
+The properties of the pointees {DISPLAY_SETTINGS} and {VIEW_SETTINGS} are set implicitly
+by setting certain enums values.
+They also have an implicit ordering, first the display needs to be set, then the view."""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        _import_node_parent(self)
+
+        display_device = self.serialization[DISPLAY_SETTINGS][DATA][DISPLAY_DEVICE]
+        view_transform = self.serialization[VIEW_SETTINGS][DATA][VIEW_TRANSFORM]
+        look = self.serialization[VIEW_SETTINGS][DATA][LOOK]
+        self.getter().display_settings.display_device = display_device  # ty: ignore[invalid-assignment]
+        self.getter().view_settings.view_transform = view_transform  # ty: ignore[invalid-assignment]
+        self.getter().view_settings.look = look  # ty: ignore[invalid-assignment]
 
 
 # now they are cooked and ready to use ~ bon appétit
