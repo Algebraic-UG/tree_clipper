@@ -1,7 +1,6 @@
 import bpy
 import _rna_info as rna_info
 
-from .util import make_test_node_tree
 from .test_all_nodes import test_all_nodes
 
 
