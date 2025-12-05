@@ -20,6 +20,7 @@ _EXTERNAL_ITEM_MAKER: dict[str, Callable[[], bpy.types.ID]] = {
     "Material": lambda: bpy.data.materials.new(name="test"),
     "Text": lambda: bpy.data.texts.new(name="test"),
     "Annotation": lambda: bpy.data.annotations.new(name="test"),
+    "VectorFont": lambda: bpy.data.fonts["Bfont Regular"],
     # TODO: could this be a Blender bug?
     # special: they can cause something like ERROR ID user decrement error: GRtest (from '[Main]'): 0 <= 0
     "Object": make_test_object,
@@ -54,6 +55,9 @@ def _create_setup():
 
     node = nodes.new("NodeFrame")
     node.text = _EXTERNAL_ITEM_MAKER["Text"]()  # ty: ignore[invalid-assignment, unresolved-attribute]
+
+    node = nodes.new("GeometryNodeStringToCurves")
+    node.font = _EXTERNAL_ITEM_MAKER["VectorFont"]()  # ty: ignore[invalid-assignment, unresolved-attribute]
 
     return name
 
@@ -123,7 +127,8 @@ def _check_after_import(name: str):
     assert tree.nodes["Material"].material is not None  # ty: ignore[unresolved-attribute]
     assert tree.nodes["Object"].object is not None  # ty: ignore[unresolved-attribute]
     assert tree.nodes["Collection"].collection is not None  # ty: ignore[unresolved-attribute]
-    assert len(tree.nodes) == 6, "if this fails the lines above must also change"
+    assert tree.nodes["String to Curves"].font is not None  # ty: ignore[unresolved-attribute]
+    assert len(tree.nodes) == 7, "if this fails the lines above must also change"
 
 
 def test_external_items():
