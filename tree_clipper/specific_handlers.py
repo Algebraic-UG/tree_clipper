@@ -70,7 +70,7 @@ def _import_node_parent(specific_importer: SpecificImporter) -> None:
             parent_id
         ]()  # ty: ignore[invalid-assignment]
 
-    specific_importer.importer.create_special_node_connections.append(deferred)
+    specific_importer.importer.defer_after_nodes_before_links.append(deferred)
 
 
 # Possible socket data types: https://docs.blender.org/api/current/bpy_types_enum_items/node_socket_data_type_items.html#rna-enum-node-socket-data-type-items
@@ -110,9 +110,9 @@ class NodeTreeImporter(SpecificImporter[bpy.types.NodeTree]):
 
         # one thing that requires this is the repeat zone
         # after this more sockets are available for linking
-        for func in self.importer.create_special_node_connections:
+        for func in self.importer.defer_after_nodes_before_links:
             func()
-        self.importer.create_special_node_connections.clear()
+        self.importer.defer_after_nodes_before_links.clear()
 
         self.import_properties_from_id_list([NODE_TREE_LINKS])
 
@@ -435,7 +435,7 @@ class RepeatInputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatInput]):
 
         # defer connection until we've created the output node
         # only then, import the sockets
-        self.importer.create_special_node_connections.append(deferred)
+        self.importer.defer_after_nodes_before_links.append(deferred)
         _import_node_parent(self)
 
 
@@ -592,7 +592,7 @@ class SimulationInputImporter(SpecificImporter[bpy.types.GeometryNodeSimulationI
 
         # defer connection until we've created the output node
         # only then, import the sockets
-        self.importer.create_special_node_connections.append(deferred)
+        self.importer.defer_after_nodes_before_links.append(deferred)
         _import_node_parent(self)
 
 
