@@ -50,6 +50,8 @@ TO_NODE = "to_node"
 TO_SOCKET = "to_socket"
 VIEWER_ITEMS = "viewer_items"
 ANNOTATION = "annotation"
+LOCATION = "location"
+CURVES = "curves"
 
 
 def _or_default(serialization: dict, ty: Type[bpy.types.bpy_struct], identifier: str):
@@ -648,6 +650,35 @@ class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
     def deserialize(self):
         self.import_all_simple_writable_properties()
         _import_node_parent(self)
+
+
+class CurveMapPointExporter(SpecificExporter[bpy.types.CurveMapPoint]):
+    f"""The container constructs them using the {LOCATION}"""
+
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
+
+
+class CurveMapPointsImporter(SpecificImporter[bpy.types.CurveMapPoints]):
+    f"""The {LOCATION} needs to be picked apart into argumets
+and there are always at least two points, so we must skip first and last"""
+
+    def deserialize(self):
+        for item in self.serialization[ITEMS][1:-1]:
+            location = item[DATA][LOCATION]
+            self.getter().new(position=location[0], value=location[1])
+
+
+class CurveMappingImporter(SpecificImporter[bpy.types.CurveMapping]):
+    """After the points are added to the curves we need to call update"""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list([CURVES])
+
+        def deferred():
+            self.getter().update()
+
+        self.importer.defer_after_nodes_before_links.append(deferred)
 
 
 # now they are cooked and ready to use ~ bon appétit
