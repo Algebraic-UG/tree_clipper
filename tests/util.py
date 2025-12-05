@@ -21,8 +21,8 @@ def make_test_collection() -> bpy.types.Collection:
     return collection
 
 
-def make_test_node_tree() -> bpy.types.NodeTree:
-    tree = bpy.data.node_groups.new(name="test", type="GeometryNodeTree")
+def make_test_node_tree(name: str = "test") -> bpy.types.NodeTree:
+    tree = bpy.data.node_groups.new(name=name, type="GeometryNodeTree")
     tree.use_fake_user = True
     tree.is_modifier = True  # ty: ignore[unresolved-attribute]
     return tree
