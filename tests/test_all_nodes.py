@@ -17,10 +17,16 @@ def test_all_nodes(node_type: Type[bpy.types.Node]):
     try:
         # these can't be instantiated
         if node_type in [
+            bpy.types.NodeGroup,
             bpy.types.NodeCustomGroup,
             bpy.types.GeometryNodeCustomGroup,
             bpy.types.ShaderNodeCustomGroup,
             bpy.types.CompositorNodeCustomGroup,
+            # TODO: this might be a left-over, i.e. something to fix in Blender
+            bpy.types.TextureNodeCompose,
+            bpy.types.TextureNodeDecompose,
+            # TODO: there is a "Gamma" node in the compositor, but it's the "shader version"
+            bpy.types.CompositorNodeGamma,
         ]:
             return
         # skip the output types of the pairs
