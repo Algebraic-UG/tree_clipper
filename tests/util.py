@@ -1,3 +1,4 @@
+from typing import Literal
 import bpy
 
 from tree_clipper.export_nodes import ExportIntermediate, ExportParameters
@@ -21,10 +22,19 @@ def make_test_collection() -> bpy.types.Collection:
     return collection
 
 
-def make_test_node_tree(name: str = "test") -> bpy.types.NodeTree:
-    tree = bpy.data.node_groups.new(name=name, type="GeometryNodeTree")
-    tree.use_fake_user = True
-    tree.is_modifier = True  # ty: ignore[unresolved-attribute]
+def make_test_node_tree(
+    name: str = "test",
+    ty: Literal[
+        "GeometryNodeTree",
+        "CompositorNodeTree",
+        "ShaderNodeTree",
+        "TextureNodeTree",
+    ] = "GeometryNodeTree",
+) -> bpy.types.NodeTree:
+    tree = bpy.data.node_groups.new(name=name, type=ty)
+    tree.use_fake_user = True  # otherwise it might not be in the save file
+    if isinstance(tree, bpy.types.GeometryNodeTree):
+        tree.is_modifier = True  # makes it easier to inspect
     return tree
 
 
