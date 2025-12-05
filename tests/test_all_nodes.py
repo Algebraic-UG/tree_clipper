@@ -15,7 +15,12 @@ _PAIRED_NODE_TYPES = {
 def test_all_nodes(node_type: Type[bpy.types.Node]):
     try:
         # these can't be instantiated
-        if node_type == bpy.types.GeometryNodeCustomGroup:
+        if node_type in [
+            bpy.types.NodeCustomGroup,
+            bpy.types.GeometryNodeCustomGroup,
+            bpy.types.ShaderNodeCustomGroup,
+            bpy.types.CompositorNodeCustomGroup,
+        ]:
             return
         # skip the output types of the pairs
         if node_type in _PAIRED_NODE_TYPES.values():
