@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 import bpy
 
@@ -36,6 +37,13 @@ def make_test_node_tree(
     if isinstance(tree, bpy.types.GeometryNodeTree):
         tree.is_modifier = True  # makes it easier to inspect
     return tree
+
+
+def save_failed(name: str):
+    test_failures = Path("test_failures")
+    test_failures.mkdir(exist_ok=True)
+    path = str(test_failures / f"{name}.blend")
+    bpy.ops.wm.save_as_mainfile(filepath=path)
 
 
 def round_trip_without_external(name: str):

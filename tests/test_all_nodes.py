@@ -1,8 +1,9 @@
 import bpy
 
+from pathlib import Path
 from typing import Type
 
-from .util import make_test_node_tree, round_trip_without_external
+from .util import make_test_node_tree, round_trip_without_external, save_failed
 
 _PAIRED_NODE_TYPES = {
     bpy.types.GeometryNodeForeachGeometryElementInput: bpy.types.GeometryNodeForeachGeometryElementOutput,
@@ -48,7 +49,5 @@ def test_all_nodes(node_type: Type[bpy.types.Node]):
         round_trip_without_external(tree.name)
     except:
         # store in case of failure for easy debugging
-        bpy.ops.wm.save_as_mainfile(
-            filepath=f"{test_all_nodes.__name__}_{node_type_str}.blend"
-        )
+        save_failed(f"{test_all_nodes.__name__}_{node_type_str}")
         raise

@@ -1,4 +1,9 @@
-from tests.util import make_test_object, make_test_collection, make_test_node_tree
+from tests.util import (
+    make_test_object,
+    make_test_collection,
+    make_test_node_tree,
+    save_failed,
+)
 import bpy
 
 from typing import Callable
@@ -179,5 +184,5 @@ def test_external_items():
 
     except:
         # store in case of failure for easy debugging
-        bpy.ops.wm.save_as_mainfile(filepath=f"{test_external_items.__name__}.blend")
+        save_failed(f"{test_external_items.__name__}")
         raise

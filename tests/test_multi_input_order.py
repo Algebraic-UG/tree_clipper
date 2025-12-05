@@ -1,6 +1,6 @@
 import bpy
 
-from .util import round_trip_without_external, make_test_node_tree
+from .util import round_trip_without_external, make_test_node_tree, save_failed
 
 
 def test_multi_input_order():
@@ -38,5 +38,6 @@ def test_multi_input_order():
 
     except:
         # store in case of failure for easy debugging
-        bpy.ops.wm.save_as_mainfile(filepath=f"{test_multi_input_order.__name__}.blend")
+        save_failed(f"{test_multi_input_order.__name__}")
+
         raise
