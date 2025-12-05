@@ -7,6 +7,10 @@ from .util import make_test_node_tree, round_trip_without_external
 
 def test_all_nodes(node_type: Type[bpy.types.Node]):
     try:
+        # these can't be instantiated
+        if node_type == bpy.types.GeometryNodeCustomGroup:
+            return
+
         node_type_str: str = node_type.bl_rna.identifier  # ty: ignore[unresolved-attribute]
 
         if issubclass(node_type, bpy.types.CompositorNode):
