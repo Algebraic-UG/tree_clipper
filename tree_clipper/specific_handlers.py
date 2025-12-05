@@ -343,7 +343,7 @@ class LinkImporter(SpecificImporter[bpy.types.NodeLink]):
 class MenuSwitchExporter(SpecificExporter[bpy.types.GeometryNodeMenuSwitch]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, ENUM_ITEMS],
+            [INPUTS, OUTPUTS, BL_IDNAME, ENUM_ITEMS],
             [PARENT],
         )
 
@@ -370,7 +370,7 @@ class MenuSwitchItemsImporter(SpecificImporter[bpy.types.NodeMenuSwitchItems]):
 class CaptureAttrExporter(SpecificExporter[bpy.types.GeometryNodeCaptureAttribute]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, CAPTURE_ITEMS],
+            [INPUTS, OUTPUTS, BL_IDNAME, CAPTURE_ITEMS],
             [PARENT],
         )
 
@@ -404,7 +404,7 @@ class CaptureAttrItemsImporter(
 class RepeatInputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatInput]):
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS],
+            [INPUTS, OUTPUTS, BL_IDNAME],
             [PARENT],
         )
         if self.obj.paired_output is None:
@@ -442,7 +442,7 @@ class RepeatInputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatInput]):
 class RepeatOutputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatOutput]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, REPEAT_ITEMS],
+            [INPUTS, OUTPUTS, BL_IDNAME, REPEAT_ITEMS],
             [PARENT],
         )
 
@@ -486,7 +486,7 @@ class IndexItemsImporter(SpecificImporter[bpy.types.NodeIndexSwitchItems]):
 class ViewerSpecificExporter(SpecificExporter[bpy.types.GeometryNodeViewer]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, VIEWER_ITEMS],
+            [INPUTS, OUTPUTS, BL_IDNAME, VIEWER_ITEMS],
             [PARENT],
         )
 
@@ -561,7 +561,7 @@ color ramps need at least one element"""
 class SimulationInputExporter(SpecificExporter[bpy.types.GeometryNodeSimulationInput]):
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS],
+            [INPUTS, OUTPUTS, BL_IDNAME],
             [PARENT],
         )
         if self.obj.paired_output is None:
@@ -601,7 +601,7 @@ class SimulationOutputExporter(
 ):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, STATE_ITEMS],
+            [INPUTS, OUTPUTS, BL_IDNAME, STATE_ITEMS],
             [PARENT],
         )
 
@@ -636,7 +636,10 @@ class RerouteExporter(SpecificExporter[bpy.types.NodeReroute]):
     """The reroute's sockets are not needed and can cause problems"""
 
     def serialize(self):
-        return self.export_all_simple_writable_properties_and_list([], [PARENT])
+        return self.export_all_simple_writable_properties_and_list(
+            [BL_IDNAME],
+            [PARENT],
+        )
 
 
 class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
