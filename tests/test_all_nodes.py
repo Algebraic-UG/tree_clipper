@@ -54,6 +54,8 @@ def test_all_nodes(node_type: Type[bpy.types.Node]):
         # we don't want to test external item here
         if node_type == bpy.types.GeometryNodeStringToCurves:
             tree.nodes[0].font = None  # ty: ignore[unresolved-attribute]
+        if node_type == bpy.types.CompositorNodeRLayers:
+            tree.nodes[0].scene = None  # ty: ignore[unresolved-attribute]
 
         round_trip_without_external(tree.name)
     except:
