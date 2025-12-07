@@ -64,6 +64,9 @@ FORMAT_ITEMS = "format_items"
 BUNDLE_ITEMS = "bundle_items"
 LAYER = "layer"
 SCENE = "scene"
+GENERATION_ITEMS = "generation_items"
+INPUT_ITEMS = "input_items"
+MAIN_ITEMS = "main_items"
 
 
 # this might not be needed anymore in many cases, because
@@ -936,6 +939,109 @@ class RenderLayersExporter(SpecificExporter[bpy.types.CompositorNodeRLayers]):
             assert layer == ""
 
         return data
+
+
+class ForEachInputExporter(
+    SpecificExporter[bpy.types.GeometryNodeForeachGeometryElementInput]
+):
+    def serialize(self):
+        data = self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, BL_IDNAME],
+            [PARENT],
+        )
+        if self.obj.paired_output is None:
+            raise RuntimeError(
+                f"""{self.from_root.to_str()}
+Having no paired output for for_each nodes isn't supported"""
+            )
+        no_clobber(data, PAIRED_OUTPUT, self.obj.paired_output.name)
+
+        return data
+
+
+class ForEachInputImporter(
+    SpecificImporter[bpy.types.GeometryNodeForeachGeometryElementInput]
+):
+    def deserialize(self):
+        self.import_all_simple_writable_properties()
+
+        # if this fails it's easier to debug here
+        output = self.serialization[PAIRED_OUTPUT]
+
+        def deferred():
+            if not self.getter().pair_with_output(
+                self.importer.current_tree.nodes[output]
+            ):
+                raise RuntimeError(
+                    f"{self.from_root.to_str()}: failed to pair with {output}"
+                )
+            self.import_properties_from_id_list([INPUTS, OUTPUTS])
+
+        # defer connection until we've created the output node
+        # only then, import the sockets
+        self.importer.defer_after_nodes_before_links.append(deferred)
+        _import_node_parent(self)
+
+
+class ForEachOutputImporter(
+    SpecificImporter[bpy.types.GeometryNodeForeachGeometryElementOutput]
+):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the items implicitly create sockets
+            [GENERATION_ITEMS, INPUT_ITEMS, MAIN_ITEMS, INPUTS, OUTPUTS]
+        )
+        _import_node_parent(self)
+
+
+class GenerationItemExporter(
+    SpecificExporter[bpy.types.ForeachGeometryElementGenerationItem]
+):
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
+
+
+class GenerationItemsImporter(
+    SpecificImporter[bpy.types.NodeGeometryForeachGeometryElementGenerationItems]
+):
+    def deserialize(self):
+        self.getter().clear()
+        for item in self.serialization[ITEMS]:
+            socket_type = item[DATA][SOCKET_TYPE]
+            name = item[DATA][NAME]
+            self.getter().new(name=name, socket_type=socket_type)
+
+
+class InputItemExporter(SpecificExporter[bpy.types.ForeachGeometryElementInputItem]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
+
+
+class InputItemsImporter(
+    SpecificImporter[bpy.types.NodeGeometryForeachGeometryElementInputItems]
+):
+    def deserialize(self):
+        self.getter().clear()
+        for item in self.serialization[ITEMS]:
+            socket_type = item[DATA][SOCKET_TYPE]
+            name = item[DATA][NAME]
+            self.getter().new(name=name, socket_type=socket_type)
+
+
+class MainItemExporter(SpecificExporter[bpy.types.ForeachGeometryElementMainItem]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
+
+
+class MainItemsImporter(
+    SpecificImporter[bpy.types.NodeGeometryForeachGeometryElementMainItems]
+):
+    def deserialize(self):
+        self.getter().clear()
+        for item in self.serialization[ITEMS]:
+            socket_type = item[DATA][SOCKET_TYPE]
+            name = item[DATA][NAME]
+            self.getter().new(name=name, socket_type=socket_type)
 
 
 # now they are cooked and ready to use ~ bon appétit
