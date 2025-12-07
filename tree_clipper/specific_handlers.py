@@ -924,7 +924,7 @@ class SeparateBundleItemsImporter(SpecificImporter[bpy.types.NodeSeparateBundleI
 
 class RenderLayersExporter(SpecificExporter[bpy.types.CompositorNodeRLayers]):
     f"""We skip the {LAYER} if the {SCENE} is not set.
-{LAYER} is an empty string in that case and can't set that during import."""
+{LAYER} is an empty string in that case and we can't set that during import."""
 
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
