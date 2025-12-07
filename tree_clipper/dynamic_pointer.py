@@ -1,4 +1,5 @@
 import bpy
+import _rna_info as rna_info
 
 from typing import Type
 
@@ -30,6 +31,10 @@ def add_all_known_pointer_properties(
     # )
     # pointable_ids = _all_subclasses(bpy.types.ID)
     # pointables = pointable_groups.union(pointable_ids)
+
+    # Blender doc generation does this to force type creation which is otherwise lazy
+    # https://github.com/blender/blender/blob/19891e0faa60e6c3cadc093ba871bc850c9233d4/doc/python_api/sphinx_doc_gen.py#L65
+    rna_info.BuildRNAInfo()
 
     pointables = _all_subclasses(bpy.types.ID)
 
