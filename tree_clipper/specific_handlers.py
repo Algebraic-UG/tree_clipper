@@ -60,6 +60,7 @@ LOOK = "look"
 INPUT_ITEMS = "input_items"
 OUTPUT_ITEMS = "output_items"
 FORMAT_ITEMS = "format_items"
+BUNDLE_ITEMS = "bundle_items"
 
 
 # this might not be needed anymore in many cases, because
@@ -852,6 +853,52 @@ class FormatStringItemExporter(
 class FormatStringItemsImporter(
     SpecificImporter[bpy.types.NodeFunctionFormatStringItems]
 ):
+    def deserialize(self):
+        self.getter().clear()
+        for item in self.serialization[ITEMS]:
+            socket_type = item[DATA][SOCKET_TYPE]
+            name = item[DATA][NAME]
+            self.getter().new(name=name, socket_type=socket_type)
+
+
+class CombineBundleImporter(SpecificImporter[bpy.types.NodeCombineBundle]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the bundle_items implicitly create sockets
+            [BUNDLE_ITEMS, INPUTS, OUTPUTS]
+        )
+        _import_node_parent(self)
+
+
+class CombineBundleItemExporter(SpecificExporter[bpy.types.NodeCombineBundleItem]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
+
+
+class CombineBundleItemsImporter(SpecificImporter[bpy.types.NodeCombineBundleItems]):
+    def deserialize(self):
+        self.getter().clear()
+        for item in self.serialization[ITEMS]:
+            socket_type = item[DATA][SOCKET_TYPE]
+            name = item[DATA][NAME]
+            self.getter().new(name=name, socket_type=socket_type)
+
+
+class SeparateBundleImporter(SpecificImporter[bpy.types.NodeSeparateBundle]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the bundle_items implicitly create sockets
+            [BUNDLE_ITEMS, INPUTS, OUTPUTS]
+        )
+        _import_node_parent(self)
+
+
+class SeparateBundleItemExporter(SpecificExporter[bpy.types.NodeSeparateBundleItem]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
+
+
+class SeparateBundleItemsImporter(SpecificImporter[bpy.types.NodeSeparateBundleItems]):
     def deserialize(self):
         self.getter().clear()
         for item in self.serialization[ITEMS]:
