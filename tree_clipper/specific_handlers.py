@@ -59,6 +59,9 @@ VIEW_TRANSFORM = "view_transform"
 LOOK = "look"
 
 
+# this might not be needed anymore in many cases, because
+# due to https://github.com/Algebraic-UG/tree_clipper/issues/59
+# we don't skip defaults anymore
 def _or_default(serialization: dict, ty: Type[bpy.types.bpy_struct], identifier: str):
     return serialization.get(identifier, ty.bl_rna.properties[identifier].default)  # ty: ignore[unresolved-attribute]
 
