@@ -51,6 +51,10 @@ def test_all_nodes(node_type: Type[bpy.types.Node]):
             output_node = tree.nodes.new(type=output_type.bl_rna.identifier)  # ty: ignore[possibly-missing-attribute]
             tree.nodes[0].pair_with_output(output_node)  # ty: ignore[unresolved-attribute]
 
+        # we don't want to test external item here
+        if node_type == bpy.types.GeometryNodeStringToCurves:
+            tree.nodes[0].font = None  # ty: ignore[unresolved-attribute]
+
         round_trip_without_external(tree.name)
     except:
         # store in case of failure for easy debugging
