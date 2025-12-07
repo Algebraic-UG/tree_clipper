@@ -706,6 +706,46 @@ They also have an implicit ordering, first the display needs to be set, then the
         self.getter().view_settings.look = look  # ty: ignore[invalid-assignment]
 
 
+class EvalClosureInputItemExporter(
+    SpecificExporter[bpy.types.NodeEvaluateClosureInputItem]
+):
+    f"""We need {SOCKET_TYPE} and {NAME}, both are simple & writable"""
+
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
+
+
+class EvalClosureInputItemsImporter(
+    SpecificImporter[bpy.types.NodeEvaluateClosureInputItems]
+):
+    def deserialize(self):
+        self.getter().clear()
+        for item in self.serialization[ITEMS]:
+            socket_type = item[DATA][SOCKET_TYPE]
+            name = item[DATA][NAME]
+            self.getter().new(name=name, socket_type=socket_type)
+
+
+class EvalClosureOutputItemExporter(
+    SpecificExporter[bpy.types.NodeEvaluateClosureOutputItem]
+):
+    f"""We need {SOCKET_TYPE} and {NAME}, both are simple & writable"""
+
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
+
+
+class EvalClosureOutputItemsImporter(
+    SpecificImporter[bpy.types.NodeEvaluateClosureOutputItems]
+):
+    def deserialize(self):
+        self.getter().clear()
+        for item in self.serialization[ITEMS]:
+            socket_type = item[DATA][SOCKET_TYPE]
+            name = item[DATA][NAME]
+            self.getter().new(name=name, socket_type=socket_type)
+
+
 # now they are cooked and ready to use ~ bon appétit
 BUILT_IN_EXPORTER = _BUILT_IN_EXPORTER
 BUILT_IN_IMPORTER = _BUILT_IN_IMPORTER
