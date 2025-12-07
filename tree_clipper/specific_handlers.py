@@ -61,6 +61,8 @@ INPUT_ITEMS = "input_items"
 OUTPUT_ITEMS = "output_items"
 FORMAT_ITEMS = "format_items"
 BUNDLE_ITEMS = "bundle_items"
+LAYER = "layer"
+SCENE = "scene"
 
 
 # this might not be needed anymore in many cases, because
@@ -905,6 +907,22 @@ class SeparateBundleItemsImporter(SpecificImporter[bpy.types.NodeSeparateBundleI
             socket_type = item[DATA][SOCKET_TYPE]
             name = item[DATA][NAME]
             self.getter().new(name=name, socket_type=socket_type)
+
+
+class RenderLayersExporter(SpecificExporter[bpy.types.CompositorNodeRLayers]):
+    f"""We skip the {LAYER} if the {SCENE} is not set.
+{LAYER} is an empty string in that case and can't set that during import."""
+
+    def serialize(self):
+        data = self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, BL_IDNAME, SCENE],
+            [PARENT],
+        )
+        if self.obj.scene is None:
+            layer = data.pop(LAYER)
+            assert layer == ""
+
+        return data
 
 
 # now they are cooked and ready to use ~ bon appétit
