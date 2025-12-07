@@ -67,6 +67,8 @@ SCENE = "scene"
 GENERATION_ITEMS = "generation_items"
 INPUT_ITEMS = "input_items"
 MAIN_ITEMS = "main_items"
+BAKE_ITEMS = "bake_items"
+ACTIVE_ITEM = "active_item"
 
 
 # this might not be needed anymore in many cases, because
@@ -1036,6 +1038,31 @@ class MainItemExporter(SpecificExporter[bpy.types.ForeachGeometryElementMainItem
 class MainItemsImporter(
     SpecificImporter[bpy.types.NodeGeometryForeachGeometryElementMainItems]
 ):
+    def deserialize(self):
+        self.getter().clear()
+        for item in self.serialization[ITEMS]:
+            socket_type = item[DATA][SOCKET_TYPE]
+            name = item[DATA][NAME]
+            self.getter().new(name=name, socket_type=socket_type)
+
+
+class BakeExporter(SpecificExporter[bpy.types.GeometryNodeBake]):
+    f"""We need to specialize to avoid {ACTIVE_ITEM}, which is broken
+https://projects.blender.org/blender/blender/issues/151276"""
+
+    def serialize(self):
+        return self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, BL_IDNAME, BAKE_ITEMS],
+            [PARENT],
+        )
+
+
+class BakeItemExporter(SpecificExporter[bpy.types.NodeGeometryBakeItem]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties()
+
+
+class BackeItemsImporter(SpecificImporter[bpy.types.NodeGeometryBakeItems]):
     def deserialize(self):
         self.getter().clear()
         for item in self.serialization[ITEMS]:
