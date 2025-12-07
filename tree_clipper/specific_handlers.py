@@ -16,6 +16,7 @@ from .common import (
     ITEMS,
     BL_IDNAME,
     NAME,
+    DEFAULT_VALUE,
 )
 
 # to help prevent typos, especially when used multiple times
@@ -276,6 +277,18 @@ we currently don't support creating sockets"""
 class SocketExporter(SpecificExporter[bpy.types.NodeSocket]):
     def serialize(self):
         return self.export_all_simple_writable_properties()
+
+
+class EnumSocketExporter(SpecificExporter[bpy.types.NodeSocketMenu]):
+    f"""The socket can be undefined or duplicated as an output socket.
+In these cases the {DEFAULT_VALUE} can be an empty string and we can't set those during import."""
+
+    def serialize(self):
+        data = self.export_all_simple_writable_properties()
+        if self.obj.default_value == "":
+            default_value = data.pop(DEFAULT_VALUE)
+            assert default_value == ""
+        return data
 
 
 class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
