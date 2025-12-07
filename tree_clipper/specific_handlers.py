@@ -57,6 +57,8 @@ DISPLAY_DEVICE = "display_device"
 VIEW_SETTINGS = "view_settings"
 VIEW_TRANSFORM = "view_transform"
 LOOK = "look"
+INPUT_ITEMS = "input_items"
+OUTPUT_ITEMS = "output_items"
 
 
 # this might not be needed anymore in many cases, because
@@ -636,6 +638,87 @@ class SimulationOutputItemsImporter(
             name = _or_default(item[DATA], bpy.types.SimulationStateItem, NAME)
             socket_type = _or_default(
                 item[DATA], bpy.types.SimulationStateItem, SOCKET_TYPE
+            )
+            if self.importer.debug_prints:
+                print(f"{self.from_root.to_str()}: adding item {name} {socket_type}")
+            self.getter().new(socket_type=socket_type, name=name)
+
+
+class NodeClosureInputExporter(SpecificExporter[bpy.types.NodeClosureInput]):
+    def serialize(self):
+        data = self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, BL_IDNAME],
+            [PARENT],
+        )
+        if self.obj.paired_output is None:
+            raise RuntimeError(
+                f"""{self.from_root.to_str()}
+Having no paired output for closure nodes isn't supported"""
+            )
+        no_clobber(data, PAIRED_OUTPUT, self.obj.paired_output.name)
+
+        return data
+
+
+class NodeClosureInputImporter(SpecificImporter[bpy.types.NodeClosureInput]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties()
+
+        # if this fails it's easier to debug here
+        output = self.serialization[PAIRED_OUTPUT]
+
+        def deferred():
+            if not self.getter().pair_with_output(
+                self.importer.current_tree.nodes[output]
+            ):
+                raise RuntimeError(
+                    f"{self.from_root.to_str()}: failed to pair with {output}"
+                )
+            self.import_properties_from_id_list([INPUTS, OUTPUTS])
+
+        # defer connection until we've created the output node
+        # only then, import the sockets
+        self.importer.defer_after_nodes_before_links.append(deferred)
+        _import_node_parent(self)
+
+
+class NodeClosureOutputExporter(SpecificExporter[bpy.types.NodeClosureOutput]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, BL_IDNAME, INPUT_ITEMS, OUTPUT_ITEMS],
+            [PARENT],
+        )
+
+
+class NodeClosureOutputImporter(SpecificImporter[bpy.types.NodeClosureOutput]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the items implicitly create sockets
+            [INPUT_ITEMS, OUTPUT_ITEMS, INPUTS, OUTPUTS]
+        )
+        _import_node_parent(self)
+
+
+class NodeClosureInputItems(SpecificImporter[bpy.types.NodeClosureInputItems]):
+    def deserialize(self):
+        self.getter().clear()
+        for item in self.serialization[ITEMS]:
+            name = _or_default(item[DATA], bpy.types.NodeClosureInputItem, NAME)
+            socket_type = _or_default(
+                item[DATA], bpy.types.NodeClosureInputItem, SOCKET_TYPE
+            )
+            if self.importer.debug_prints:
+                print(f"{self.from_root.to_str()}: adding item {name} {socket_type}")
+            self.getter().new(socket_type=socket_type, name=name)
+
+
+class NodeClosureOutputItems(SpecificImporter[bpy.types.NodeClosureOutputItems]):
+    def deserialize(self):
+        self.getter().clear()
+        for item in self.serialization[ITEMS]:
+            name = _or_default(item[DATA], bpy.types.NodeClosureOutputItem, NAME)
+            socket_type = _or_default(
+                item[DATA], bpy.types.NodeClosureOutputItem, SOCKET_TYPE
             )
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding item {name} {socket_type}")
