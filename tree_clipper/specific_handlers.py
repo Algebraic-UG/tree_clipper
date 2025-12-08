@@ -774,9 +774,12 @@ class CurveMapPointExporter(SpecificExporter[bpy.types.CurveMapPoint]):
 
 class CurveMapPointsImporter(SpecificImporter[bpy.types.CurveMapPoints]):
     f"""The {LOCATION} needs to be picked apart into argumets
-and there are always at least two points, so we must skip first and last"""
+and there are always at least two points.
+We remove all but two and skip first and last from the serialization."""
 
     def deserialize(self):
+        while len(self.getter()) > 2:
+            self.getter().remove(point=self.getter()[1])
         for item in self.serialization[ITEMS][1:-1]:
             location = item[DATA][LOCATION]
             self.getter().new(position=location[0], value=location[1])
