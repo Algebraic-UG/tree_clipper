@@ -1125,6 +1125,27 @@ They'll be empty strings in that case and we can't set those during import."""
         return data
 
 
+class CryptoMatteExport(SpecificExporter[bpy.types.CompositorNodeCryptomatteV2]):
+    f"""We skip the {LAYER} and/or {VIEW} if the image doesn't have them.
+They'll be empty strings in that case and we can't set those during import."""
+
+    def serialize(self):
+        data = self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, BL_IDNAME, IMAGE],
+            [PARENT],
+        )
+
+        if not self.obj.has_layers:
+            layer = data.pop(LAYER)
+            assert layer == ""
+
+        if not self.obj.has_views:
+            view = data.pop(VIEW)
+            assert view == ""
+
+        return data
+
+
 # now they are cooked and ready to use ~ bon appétit
 BUILT_IN_EXPORTER = _BUILT_IN_EXPORTER
 BUILT_IN_IMPORTER = _BUILT_IN_IMPORTER
