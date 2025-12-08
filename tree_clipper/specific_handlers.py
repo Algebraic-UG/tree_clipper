@@ -70,6 +70,8 @@ MAIN_ITEMS = "main_items"
 BAKE_ITEMS = "bake_items"
 ACTIVE_ITEM = "active_item"
 GRID_ITEMS = "grid_items"
+VIEW = "view"
+IMAGE = "image"
 
 
 # this might not be needed anymore in many cases, because
@@ -1100,6 +1102,27 @@ class FieldToGridItemsImporter(
             socket_type = item[DATA][DATA_TYPE]
             name = item[DATA][NAME]
             self.getter().new(name=name, socket_type=socket_type)
+
+
+class ImageExport(SpecificExporter[bpy.types.CompositorNodeImage]):
+    f"""We skip the {LAYER} and/or {VIEW} if the image doesn't have them.
+They'll be empty strings in that case and we can't set those during import."""
+
+    def serialize(self):
+        data = self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, BL_IDNAME, IMAGE],
+            [PARENT],
+        )
+
+        if not self.obj.has_layers:
+            layer = data.pop(LAYER)
+            assert layer == ""
+
+        if not self.obj.has_views:
+            view = data.pop(VIEW)
+            assert view == ""
+
+        return data
 
 
 # now they are cooked and ready to use ~ bon appétit
