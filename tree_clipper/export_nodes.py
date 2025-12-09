@@ -538,6 +538,12 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
         if obj in exporter.serialized:
             for pointer in pointers:
                 pointer.pointee_id = exporter.serialized[obj]
+        elif isinstance(obj, bpy.types.NodeTree) and parameters.export_sub_trees:
+            for serialized_id, other in exporter.serialized.items():
+                if isinstance(other, bpy.types.NodeTree) and other.name == obj.name:
+                    for pointer in pointers:
+                        pointer.pointee_id = serialized_id
+                    break
         else:
             # Maybe it could be beneficial in some cases to have the option to have a single external item,
             # but it's also possible to use an additional group node to avieve the same thing.
