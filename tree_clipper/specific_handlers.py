@@ -73,6 +73,7 @@ GRID_ITEMS = "grid_items"
 VIEW = "view"
 IMAGE = "image"
 ENTRIES = "entries"
+FORMAT = "format"
 
 
 # this might not be needed anymore in many cases, because
@@ -1145,6 +1146,22 @@ They'll be empty strings in that case and we can't set those during import."""
             assert view == ""
 
         return data
+
+
+class FileOutputItemExporter(SpecificExporter[bpy.types.NodeCompositorFileOutputItem]):
+    def serialize(self):
+        return self.export_all_simple_writable_properties_and_list([FORMAT])
+
+
+class FileOutputItmesImporter(
+    SpecificImporter[bpy.types.NodeCompositorFileOutputItems]
+):
+    def deserialize(self):
+        self.getter().clear()
+        for item in self.serialization[ITEMS]:
+            socket_type = item[DATA][SOCKET_TYPE]
+            name = item[DATA][NAME]
+            self.getter().new(name=name, socket_type=socket_type)
 
 
 # now they are cooked and ready to use ~ bon appétit
