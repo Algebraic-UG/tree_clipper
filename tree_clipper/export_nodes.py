@@ -535,9 +535,12 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
 
     external = {}
     for obj, pointers in exporter.pointers.items():
+        # normally, this works
         if obj in exporter.serialized:
             for pointer in pointers:
                 pointer.pointee_id = exporter.serialized[obj]
+        # the references to node trees in libraries behave differently
+        # see: https://github.com/Algebraic-UG/tree_clipper/issues/72
         elif isinstance(obj, bpy.types.NodeTree) and parameters.export_sub_trees:
             for serialized_id, other in exporter.serialized.items():
                 if isinstance(other, bpy.types.NodeTree) and other.name == obj.name:
