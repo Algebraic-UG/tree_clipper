@@ -409,8 +409,7 @@ From root: {from_root.to_str()}"""
                     prop=prop,
                     from_root=from_root.add_prop(prop),
                 )
-                if prop_data is not None:
-                    no_clobber(data, prop.identifier, prop_data)
+                no_clobber(data, prop.identifier, prop_data)
 
             return data
 

@@ -179,7 +179,10 @@ class Importer:
         identifier = prop.identifier
 
         if serialization is None:
-            setattr(getter(), identifier, None)
+            if prop.is_readonly:
+                assert getattr(getter(), identifier) is None
+            else:
+                setattr(getter(), identifier, None)
         elif isinstance(serialization, int):
             if prop.is_readonly:
                 raise RuntimeError("Readonly pointer can't deferred in json")
