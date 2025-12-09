@@ -72,6 +72,7 @@ ACTIVE_ITEM = "active_item"
 GRID_ITEMS = "grid_items"
 VIEW = "view"
 IMAGE = "image"
+ENTRIES = "entries"
 
 
 # this might not be needed anymore in many cases, because
@@ -1131,7 +1132,7 @@ They'll be empty strings in that case and we can't set those during import."""
 
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME, IMAGE],
+            [INPUTS, OUTPUTS, BL_IDNAME, ENTRIES],
             [PARENT],
         )
 
