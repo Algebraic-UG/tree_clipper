@@ -1,3 +1,5 @@
+from pathlib import Path
+from typing import Literal
 import bpy
 
 from tree_clipper.export_nodes import ExportIntermediate, ExportParameters
@@ -21,11 +23,27 @@ def make_test_collection() -> bpy.types.Collection:
     return collection
 
 
-def make_test_node_tree() -> bpy.types.NodeTree:
-    tree = bpy.data.node_groups.new(name="test", type="GeometryNodeTree")
-    tree.use_fake_user = True
-    tree.is_modifier = True  # ty: ignore[unresolved-attribute]
+def make_test_node_tree(
+    name: str = "test",
+    ty: Literal[
+        "GeometryNodeTree",
+        "CompositorNodeTree",
+        "ShaderNodeTree",
+        "TextureNodeTree",
+    ] = "GeometryNodeTree",
+) -> bpy.types.NodeTree:
+    tree = bpy.data.node_groups.new(name=name, type=ty)
+    tree.use_fake_user = True  # otherwise it might not be in the save file
+    if isinstance(tree, bpy.types.GeometryNodeTree):
+        tree.is_modifier = True  # makes it easier to inspect
     return tree
+
+
+def save_failed(name: str):
+    test_failures = Path("test_failures")
+    test_failures.mkdir(exist_ok=True)
+    path = str(test_failures / f"{name}.blend")
+    bpy.ops.wm.save_as_mainfile(filepath=path)
 
 
 def round_trip_without_external(name: str):

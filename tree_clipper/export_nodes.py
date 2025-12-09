@@ -12,6 +12,7 @@ import tomllib
 from .common import (
     BLENDER_VERSION,
     DATA,
+    DISPLAY_SHAPE,
     EXTERNAL_DESCRIPTION,
     FORBIDDEN_PROPERTIES,
     ID,
@@ -101,14 +102,25 @@ class Exporter:
         for prop in assumed_type.bl_rna.properties:
             if prop.is_readonly or prop.type not in SIMPLE_PROPERTY_TYPES_AS_STRS:
                 continue
+            prop_from_root = from_root.add_prop(prop)
+            if bpy.app.version == (5, 0, 0):
+                # https://github.com/Algebraic-UG/tree_clipper/issues/48
+                if (
+                    isinstance(obj, bpy.types.NodeSocket)
+                    and prop.identifier == DISPLAY_SHAPE
+                ):
+                    if self.debug_prints:
+                        print(f"{prop_from_root.to_str()}: skipping broken")
+                    continue
+
             if prop.identifier in FORBIDDEN_PROPERTIES:
                 if self.debug_prints:
-                    print(f"{from_root.to_str()}: forbidden")
+                    print(f"{prop_from_root.to_str()}: forbidden")
                 continue
             data[prop.identifier] = self._export_property_simple(
                 obj=obj,
                 prop=prop,  # type: ignore
-                from_root=from_root.add_prop(prop),
+                from_root=prop_from_root,
             )
         return data
 
@@ -397,8 +409,7 @@ From root: {from_root.to_str()}"""
                     prop=prop,
                     from_root=from_root.add_prop(prop),
                 )
-                if prop_data is not None:
-                    no_clobber(data, prop.identifier, prop_data)
+                no_clobber(data, prop.identifier, prop_data)
 
             return data
 
