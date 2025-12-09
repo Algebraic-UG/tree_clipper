@@ -940,8 +940,8 @@ class RenderLayersExporter(SpecificExporter[bpy.types.CompositorNodeRLayers]):
 
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME, SCENE],
-            [PARENT],
+            [INPUTS, OUTPUTS, BL_IDNAME],
+            [PARENT, SCENE],
         )
         if self.obj.scene is None:
             layer = data.pop(LAYER)
@@ -1111,8 +1111,8 @@ They'll be empty strings in that case and we can't set those during import."""
 
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME, IMAGE],
-            [PARENT],
+            [INPUTS, OUTPUTS, BL_IDNAME],
+            [PARENT, IMAGE],
         )
 
         if not self.obj.has_layers:
@@ -1133,7 +1133,7 @@ They'll be empty strings in that case and we can't set those during import."""
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
             [INPUTS, OUTPUTS, BL_IDNAME, ENTRIES],
-            [PARENT],
+            [PARENT, IMAGE],
         )
 
         if not self.obj.has_layers:
