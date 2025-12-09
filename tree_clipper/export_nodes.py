@@ -548,6 +548,8 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
                         pointer.pointee_id = serialized_id
                     break
         else:
+            assert isinstance(obj, bpy.types.ID), "Only ID types can be external items"
+
             # Maybe it could be beneficial in some cases to have the option to have a single external item,
             # but it's also possible to use an additional group node to avieve the same thing.
             # Let's rather keep it simple here for now.
