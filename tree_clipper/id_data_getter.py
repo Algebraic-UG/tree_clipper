@@ -59,3 +59,18 @@ def make_id_data_getter(obj: bpy.types.ID) -> Callable[[], bpy.types.ID]:
         raise RuntimeError(f"Can not create getter for pointer to {obj.id_type}")
 
     return _make_getter(_ID_TYPE_TO_DATA_BLOCK[obj.id_type](), obj.name)
+
+
+# see https://github.com/Algebraic-UG/tree_clipper/issues/72
+def canonical_reference(obj: bpy.types.bpy_struct) -> bpy.types.bpy_struct:
+    if not isinstance(obj, bpy.types.ID):
+        return obj
+
+    if obj.library is None:
+        return obj
+
+    data_block = _ID_TYPE_TO_DATA_BLOCK[obj.id_type]()
+
+    return next(
+        ref for ref in data_block if ref.name == obj.name and ref.library is None
+    )
