@@ -200,6 +200,10 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
                     return None
 
             if ty == bpy.types.NodeTreeInterfaceSocket:
+                if self.importer.debug_prints:
+                    print(
+                        f"{self.from_root.to_str()}: adding socket {name}, {data[SOCKET_TYPE]}"
+                    )
                 new_item = self.getter().new_socket(
                     name=name,
                     description=description,
@@ -208,6 +212,8 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
                     parent=get_parent(),
                 )
             else:
+                if self.importer.debug_prints:
+                    print(f"{self.from_root.to_str()}: adding panel {name}")
                 new_item = self.getter().new_panel(
                     name=name,
                     description=description,
