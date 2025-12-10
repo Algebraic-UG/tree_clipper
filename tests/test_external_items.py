@@ -187,6 +187,8 @@ def test_external_items():
 
         _check_after_import(name)
 
+        assert False
+
     except:
         # store in case of failure for easy debugging
         save_failed(f"{test_external_items.__name__}")
