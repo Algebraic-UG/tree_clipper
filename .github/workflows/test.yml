@@ -52,7 +52,7 @@ jobs:
 
           - uses: actions/upload-artifact@v4
             with:
-              name: blend-files-from-failed
+              name: blend-files-from-failed-${{ matrix.os }}
               path: test_failures/*.blend
 
           - name: Fail job if tests failed
