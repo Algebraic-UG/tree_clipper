@@ -18,9 +18,12 @@ jobs:
       runs-on: ubuntu-latest
       steps:
         - uses: actions/checkout@v5
+
         - uses: astral-sh/ruff-action@v3
+
         - name: Check code formatting
           run: ruff format --diff
+
         - name: Lint code base
           run: ruff check
 
@@ -38,8 +41,21 @@ jobs:
 
           - name: Install uv
             uses: astral-sh/setup-uv@v5
-          
+
           - name: Install tree_clipper
             run: uv sync --all-extras
+
           - name: Run Tests
+            id: "tests"
             run: uv run pytest
+            continue-on-error: true
+
+          - uses: actions/upload-artifact@v4
+            with:
+              name: blend-files-from-failed-${{ matrix.os }}
+              path: test_failures/*.blend
+              if-no-files-found: ignore
+
+          - name: Fail job if tests failed
+            if: steps.tests.outcome == 'failure'
+            run: exit 1
