@@ -46,6 +46,7 @@ jobs:
             run: uv sync --all-extras
 
           - name: Run Tests
+            id: "tests"
             run: uv run pytest
             continue-on-error: true
 
@@ -53,3 +54,7 @@ jobs:
             with:
               name: blend-files-from-failed
               path: test_failures/*.blend
+
+          - name: Fail job if tests failed
+            if: steps.tests.outcome == 'failure'
+            run: exit 1
