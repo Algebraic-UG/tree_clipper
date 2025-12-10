@@ -74,6 +74,7 @@ VIEW = "view"
 IMAGE = "image"
 ENTRIES = "entries"
 FORMAT = "format"
+IS_PANEL_TOGGLE = "is_panel_toggle"
 
 
 # this might not be needed anymore in many cases, because
@@ -211,6 +212,8 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
                     socket_type=data[SOCKET_TYPE],
                     parent=get_parent(),
                 )
+                if isinstance(new_item, bpy.types.NodeTreeInterfaceSocketBool):
+                    new_item.is_panel_toggle = data[IS_PANEL_TOGGLE]
             else:
                 if self.importer.debug_prints:
                     print(f"{self.from_root.to_str()}: adding panel {name}")
