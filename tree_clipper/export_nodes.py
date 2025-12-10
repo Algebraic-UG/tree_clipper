@@ -41,6 +41,7 @@ from .common import (
     RNA_TYPE,
     EXTERNAL,
     EXTERNAL_FIXED_TYPE_NAME,
+    NODE_TREE,
 )
 
 
@@ -442,8 +443,8 @@ def _collect_sub_trees(
     from_root: FromRoot,
 ) -> None:
     for node in current.nodes:
-        if isinstance(node, bpy.types.GeometryNodeGroup) and node.node_tree is not None:
-            tree = node.node_tree
+        tree = getattr(node, NODE_TREE, None)
+        if isinstance(tree, bpy.types.NodeTree):
             if all(tree.name != already_in[0].name for already_in in trees):
                 sub_root = from_root.add(f"Group ({node.name}, {tree.name})")
                 _collect_sub_trees(current=tree, trees=trees, from_root=sub_root)
