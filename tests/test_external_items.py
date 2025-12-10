@@ -141,7 +141,6 @@ def test_external_items():
                 name=name,
                 specific_handlers=BUILT_IN_EXPORTER,
                 export_sub_trees=False,  # this is important otherwise the group won't be an external item
-                skip_defaults=True,
                 debug_prints=True,
                 write_from_roots=False,
             )

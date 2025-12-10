@@ -74,13 +74,11 @@ class Exporter:
         self,
         *,
         specific_handlers: dict[type, SERIALIZER],
-        skip_defaults: bool,
         write_from_roots: bool,
         debug_prints: bool,
     ) -> None:
         self.next_id = 0
         self.specific_handlers = specific_handlers
-        self.skip_defaults = skip_defaults
         self.debug_prints = debug_prints
         self.write_from_roots = write_from_roots
         self.pointers = {}
@@ -464,7 +462,6 @@ class ExportParameters:
         name: str,
         specific_handlers: dict[type, SERIALIZER],
         export_sub_trees: bool = True,
-        skip_defaults: bool = True,
         debug_prints: bool,
         write_from_roots: bool,
     ) -> None:
@@ -472,7 +469,6 @@ class ExportParameters:
         self.name = name
         self.specific_handlers = specific_handlers
         self.export_sub_trees = export_sub_trees
-        self.skip_defaults = skip_defaults
         self.debug_prints = debug_prints
         self.write_from_roots = write_from_roots
 
@@ -496,7 +492,6 @@ class External:
 def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
     exporter = Exporter(
         specific_handlers=parameters.specific_handlers,
-        skip_defaults=parameters.skip_defaults,
         debug_prints=parameters.debug_prints,
         write_from_roots=parameters.write_from_roots,
     )

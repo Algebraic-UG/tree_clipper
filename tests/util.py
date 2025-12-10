@@ -53,7 +53,6 @@ def round_trip_without_external(name: str):
             name=name,
             specific_handlers=BUILT_IN_EXPORTER,
             export_sub_trees=True,
-            skip_defaults=True,
             debug_prints=True,
             write_from_roots=False,
         )
