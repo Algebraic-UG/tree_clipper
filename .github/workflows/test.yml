@@ -54,6 +54,7 @@ jobs:
             with:
               name: blend-files-from-failed-${{ matrix.os }}
               path: test_failures/*.blend
+              if-no-files-found: ignore
 
           - name: Fail job if tests failed
             if: steps.tests.outcome == 'failure'
