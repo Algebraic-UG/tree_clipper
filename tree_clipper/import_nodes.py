@@ -410,7 +410,7 @@ From root: {from_root.to_str()}"""
         serialization: dict[str, Any],
         overwrite: bool,
         material_name: str | None = None,
-    ) -> None:
+    ) -> Tuple[bool, str]:
         original_name = serialization[DATA][NAME]
 
         if material_name is None:
@@ -461,6 +461,8 @@ From root: {from_root.to_str()}"""
             func()
         self.set_socket_enum_defaults.clear()
 
+        return (material_name is None, name)
+
 
 def _check_version(data: dict) -> None | str:
     exporter_blender_version = data[BLENDER_VERSION]
@@ -504,7 +506,7 @@ def _import_nodes_from_dict(
     data: dict[str, Any],
     getters: dict[int, GETTER],
     parameters: ImportParameters,
-) -> None:
+) -> Tuple[bool, str]:
     importer = Importer(
         specific_handlers=parameters.specific_handlers,
         getters=getters,
@@ -524,7 +526,7 @@ def _import_nodes_from_dict(
 
     # root tree needs special treatment, might be material
     # pylint: disable=protected-access
-    importer._import_node_tree(
+    return importer._import_node_tree(
         serialization=data[TREES][-1],
         overwrite=parameters.overwrite,
         material_name=None if MATERIAL_NAME not in data else data[MATERIAL_NAME],
@@ -583,8 +585,8 @@ class ImportIntermediate:
             else:
                 assert int(external_id) in self.getters
 
-    def import_nodes(self, parameters: ImportParameters) -> None:
-        _import_nodes_from_dict(
+    def import_nodes(self, parameters: ImportParameters) -> Tuple[bool, str]:
+        return _import_nodes_from_dict(
             data=self.data,
             getters=self.getters,
             parameters=parameters,
