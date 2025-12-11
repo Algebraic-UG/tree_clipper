@@ -1,12 +1,8 @@
 import bpy
 
-from tests.util import save_failed
-from tree_clipper.import_nodes import ImportIntermediate, ImportParameters
-from tree_clipper.specific_handlers import BUILT_IN_EXPORTER, BUILT_IN_IMPORTER
-from tree_clipper.export_nodes import ExportIntermediate, ExportParameters
 from pathlib import Path
 
-import pytest
+from .util import save_failed, round_trip_with_same_external
 
 testdata = [
     "01 Pumpkin.blend",  # "https://www.patreon.com/file?h=142546933&m=557444276"
@@ -32,17 +28,17 @@ def test_erindales_nodevember_01():
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
 
-        export_intermediate = ExportIntermediate(
-            parameters=ExportParameters(
-                is_material=False,
-                name="Pumpkin",
-                specific_handlers=BUILT_IN_EXPORTER,
-                export_sub_trees=True,
-                skip_defaults=True,
-                debug_prints=True,
-                write_from_roots=False,
-            )
-        )
+        round_trip_with_same_external("Pumpkin", is_material=False)
+        round_trip_with_same_external("Foliage", is_material=False)
+
+        round_trip_with_same_external("Compositing Nodetree", is_material=False)
+
+        round_trip_with_same_external("Candle Flame", is_material=True)
+        round_trip_with_same_external("Candle Wax", is_material=True)
+        round_trip_with_same_external("Grass", is_material=True)
+        round_trip_with_same_external("Material", is_material=True)
+        round_trip_with_same_external("Pumpkin", is_material=True)
+        round_trip_with_same_external("Stalk", is_material=True)
 
     except:
         # store in case of failure for easy debugging
