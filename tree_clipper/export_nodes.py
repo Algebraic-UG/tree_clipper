@@ -71,6 +71,9 @@ class Pointer:
         # needed for the selection on import
         self.fixed_type_name = fixed_type_name
 
+    def get_pointee(self) -> bpy.types.bpy_struct:
+        return getattr(self.obj, self.identifier)
+
 
 class Exporter:
     def __init__(
