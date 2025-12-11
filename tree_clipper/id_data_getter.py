@@ -10,7 +10,7 @@ _ID_TYPE_TO_DATA_BLOCK: dict[str, Callable[[], bpy.types.bpy_prop_collection]] =
     "CAMERA": lambda: bpy.data.cameras,
     "COLLECTION": lambda: bpy.data.collections,
     "CURVE": lambda: bpy.data.curves,
-    # "CURVES": ???,
+    "CURVES": lambda: bpy.data.hair_curves,
     "FONT": lambda: bpy.data.fonts,
     "GREASEPENCIL": lambda: bpy.data.annotations,
     "GREASEPENCIL_V3": lambda: bpy.data.grease_pencils,
