@@ -414,7 +414,15 @@ From root: {from_root.to_str()}"""
         original_name = serialization[DATA][NAME]
 
         if material_name is None:
-            if overwrite and original_name in bpy.data.node_groups:
+            can_overwrite = (
+                overwrite
+                and original_name in bpy.data.node_groups
+                # we can't write properties of library items
+                # https://github.com/Algebraic-UG/tree_clipper/issues/83
+                and bpy.data.node_groups[original_name].library is None
+                and bpy.data.node_groups[original_name].library_weak_reference is None
+            )
+            if can_overwrite:
                 node_tree = bpy.data.node_groups[original_name]
             else:
                 node_tree = bpy.data.node_groups.new(
@@ -431,7 +439,16 @@ From root: {from_root.to_str()}"""
 
         else:
             # this can only happen for the top level
-            if overwrite:
+
+            can_overwrite = (
+                overwrite
+                and original_name in bpy.data.materials
+                # we can't write properties of library items
+                # https://github.com/Algebraic-UG/tree_clipper/issues/83
+                and bpy.data.materials[original_name].library is None
+                and bpy.data.materials[original_name].library_weak_reference is None
+            )
+            if can_overwrite:
                 mat = bpy.data.materials[material_name]
             else:
                 mat = bpy.data.materials.new(material_name)
