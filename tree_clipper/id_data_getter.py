@@ -44,6 +44,54 @@ _ID_TYPE_TO_DATA_BLOCK: dict[str, Callable[[], bpy.types.bpy_prop_collection]] =
     "WORLD": lambda: bpy.data.worlds,
 }
 
+_ID_NAME_TO_ID_TYPE: dict[str, str] = {
+    "Action": "ACTION",
+    "Armature": "ARMATURE",
+    "Brush": "BRUSH",
+    "CacheFile": "CACHEFILE",
+    "Camera": "CAMERA",
+    "Collection": "COLLECTION",
+    "Curve": "CURVE",
+    "Curves": "CURVES",
+    "VectorFont": "FONT",
+    "Annotation": "GREASEPENCIL",
+    "GreasePencil": "GREASEPENCIL_V3",
+    "Image": "IMAGE",
+    "Key": "KEY",
+    "Lattice": "LATTICE",
+    "Library": "LIBRARY",
+    "Light": "LIGHT",
+    "LightProbe": "LIGHT_PROBE",
+    "FreestyleLineStyle": "LINESTYLE",
+    "Mask": "MASK",
+    "Material": "MATERIAL",
+    "Mesh": "MESH",
+    "MetaBall": "META",
+    "MovieClip": "MOVIECLIP",
+    "NodeTree": "NODETREE",
+    "Object": "OBJECT",
+    "PaintCurve": "PAINTCURVE",
+    "Palette": "PALETTE",
+    "ParticleSettings": "PARTICLE",
+    "PointCloud": "POINTCLOUD",
+    "Scene": "SCENE",
+    "Screen": "SCREEN",
+    "Sound": "SOUND",
+    "Speaker": "SPEAKER",
+    "Text": "TEXT",
+    "Texture": "TEXTURE",
+    "Volume": "VOLUME",
+    "WindowManager": "WINDOWMANAGER",
+    "WorkSpace": "WORKSPACE",
+    "World": "WORLD",
+}
+
+
+def get_data_block_from_id_name(id_name: str) -> bpy.types.bpy_prop_collection:
+    id_type = _ID_NAME_TO_ID_TYPE[id_name]
+    getter = _ID_TYPE_TO_DATA_BLOCK[id_type]
+    return getter()
+
 
 def _make_getter(
     block: bpy.types.bpy_prop_collection, name: str
