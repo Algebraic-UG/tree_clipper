@@ -86,7 +86,6 @@ def round_trip_with_same_external(name: str, is_material: bool):
             name=name,
             specific_handlers=BUILT_IN_EXPORTER,
             export_sub_trees=True,
-            skip_defaults=True,
             debug_prints=True,
             write_from_roots=False,
         )
