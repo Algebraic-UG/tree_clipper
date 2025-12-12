@@ -66,6 +66,9 @@ def canonical_reference(obj: bpy.types.bpy_struct) -> bpy.types.bpy_struct:
     if not isinstance(obj, bpy.types.ID):
         return obj
 
+    if isinstance(obj, bpy.types.ShaderNodeTree):
+        return obj
+
     data_block = _ID_TYPE_TO_DATA_BLOCK[obj.id_type]()
 
     return next(ref for ref in data_block if ref.name == obj.name)
