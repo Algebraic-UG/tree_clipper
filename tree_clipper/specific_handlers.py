@@ -17,6 +17,7 @@ from .common import (
     BL_IDNAME,
     NAME,
     DEFAULT_VALUE,
+    GETTER,
 )
 
 # to help prevent typos, especially when used multiple times
@@ -75,6 +76,7 @@ IMAGE = "image"
 ENTRIES = "entries"
 FORMAT = "format"
 IS_PANEL_TOGGLE = "is_panel_toggle"
+ENABLED = "enabled"
 
 
 # this might not be needed anymore in many cases, because
@@ -963,11 +965,46 @@ class RenderLayersExporter(SpecificExporter[bpy.types.CompositorNodeRLayers]):
             [INPUTS, OUTPUTS, BL_IDNAME],
             [PARENT, SCENE],
         )
-        if self.obj.scene is None:
-            layer = data.pop(LAYER)
-            assert layer == ""
-
         return data
+
+
+class RenderLayersImporter(SpecificImporter[bpy.types.CompositorNodeRLayers]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties([LAYER])
+        if self.serialization[SCENE] is not None:
+            assert self.serialization[LAYER] != ""
+            # order is important, the scene determines which layers can be set
+            self.import_properties_from_id_list([SCENE, LAYER])
+        _import_node_parent(self)
+
+        # now for the fun part, we can't rely on anything for disabled sockets
+        # so we just skip them all together
+        # the normal collection importing assumes that all items are imported,
+        # however, there appear to always be at least 31 outputs most of which are usually disabled
+        # so we need to circumvent the normal collection importing
+
+        enabled_outputs = [socket for socket in self.getter().outputs if socket.enabled]
+        serialized_enabled_outputs = [
+            item
+            for item in self.serialization[OUTPUTS][DATA][ITEMS]
+            if item[DATA][ENABLED]
+        ]
+
+        # prior checks of the scene and layer should make this impossible to fail
+        assert len(enabled_outputs) == len(serialized_enabled_outputs)
+
+        # the rest is basically the same as in normal collection importing
+
+        def make_getter(i: int) -> GETTER:
+            return lambda: getattr(self.getter(), OUTPUTS)[i]
+
+        for i, item in enumerate(serialized_enabled_outputs):
+            name = item.get(NAME, "unnamed")
+            self.importer._import_obj(
+                getter=make_getter(i),
+                serialization=serialized_enabled_outputs[i],
+                from_root=self.from_root.add(f"[{i}] ({name})"),
+            )
 
 
 class ForEachInputExporter(
