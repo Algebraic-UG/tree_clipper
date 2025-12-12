@@ -82,9 +82,13 @@ class Importer:
         getter: GETTER,
         serialization: dict[str, Any],
         assumed_type: Type[bpy.types.bpy_struct],
+        forbidden: list[str],
         from_root: FromRoot,
     ) -> None:
         for prop in assumed_type.bl_rna.properties:
+            if prop.identifier in forbidden:
+                print(f"{from_root.add_prop(prop).to_str()}: explicitly forbidden")
+                continue
             if prop.is_readonly or prop.type not in SIMPLE_PROPERTY_TYPES_AS_STRS:
                 continue
             if prop.identifier not in serialization:

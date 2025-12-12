@@ -132,7 +132,13 @@ class NodeTreeExporter(SpecificExporter[bpy.types.NodeTree]):
 
 class NodeTreeImporter(SpecificImporter[bpy.types.NodeTree]):
     def deserialize(self):
-        self.import_all_simple_writable_properties_and_list(
+        if isinstance(self.getter(), bpy.types.ShaderNodeTree):
+            forbidden = [NAME]
+        else:
+            forbidden = []
+
+        self.import_all_simple_writable_properties(forbidden)
+        self.import_properties_from_id_list(
             [NODE_TREE_INTERFACE, NODE_TREE_NODES, ANNOTATION]
         )
 
