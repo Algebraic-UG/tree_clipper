@@ -42,9 +42,11 @@ from .common import (
     EXTERNAL,
     EXTERNAL_FIXED_TYPE_NAME,
     NODE_TREE,
+    SCENES,
 )
 
 from .id_data_getter import canonical_reference
+from .scene_info import export_scene_info
 
 
 class Pointer:
@@ -536,7 +538,8 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
     if parameters.is_material:
         data[MATERIAL_NAME] = parameters.name
 
-    external = {}
+    data[EXTERNAL] = {}
+    data[SCENES] = {}
     for obj, pointers in exporter.pointers.items():
         if obj in exporter.serialized:
             for pointer in pointers:
@@ -544,16 +547,19 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
         else:
             assert isinstance(obj, bpy.types.ID), "Only ID types can be external items"
 
+            scene_id = exporter.next_id
+            exporter.next_id += 1
+            if isinstance(obj, bpy.types.Scene):
+                data[SCENES][scene_id] = export_scene_info(obj)
+
             # Maybe it could be beneficial in some cases to have the option to have a single external item,
             # but it's also possible to use an additional group node to avieve the same thing.
             # Let's rather keep it simple here for now.
             for pointer in pointers:
                 external_id = exporter.next_id
                 exporter.next_id += 1
-                external[external_id] = External(pointed_to_by=pointer)
+                data[EXTERNAL][external_id] = External(pointed_to_by=pointer)
                 pointer.pointee_id = external_id
-
-    data[EXTERNAL] = external
 
     return data
 

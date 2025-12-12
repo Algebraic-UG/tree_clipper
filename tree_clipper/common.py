@@ -16,6 +16,7 @@ TREE_CLIPPER_VERSION = "tree_clipper_version"
 MATERIAL_NAME = "name"
 TREES = "node_trees"
 EXTERNAL = "external"
+SCENES = "scenes"
 
 # within each external item
 EXTERNAL_DESCRIPTION = "description"
