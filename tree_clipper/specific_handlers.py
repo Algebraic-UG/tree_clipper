@@ -74,6 +74,7 @@ VIEW = "view"
 IMAGE = "image"
 ENTRIES = "entries"
 FORMAT = "format"
+IS_PANEL_TOGGLE = "is_panel_toggle"
 
 
 # this might not be needed anymore in many cases, because
@@ -189,27 +190,39 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
             name = _or_default(data, ty, NAME)
             description = _or_default(data, ty, DESCRIPTION)
 
-            if PARENT_INDEX in data:
-                parent_index = data[PARENT_INDEX]
-                assert parent_index < len(self.getter().items_tree)
-                parent = self.getter().items_tree[parent_index]
-            else:
-                parent = None
+            def get_parent() -> None | bpy.types.NodeTreeInterfacePanel:
+                if PARENT_INDEX in data:
+                    parent_index = data[PARENT_INDEX]
+                    assert parent_index < len(self.getter().items_tree)
+                    parent = self.getter().items_tree[parent_index]
+                    assert isinstance(parent, bpy.types.NodeTreeInterfacePanel)
+                    return parent
+                else:
+                    return None
 
             if ty == bpy.types.NodeTreeInterfaceSocket:
+                if self.importer.debug_prints:
+                    print(
+                        f"{self.from_root.to_str()}: adding socket {name}, {data[SOCKET_TYPE]}"
+                    )
                 new_item = self.getter().new_socket(
                     name=name,
                     description=description,
                     in_out=_or_default(data, ty, "in_out"),
                     socket_type=data[SOCKET_TYPE],
-                    parent=parent,
+                    parent=get_parent(),
                 )
+                if isinstance(new_item, bpy.types.NodeTreeInterfaceSocketBool):
+                    new_item.is_panel_toggle = data[IS_PANEL_TOGGLE]
             else:
+                if self.importer.debug_prints:
+                    print(f"{self.from_root.to_str()}: adding panel {name}")
                 new_item = self.getter().new_panel(
                     name=name,
                     description=description,
                     default_closed=_or_default(data, ty, DEFAULT_CLOSED),
                 )
+                parent = get_parent()
                 if parent is not None:
                     self.getter().move_to_parent(
                         item=new_item,
