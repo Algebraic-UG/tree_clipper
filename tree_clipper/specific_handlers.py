@@ -373,24 +373,18 @@ class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
                     f"{self.from_root.to_str()}: linking {from_node_name}, {from_socket_idx} to {to_node_name}, {to_socket_idx}"
                 )
 
-            new_link = self.getter().new(
-                input=self.importer.current_tree.nodes[from_node_name].outputs[
-                    from_socket_idx
-                ],
-                output=self.importer.current_tree.nodes[to_node_name].inputs[
-                    to_socket_idx
-                ],
-            )
+            from_node = self.importer.current_tree.nodes[from_node_name]  # ty: ignore[possibly-missing-attribute]
+            from_socket = from_node.outputs[from_socket_idx]
+            to_node = self.importer.current_tree.nodes[to_node_name]  # ty: ignore[possibly-missing-attribute]
+            to_socket = to_node.inputs[to_socket_idx]
+
+            new_link = self.getter().new(input=from_socket, output=to_socket)
 
             # bubble the link to the correct position
             multi_input_sort_id = _or_default(
                 data, bpy.types.NodeLink, MULTI_INPUT_SORT_ID
             )
-            multi_links = (
-                self.importer.current_tree.nodes[to_node_name]
-                .inputs[to_socket_idx]
-                .links
-            )
+            multi_links = to_node.inputs[to_socket_idx].links
             assert new_link.multi_input_sort_id + 1 == len(multi_links)
             while new_link.multi_input_sort_id > multi_input_sort_id:
                 new_link.swap_multi_input_sort_id(
