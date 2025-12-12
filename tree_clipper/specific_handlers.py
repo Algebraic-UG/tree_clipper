@@ -364,17 +364,22 @@ class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
     def deserialize(self):
         for link in self.serialization[ITEMS]:
             data = link[DATA]
-            from_node = data[FROM_NODE]
-            from_socket = data[FROM_SOCKET]
-            to_node = data[TO_NODE]
-            to_socket = data[TO_SOCKET]
+            from_node_name = data[FROM_NODE]
+            from_socket_idx = data[FROM_SOCKET]
+            to_node_name = data[TO_NODE]
+            to_socket_idx = data[TO_SOCKET]
             if self.importer.debug_prints:
                 print(
-                    f"{self.from_root.to_str()}: linking {from_node}, {from_socket} to {to_node}, {to_socket}"
+                    f"{self.from_root.to_str()}: linking {from_node_name}, {from_socket_idx} to {to_node_name}, {to_socket_idx}"
                 )
+
             new_link = self.getter().new(
-                input=self.importer.current_tree.nodes[from_node].outputs[from_socket],
-                output=self.importer.current_tree.nodes[to_node].inputs[to_socket],
+                input=self.importer.current_tree.nodes[from_node_name].outputs[
+                    from_socket_idx
+                ],
+                output=self.importer.current_tree.nodes[to_node_name].inputs[
+                    to_socket_idx
+                ],
             )
 
             # bubble the link to the correct position
@@ -382,7 +387,9 @@ class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
                 data, bpy.types.NodeLink, MULTI_INPUT_SORT_ID
             )
             multi_links = (
-                self.importer.current_tree.nodes[to_node].inputs[to_socket].links
+                self.importer.current_tree.nodes[to_node_name]
+                .inputs[to_socket_idx]
+                .links
             )
             assert new_link.multi_input_sort_id + 1 == len(multi_links)
             while new_link.multi_input_sort_id > multi_input_sort_id:
