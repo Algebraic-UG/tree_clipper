@@ -1,7 +1,14 @@
 import bpy
 import _rna_info as rna_info
 
+import pytest
+
 from .test_all_nodes import test_all_nodes
+
+
+@pytest.fixture(autouse=True)
+def reset_blender():
+    bpy.ops.wm.read_factory_settings(app_template="", use_empty=False)
 
 
 def _all_subclasses(cls):
