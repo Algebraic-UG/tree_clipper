@@ -44,6 +44,8 @@ from .common import (
     NODE_TREE,
 )
 
+from .id_data_getter import canonical_reference
+
 
 class Pointer:
     def __init__(
@@ -211,7 +213,8 @@ class Exporter:
             fixed_type_name=prop.fixed_type.bl_rna.identifier,  # ty: ignore[unresolved-attribute]
             from_root=from_root,
         )
-        self.pointers.setdefault(attribute, []).append(pointer)
+        ref = canonical_reference(attribute)
+        self.pointers.setdefault(ref, []).append(pointer)
 
         if self.debug_prints:
             print(f"{from_root.to_str()}: deferring")
@@ -353,9 +356,10 @@ From root: {from_root.to_str()}"""
         this_id = self.next_id
         self.next_id += 1
 
-        if obj in self.serialized:
+        ref = canonical_reference(obj)
+        if ref in self.serialized:
             raise RuntimeError(f"Double serialization: {from_root.to_str()}")
-        self.serialized[obj] = this_id
+        self.serialized[ref] = this_id
 
         data = {
             ID: this_id,
@@ -535,6 +539,8 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
             for pointer in pointers:
                 pointer.pointee_id = exporter.serialized[obj]
         else:
+            assert isinstance(obj, bpy.types.ID), "Only ID types can be external items"
+
             # Maybe it could be beneficial in some cases to have the option to have a single external item,
             # but it's also possible to use an additional group node to avieve the same thing.
             # Let's rather keep it simple here for now.
