@@ -240,13 +240,12 @@ class Importer:
         def make_getter(i: int) -> GETTER:
             return lambda: getattr(getter(), identifier)[i]
 
-        for i, item in enumerate(attribute):
-            current_name = getattr(item, NAME, "unnamed")
-            final_name = serialized_items[i][DATA].get(NAME, current_name)
+        for i, item in enumerate(serialized_items):
+            name = item.get(NAME, "unnamed")
             self._import_obj(
                 getter=make_getter(i),
                 serialization=serialized_items[i],
-                from_root=from_root.add(f"[{i}] ({final_name})"),
+                from_root=from_root.add(f"[{i}] ({name})"),
             )
 
     def _import_property(
