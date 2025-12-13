@@ -79,14 +79,16 @@ def round_trip_without_external(name: str):
     )
 
 
-def round_trip_with_same_external(name: str, is_material: bool):
+def round_trip_with_same_external(
+    name: str, is_material: bool, debug_prints: bool = True
+):
     export_intermediate = ExportIntermediate(
         parameters=ExportParameters(
             is_material=is_material,
             name=name,
             specific_handlers=BUILT_IN_EXPORTER,
             export_sub_trees=True,
-            debug_prints=True,
+            debug_prints=debug_prints,
             write_from_roots=False,
         )
     )
@@ -100,7 +102,8 @@ def round_trip_with_same_external(name: str, is_material: bool):
     )
 
     string = export_intermediate.export_to_str(compress=False, json_indent=4)
-    print(string)
+    if debug_prints:
+        print(string)
 
     import_intermediate = ImportIntermediate()
     import_intermediate.from_str(string)
@@ -122,6 +125,6 @@ def round_trip_with_same_external(name: str, is_material: bool):
             specific_handlers=BUILT_IN_IMPORTER,
             allow_version_mismatch=False,
             overwrite=True,
-            debug_prints=True,
+            debug_prints=debug_prints,
         )
     )
