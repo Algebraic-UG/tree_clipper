@@ -124,6 +124,11 @@ class Importer:
                 from_root=from_root.add_prop(prop),
             )
 
+    def register_as_deserialized(self, *, ident: int, getter: GETTER):
+        if ident in self.getters:
+            raise RuntimeError("Double deserialization")
+        self.getters[ident] = getter
+
     ################################################################################
     # internals
     ################################################################################

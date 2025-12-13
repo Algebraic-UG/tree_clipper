@@ -77,6 +77,8 @@ ENTRIES = "entries"
 FORMAT = "format"
 IS_PANEL_TOGGLE = "is_panel_toggle"
 ENABLED = "enabled"
+SINGLE_INPUT = "single_input"
+SINGLE_OUTPUT = "single_output"
 
 
 # this might not be needed anymore in many cases, because
@@ -768,20 +770,42 @@ class NodeClosureOutputItems(SpecificImporter[bpy.types.NodeClosureOutputItems])
 
 
 class RerouteExporter(SpecificExporter[bpy.types.NodeReroute]):
-    """The reroute's sockets are not needed and can cause problems"""
+    """The reroute's sockets can cause problems, we just register them for linking"""
 
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME],
-            [PARENT],
+            [BL_IDNAME], [PARENT]
         )
-        assert len(data[INPUTS][DATA][ITEMS]) == 1
-        assert len(data[OUTPUTS][DATA][ITEMS]) == 1
 
-        data[INPUTS][DATA][ITEMS][0][DATA] = {}
-        data[OUTPUTS][DATA][ITEMS][0][DATA] = {}
+        no_clobber(
+            data,
+            SINGLE_INPUT,
+            self.exporter.register_as_serialized(self.obj.inputs[0]),
+        )
+        no_clobber(
+            data,
+            SINGLE_OUTPUT,
+            self.exporter.register_as_serialized(self.obj.outputs[0]),
+        )
 
         return data
+
+
+class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
+    """See export"""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties()
+        _import_node_parent(self)
+
+        self.importer.register_as_deserialized(
+            ident=self.serialization[SINGLE_INPUT],
+            getter=lambda: self.getter().inputs[0],
+        )
+        self.importer.register_as_deserialized(
+            ident=self.serialization[SINGLE_OUTPUT],
+            getter=lambda: self.getter().outputs[0],
+        )
 
 
 class CurveMapPointExporter(SpecificExporter[bpy.types.CurveMapPoint]):

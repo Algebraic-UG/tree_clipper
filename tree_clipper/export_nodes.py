@@ -148,6 +148,17 @@ class Exporter:
             )
         return data
 
+    def register_as_serialized(self, obj: bpy.types.bpy_struct) -> int:
+        this_id = self.next_id
+        self.next_id += 1
+
+        ref = canonical_reference(obj)
+        if ref in self.serialized:
+            raise RuntimeError("Double serialization")
+        self.serialized[ref] = this_id
+
+        return this_id
+
     ################################################################################
     # internals
     ################################################################################
