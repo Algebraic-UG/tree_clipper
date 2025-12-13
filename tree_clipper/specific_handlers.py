@@ -368,6 +368,8 @@ class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
 
             new_link = self.getter().new(input=from_socket, output=to_socket)
 
+            if isinstance(to_node, bpy.types.NodeReroute):
+                continue
             if not to_socket.is_multi_input:
                 continue
 
