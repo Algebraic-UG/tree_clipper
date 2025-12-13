@@ -222,7 +222,6 @@ class Importer:
         assert "items" in serialization[DATA]
 
         identifier = prop.identifier
-        attribute = getattr(getter(), identifier)
 
         self._import_obj(
             getter=lambda: getattr(getter(), identifier),
@@ -230,6 +229,7 @@ class Importer:
             from_root=from_root,
         )
 
+        attribute = getattr(getter(), identifier)
         serialized_items = serialization[DATA][ITEMS]
 
         if len(serialized_items) != len(attribute):
