@@ -771,18 +771,17 @@ class RerouteExporter(SpecificExporter[bpy.types.NodeReroute]):
     """The reroute's sockets are not needed and can cause problems"""
 
     def serialize(self):
-        return self.export_all_simple_writable_properties_and_list(
-            [BL_IDNAME],
+        data = self.export_all_simple_writable_properties_and_list(
+            [INPUTS, OUTPUTS, BL_IDNAME],
             [PARENT],
         )
+        assert len(data[INPUTS][DATA][ITEMS]) == 1
+        assert len(data[OUTPUTS][DATA][ITEMS]) == 1
 
+        data[INPUTS][DATA][ITEMS][0][DATA] = {}
+        data[OUTPUTS][DATA][ITEMS][0][DATA] = {}
 
-class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
-    """The reroute's sockets are not needed and can cause problems"""
-
-    def deserialize(self):
-        self.import_all_simple_writable_properties()
-        _import_node_parent(self)
+        return data
 
 
 class CurveMapPointExporter(SpecificExporter[bpy.types.CurveMapPoint]):
