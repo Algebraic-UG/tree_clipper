@@ -368,6 +368,9 @@ class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
 
             new_link = self.getter().new(input=from_socket, output=to_socket)
 
+            if not to_socket.is_multi_input:
+                continue
+
             # bubble the link to the correct position
             multi_input_sort_id = _or_default(
                 data, bpy.types.NodeLink, MULTI_INPUT_SORT_ID
