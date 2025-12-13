@@ -332,51 +332,39 @@ class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
 
 class LinkExporter(SpecificExporter[bpy.types.NodeLink]):
     def serialize(self):
-        data = self.export_all_simple_writable_properties_and_list(
-            [MULTI_INPUT_SORT_ID]
+        return self.export_all_simple_writable_properties_and_list(
+            [MULTI_INPUT_SORT_ID],
+            [FROM_SOCKET, TO_SOCKET],
         )
-
-        no_clobber(data, FROM_NODE, self.obj.from_node.name)
-        no_clobber(
-            data,
-            FROM_SOCKET,
-            next(
-                i
-                for i, socket in enumerate(self.obj.from_node.outputs)
-                if socket.identifier == self.obj.from_socket.identifier
-            ),
-        )
-        no_clobber(data, TO_NODE, self.obj.to_node.name)
-        no_clobber(
-            data,
-            TO_SOCKET,
-            next(
-                i
-                for i, socket in enumerate(self.obj.to_node.inputs)
-                if socket.identifier == self.obj.to_socket.identifier
-            ),
-        )
-
-        return data
 
 
 class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
     def deserialize(self):
         for link in self.serialization[ITEMS]:
             data = link[DATA]
-            from_node_name = data[FROM_NODE]
-            from_socket_idx = data[FROM_SOCKET]
-            to_node_name = data[TO_NODE]
-            to_socket_idx = data[TO_SOCKET]
+            from_socket_id = data[FROM_SOCKET]
+            to_socket_id = data[TO_SOCKET]
+
+            assert from_socket_id in self.importer.getters, (
+                f"Socket with Id {from_socket_id} not deserialized yet"
+            )
+            assert to_socket_id in self.importer.getters, (
+                f"Socket with Id {to_socket_id} not deserialized yet"
+            )
+
+            from_socket = self.importer.getters[from_socket_id]()
+            to_socket = self.importer.getters[to_socket_id]()
+
+            assert isinstance(from_socket, bpy.types.NodeSocket)
+            assert isinstance(to_socket, bpy.types.NodeSocket)
+
+            from_node = from_socket.node
+            to_node = to_socket.node
+
             if self.importer.debug_prints:
                 print(
-                    f"{self.from_root.to_str()}: linking {from_node_name}, {from_socket_idx} to {to_node_name}, {to_socket_idx}"
+                    f"{self.from_root.to_str()}: linking {from_node.name}, {from_socket.identifier} to {to_node.name}, {to_socket.identifier}"
                 )
-
-            from_node = self.importer.current_tree.nodes[from_node_name]  # ty: ignore[possibly-missing-attribute]
-            from_socket = from_node.outputs[from_socket_idx]
-            to_node = self.importer.current_tree.nodes[to_node_name]  # ty: ignore[possibly-missing-attribute]
-            to_socket = to_node.inputs[to_socket_idx]
 
             new_link = self.getter().new(input=from_socket, output=to_socket)
 
@@ -384,13 +372,13 @@ class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
             multi_input_sort_id = _or_default(
                 data, bpy.types.NodeLink, MULTI_INPUT_SORT_ID
             )
-            multi_links = to_node.inputs[to_socket_idx].links
-            assert new_link.multi_input_sort_id + 1 == len(multi_links)
+            multi_links = to_socket.links
+            assert new_link.multi_input_sort_id + 1 == len(multi_links)  # ty: ignore[invalid-argument-type]
             while new_link.multi_input_sort_id > multi_input_sort_id:
                 new_link.swap_multi_input_sort_id(
                     next(
                         other
-                        for other in multi_links
+                        for other in multi_links  # ty: ignore[not-iterable]
                         if other.multi_input_sort_id == new_link.multi_input_sort_id - 1
                     )
                 )
