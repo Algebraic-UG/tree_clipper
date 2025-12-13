@@ -72,6 +72,8 @@ class Importer:
         # we need to lookup nodes and their sockets for linking them
         self.current_tree = None
 
+        self.warnings: list[str] = []
+
     ################################################################################
     # helper functions to be used in specific handlers
     ################################################################################
@@ -82,9 +84,13 @@ class Importer:
         getter: GETTER,
         serialization: dict[str, Any],
         assumed_type: Type[bpy.types.bpy_struct],
+        forbidden: list[str],
         from_root: FromRoot,
     ) -> None:
         for prop in assumed_type.bl_rna.properties:
+            if prop.identifier in forbidden:
+                print(f"{from_root.add_prop(prop).to_str()}: explicitly forbidden")
+                continue
             if prop.is_readonly or prop.type not in SIMPLE_PROPERTY_TYPES_AS_STRS:
                 continue
             if prop.identifier not in serialization:
@@ -117,6 +123,11 @@ class Importer:
                 serialization=serialization[identifier],
                 from_root=from_root.add_prop(prop),
             )
+
+    def register_as_deserialized(self, *, ident: int, getter: GETTER):
+        if ident in self.getters:
+            raise RuntimeError("Double deserialization")
+        self.getters[ident] = getter
 
     ################################################################################
     # internals
@@ -218,7 +229,6 @@ class Importer:
         assert "items" in serialization[DATA]
 
         identifier = prop.identifier
-        attribute = getattr(getter(), identifier)
 
         self._import_obj(
             getter=lambda: getattr(getter(), identifier),
@@ -226,6 +236,7 @@ class Importer:
             from_root=from_root,
         )
 
+        attribute = getattr(getter(), identifier)
         serialized_items = serialization[DATA][ITEMS]
 
         if len(serialized_items) != len(attribute):
@@ -236,13 +247,12 @@ class Importer:
         def make_getter(i: int) -> GETTER:
             return lambda: getattr(getter(), identifier)[i]
 
-        for i, item in enumerate(attribute):
-            current_name = getattr(item, NAME, "unnamed")
-            final_name = serialized_items[i][DATA].get(NAME, current_name)
+        for i, item in enumerate(serialized_items):
+            name = item.get(NAME, "unnamed")
             self._import_obj(
                 getter=make_getter(i),
                 serialization=serialized_items[i],
-                from_root=from_root.add(f"[{i}] ({final_name})"),
+                from_root=from_root.add(f"[{i}] ({name})"),
             )
 
     def _import_property(
@@ -410,11 +420,19 @@ From root: {from_root.to_str()}"""
         serialization: dict[str, Any],
         overwrite: bool,
         material_name: str | None = None,
-    ) -> None:
+    ) -> Tuple[bool, str]:
         original_name = serialization[DATA][NAME]
 
         if material_name is None:
-            if overwrite and original_name in bpy.data.node_groups:
+            can_overwrite = (
+                overwrite
+                and original_name in bpy.data.node_groups
+                # we can't write properties of library items
+                # https://github.com/Algebraic-UG/tree_clipper/issues/83
+                and bpy.data.node_groups[original_name].library is None
+                and bpy.data.node_groups[original_name].library_weak_reference is None
+            )
+            if can_overwrite:
                 node_tree = bpy.data.node_groups[original_name]
             else:
                 node_tree = bpy.data.node_groups.new(
@@ -431,7 +449,16 @@ From root: {from_root.to_str()}"""
 
         else:
             # this can only happen for the top level
-            if overwrite:
+
+            can_overwrite = (
+                overwrite
+                and original_name in bpy.data.materials
+                # we can't write properties of library items
+                # https://github.com/Algebraic-UG/tree_clipper/issues/83
+                and bpy.data.materials[original_name].library is None
+                and bpy.data.materials[original_name].library_weak_reference is None
+            )
+            if can_overwrite:
                 mat = bpy.data.materials[material_name]
             else:
                 mat = bpy.data.materials.new(material_name)
@@ -445,6 +472,12 @@ From root: {from_root.to_str()}"""
 
             def getter() -> bpy.types.ShaderNodeTree:
                 return bpy.data.materials[name].node_tree  # type: ignore
+
+        if overwrite and not can_overwrite:
+            warning = f"Can't overwrite {original_name} writing to {name} instead"
+            self.warnings.append(warning)
+            if self.debug_prints:
+                print(warning)
 
         if self.debug_prints:
             print(f"{from_root.to_str()}: entering")
@@ -460,6 +493,8 @@ From root: {from_root.to_str()}"""
         for func in self.set_socket_enum_defaults:
             func()
         self.set_socket_enum_defaults.clear()
+
+        return (material_name is None, name)
 
 
 def _check_version(data: dict) -> None | str:
@@ -504,7 +539,7 @@ def _import_nodes_from_dict(
     data: dict[str, Any],
     getters: dict[int, GETTER],
     parameters: ImportParameters,
-) -> None:
+) -> Tuple[bool, str]:
     importer = Importer(
         specific_handlers=parameters.specific_handlers,
         getters=getters,
@@ -524,7 +559,7 @@ def _import_nodes_from_dict(
 
     # root tree needs special treatment, might be material
     # pylint: disable=protected-access
-    importer._import_node_tree(
+    return importer._import_node_tree(
         serialization=data[TREES][-1],
         overwrite=parameters.overwrite,
         material_name=None if MATERIAL_NAME not in data else data[MATERIAL_NAME],
@@ -583,8 +618,8 @@ class ImportIntermediate:
             else:
                 assert int(external_id) in self.getters
 
-    def import_nodes(self, parameters: ImportParameters) -> None:
-        _import_nodes_from_dict(
+    def import_nodes(self, parameters: ImportParameters) -> Tuple[bool, str]:
+        return _import_nodes_from_dict(
             data=self.data,
             getters=self.getters,
             parameters=parameters,

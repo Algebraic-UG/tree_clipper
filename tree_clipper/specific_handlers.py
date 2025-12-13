@@ -17,6 +17,7 @@ from .common import (
     BL_IDNAME,
     NAME,
     DEFAULT_VALUE,
+    GETTER,
 )
 
 # to help prevent typos, especially when used multiple times
@@ -75,6 +76,9 @@ IMAGE = "image"
 ENTRIES = "entries"
 FORMAT = "format"
 IS_PANEL_TOGGLE = "is_panel_toggle"
+ENABLED = "enabled"
+SINGLE_INPUT = "single_input"
+SINGLE_OUTPUT = "single_output"
 
 
 # this might not be needed anymore in many cases, because
@@ -132,7 +136,13 @@ class NodeTreeExporter(SpecificExporter[bpy.types.NodeTree]):
 
 class NodeTreeImporter(SpecificImporter[bpy.types.NodeTree]):
     def deserialize(self):
-        self.import_all_simple_writable_properties_and_list(
+        if isinstance(self.getter(), bpy.types.ShaderNodeTree):
+            forbidden = [NAME]
+        else:
+            forbidden = []
+
+        self.import_all_simple_writable_properties(forbidden)
+        self.import_properties_from_id_list(
             [NODE_TREE_INTERFACE, NODE_TREE_NODES, ANNOTATION]
         )
 
@@ -324,64 +334,58 @@ class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
 
 class LinkExporter(SpecificExporter[bpy.types.NodeLink]):
     def serialize(self):
-        data = self.export_all_simple_writable_properties_and_list(
-            [MULTI_INPUT_SORT_ID]
+        return self.export_all_simple_writable_properties_and_list(
+            [MULTI_INPUT_SORT_ID],
+            [FROM_SOCKET, TO_SOCKET],
         )
-
-        no_clobber(data, FROM_NODE, self.obj.from_node.name)
-        no_clobber(
-            data,
-            FROM_SOCKET,
-            next(
-                i
-                for i, socket in enumerate(self.obj.from_node.outputs)
-                if socket.identifier == self.obj.from_socket.identifier
-            ),
-        )
-        no_clobber(data, TO_NODE, self.obj.to_node.name)
-        no_clobber(
-            data,
-            TO_SOCKET,
-            next(
-                i
-                for i, socket in enumerate(self.obj.to_node.inputs)
-                if socket.identifier == self.obj.to_socket.identifier
-            ),
-        )
-
-        return data
 
 
 class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
     def deserialize(self):
         for link in self.serialization[ITEMS]:
             data = link[DATA]
-            from_node = data[FROM_NODE]
-            from_socket = data[FROM_SOCKET]
-            to_node = data[TO_NODE]
-            to_socket = data[TO_SOCKET]
+            from_socket_id = data[FROM_SOCKET]
+            to_socket_id = data[TO_SOCKET]
+
+            assert from_socket_id in self.importer.getters, (
+                f"Socket with Id {from_socket_id} not deserialized yet"
+            )
+            assert to_socket_id in self.importer.getters, (
+                f"Socket with Id {to_socket_id} not deserialized yet"
+            )
+
+            from_socket = self.importer.getters[from_socket_id]()
+            to_socket = self.importer.getters[to_socket_id]()
+
+            assert isinstance(from_socket, bpy.types.NodeSocket)
+            assert isinstance(to_socket, bpy.types.NodeSocket)
+
+            from_node = from_socket.node
+            to_node = to_socket.node
+
             if self.importer.debug_prints:
                 print(
-                    f"{self.from_root.to_str()}: linking {from_node}, {from_socket} to {to_node}, {to_socket}"
+                    f"{self.from_root.to_str()}: linking {from_node.name}, {from_socket.identifier} to {to_node.name}, {to_socket.identifier}"
                 )
-            new_link = self.getter().new(
-                input=self.importer.current_tree.nodes[from_node].outputs[from_socket],
-                output=self.importer.current_tree.nodes[to_node].inputs[to_socket],
-            )
+
+            new_link = self.getter().new(input=from_socket, output=to_socket)
+
+            if isinstance(to_node, bpy.types.NodeReroute):
+                continue
+            if not to_socket.is_multi_input:
+                continue
 
             # bubble the link to the correct position
             multi_input_sort_id = _or_default(
                 data, bpy.types.NodeLink, MULTI_INPUT_SORT_ID
             )
-            multi_links = (
-                self.importer.current_tree.nodes[to_node].inputs[to_socket].links
-            )
-            assert new_link.multi_input_sort_id + 1 == len(multi_links)
+            multi_links = to_socket.links
+            assert new_link.multi_input_sort_id + 1 == len(multi_links)  # ty: ignore[invalid-argument-type]
             while new_link.multi_input_sort_id > multi_input_sort_id:
                 new_link.swap_multi_input_sort_id(
                     next(
                         other
-                        for other in multi_links
+                        for other in multi_links  # ty: ignore[not-iterable]
                         if other.multi_input_sort_id == new_link.multi_input_sort_id - 1
                     )
                 )
@@ -766,21 +770,42 @@ class NodeClosureOutputItems(SpecificImporter[bpy.types.NodeClosureOutputItems])
 
 
 class RerouteExporter(SpecificExporter[bpy.types.NodeReroute]):
-    """The reroute's sockets are not needed and can cause problems"""
+    """The reroute's sockets can cause problems, we just register them for linking"""
 
     def serialize(self):
-        return self.export_all_simple_writable_properties_and_list(
-            [BL_IDNAME],
-            [PARENT],
+        data = self.export_all_simple_writable_properties_and_list(
+            [BL_IDNAME], [PARENT]
         )
+
+        no_clobber(
+            data,
+            SINGLE_INPUT,
+            self.exporter.register_as_serialized(self.obj.inputs[0]),
+        )
+        no_clobber(
+            data,
+            SINGLE_OUTPUT,
+            self.exporter.register_as_serialized(self.obj.outputs[0]),
+        )
+
+        return data
 
 
 class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
-    """The reroute's sockets are not needed and can cause problems"""
+    """See export"""
 
     def deserialize(self):
         self.import_all_simple_writable_properties()
         _import_node_parent(self)
+
+        self.importer.register_as_deserialized(
+            ident=self.serialization[SINGLE_INPUT],
+            getter=lambda: self.getter().inputs[0],
+        )
+        self.importer.register_as_deserialized(
+            ident=self.serialization[SINGLE_OUTPUT],
+            getter=lambda: self.getter().outputs[0],
+        )
 
 
 class CurveMapPointExporter(SpecificExporter[bpy.types.CurveMapPoint]):
@@ -957,11 +982,46 @@ class RenderLayersExporter(SpecificExporter[bpy.types.CompositorNodeRLayers]):
             [INPUTS, OUTPUTS, BL_IDNAME],
             [PARENT, SCENE],
         )
-        if self.obj.scene is None:
-            layer = data.pop(LAYER)
-            assert layer == ""
-
         return data
+
+
+class RenderLayersImporter(SpecificImporter[bpy.types.CompositorNodeRLayers]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties([LAYER])
+        if self.serialization[SCENE] is not None:
+            assert self.serialization[LAYER] != ""
+            # order is important, the scene determines which layers can be set
+            self.import_properties_from_id_list([SCENE, LAYER])
+        _import_node_parent(self)
+
+        # now for the fun part, we can't rely on anything for disabled sockets
+        # so we just skip them all together
+        # the normal collection importing assumes that all items are imported,
+        # however, there appear to always be at least 31 outputs most of which are usually disabled
+        # so we need to circumvent the normal collection importing
+
+        enabled_outputs = [socket for socket in self.getter().outputs if socket.enabled]
+        serialized_enabled_outputs = [
+            item
+            for item in self.serialization[OUTPUTS][DATA][ITEMS]
+            if item[DATA][ENABLED]
+        ]
+
+        # prior checks of the scene and layer should make this impossible to fail
+        assert len(enabled_outputs) == len(serialized_enabled_outputs)
+
+        # the rest is basically the same as in normal collection importing
+
+        def make_getter(i: int) -> GETTER:
+            return lambda: getattr(self.getter(), OUTPUTS)[i]
+
+        for i, item in enumerate(serialized_enabled_outputs):
+            name = item.get(NAME, "unnamed")
+            self.importer._import_obj(
+                getter=make_getter(i),
+                serialization=serialized_enabled_outputs[i],
+                from_root=self.from_root.add(f"[{i}] ({name})"),
+            )
 
 
 class ForEachInputExporter(
