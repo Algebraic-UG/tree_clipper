@@ -5,7 +5,7 @@ from pathlib import Path
 from .util import save_failed, round_trip_with_same_external
 
 
-_DIR = Path("tests") / "example_blends"
+_DIR = Path("tests") / "binary_blend_files" / "molecular_nodes"
 
 
 def test_molecular_nodes():

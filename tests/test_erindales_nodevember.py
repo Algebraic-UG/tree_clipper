@@ -20,7 +20,7 @@ testdata = [
     "13 Cabin.blend",  # "https://www.patreon.com/file?h=144813310&m=573633551"
 ]
 
-_DIR = Path("tests") / "erindale" / "nodevember_2025"
+_DIR = Path("tests") / "binary_blend_files" / "erindales_nodevember_2025"
 
 
 def test_erindales_nodevember_01():
