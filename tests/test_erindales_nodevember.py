@@ -28,17 +28,17 @@ def test_erindales_nodevember_01():
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
 
-        round_trip_with_same_external("Pumpkin", is_material=False)
-        round_trip_with_same_external("Foliage", is_material=False)
+        round_trip_with_same_external(name="Pumpkin", is_material=False)
+        round_trip_with_same_external(name="Foliage", is_material=False)
 
-        round_trip_with_same_external("Compositing Nodetree", is_material=False)
+        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
 
-        round_trip_with_same_external("Candle Flame", is_material=True)
-        round_trip_with_same_external("Candle Wax", is_material=True)
-        round_trip_with_same_external("Grass", is_material=True)
-        round_trip_with_same_external("Material", is_material=True)
-        round_trip_with_same_external("Pumpkin", is_material=True)
-        round_trip_with_same_external("Stalk", is_material=True)
+        round_trip_with_same_external(name="Candle Flame", is_material=True)
+        round_trip_with_same_external(name="Candle Wax", is_material=True)
+        round_trip_with_same_external(name="Grass", is_material=True)
+        round_trip_with_same_external(name="Material", is_material=True)
+        round_trip_with_same_external(name="Pumpkin", is_material=True)
+        round_trip_with_same_external(name="Stalk", is_material=True)
 
     except:
         # store in case of failure for easy debugging

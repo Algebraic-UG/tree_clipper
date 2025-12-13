@@ -72,6 +72,8 @@ class Importer:
         # we need to lookup nodes and their sockets for linking them
         self.current_tree = None
 
+        self.warnings: list[str] = []
+
     ################################################################################
     # helper functions to be used in specific handlers
     ################################################################################
@@ -465,6 +467,12 @@ From root: {from_root.to_str()}"""
 
             def getter() -> bpy.types.ShaderNodeTree:
                 return bpy.data.materials[name].node_tree  # type: ignore
+
+        if overwrite and not can_overwrite:
+            warning = f"Can't overwrite {original_name} writing to {name} instead"
+            self.warnings.append(warning)
+            if self.debug_prints:
+                print(warning)
 
         if self.debug_prints:
             print(f"{from_root.to_str()}: entering")
