@@ -598,7 +598,7 @@ class ImportIntermediate:
                 data = json.load(file)
                 self.data = data
 
-    def get_external(self) -> dict[int, EXTERNAL_SERIALIZATION]:
+    def get_external(self) -> dict[str, EXTERNAL_SERIALIZATION]:
         assert isinstance(self.data, dict)
         return self.data[EXTERNAL]
 
