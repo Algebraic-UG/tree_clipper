@@ -1018,9 +1018,48 @@ class RenderLayersExporter(SpecificExporter[bpy.types.CompositorNodeRLayers]):
 
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME],
+            [BL_IDNAME],
             [PARENT, SCENE],
         )
+
+        # We can't export all sockets, we have to skip the ones than are disabled
+        # The normal collection exporting can't filter so we recreate it here
+        # with some debug prints to track which sockets we skip.
+        # see https://github.com/Algebraic-UG/tree_clipper/issues/84
+
+        assert len(self.obj.inputs) == 0
+
+        outputs = self.exporter._export_obj(
+            obj=self.obj.outputs,
+            from_root=self.from_root.add_prop(self.obj.bl_rna.properties[OUTPUTS]),
+        )
+
+        output_items = []
+        other_disabled_should_follow = False
+        for i, output_item in enumerate(self.obj.outputs):
+            from_root_socket = self.from_root.add(f"[{i}] ({output_item.name})")
+
+            if output_item.enabled:
+                assert not other_disabled_should_follow, (
+                    "We assume the enabled sockets are all at the beginning"
+                )
+
+                output_items.append(
+                    self.exporter._export_obj(
+                        obj=output_item,
+                        from_root=from_root_socket,
+                    )
+                )
+
+                continue
+
+            other_disabled_should_follow = True
+            if self.exporter.debug_prints:
+                print(f"{from_root_socket.to_str()} Skipping disabled output socket")
+
+        no_clobber(outputs[DATA], ITEMS, output_items)
+        no_clobber(data, OUTPUTS, outputs)
+
         return data
 
 
@@ -1033,32 +1072,29 @@ class RenderLayersImporter(SpecificImporter[bpy.types.CompositorNodeRLayers]):
             self.import_properties_from_id_list([SCENE, LAYER])
         _import_node_parent(self)
 
-        # now for the fun part, we can't rely on anything for disabled sockets
-        # so we just skip them all together
-        # the normal collection importing assumes that all items are imported,
-        # however, there appear to always be at least 31 outputs most of which are usually disabled
-        # so we need to circumvent the normal collection importing
+        # We can't import all sockets, we have to skip the ones than are disabled
+        # The normal collection importing can't filter so we recreate it here
+        # with some debug prints to track which sockets we skip.
+        # see https://github.com/Algebraic-UG/tree_clipper/issues/84
 
         enabled_outputs = [socket for socket in self.getter().outputs if socket.enabled]
-        serialized_enabled_outputs = [
-            item
-            for item in self.serialization[OUTPUTS][DATA][ITEMS]
-            if item[DATA][ENABLED]
-        ]
+        serialized_outputs = self.serialization[OUTPUTS][DATA][ITEMS]
 
         # prior checks of the scene and layer should make this impossible to fail
-        assert len(enabled_outputs) == len(serialized_enabled_outputs)
+        assert len(enabled_outputs) == len(serialized_outputs), (
+            f"{len(enabled_outputs)} enabled output sockets, {len(serialized_outputs)} in serialization"
+        )
 
         # the rest is basically the same as in normal collection importing
 
         def make_getter(i: int) -> GETTER:
             return lambda: getattr(self.getter(), OUTPUTS)[i]
 
-        for i, item in enumerate(serialized_enabled_outputs):
+        for i, item in enumerate(serialized_outputs):
             name = item.get(NAME, "unnamed")
             self.importer._import_obj(
                 getter=make_getter(i),
-                serialization=serialized_enabled_outputs[i],
+                serialization=serialized_outputs[i],
                 from_root=self.from_root.add(f"[{i}] ({name})"),
             )
 
