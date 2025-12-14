@@ -75,7 +75,7 @@ FORBIDDEN_PROPERTIES = [
 ]
 
 
-def no_clobber(data: dict, key: str, value) -> None:
+def no_clobber(data: dict, key: str | int, value) -> None:
     if key in data:
         raise RuntimeError(f"Clobbering '{key}'")
     data[key] = value

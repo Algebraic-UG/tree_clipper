@@ -40,9 +40,12 @@ from .common import (
     BL_IDNAME,
     EXTERNAL_DESCRIPTION,
     EXTERNAL,
+    SCENES,
+    no_clobber,
 )
 
 from .id_data_getter import make_id_data_getter
+from .scene_info import verify_scene
 
 
 class Importer:
@@ -603,10 +606,21 @@ class ImportIntermediate:
         self,
         ids_and_references: Iterator[Tuple[int, bpy.types.ID]],
     ) -> None:
-        self.getters = dict(
-            (external_id, make_id_data_getter(obj))
-            for external_id, obj in ids_and_references
-        )
+        self.getters.clear()
+        for external_id, external_item in ids_and_references:
+            if external_id in self.data[SCENES]:
+                assert isinstance(external_item, bpy.types.Scene), (
+                    f"External Scene item {external_id} must be set to a valid Scene"
+                )
+                verify_scene(
+                    info=self.data[SCENES][str(external_id)], scene=external_item
+                )
+
+            no_clobber(
+                self.getters,
+                external_id,
+                make_id_data_getter(external_item),
+            )
 
         # double check that only skipped ones are missing
         for (
