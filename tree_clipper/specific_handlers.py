@@ -128,10 +128,49 @@ def _map_attribute_type_to_socket_type(attr_type: str):
 
 class NodeTreeExporter(SpecificExporter[bpy.types.NodeTree]):
     def serialize(self):
-        return self.export_all_simple_writable_properties_and_list(
-            [NODE_TREE_INTERFACE, NODE_TREE_NODES, NODE_TREE_LINKS, BL_IDNAME],
+        data = self.export_all_simple_writable_properties_and_list(
+            [NODE_TREE_INTERFACE, NODE_TREE_NODES, BL_IDNAME],
             [ANNOTATION],
         )
+
+        # We can't export all links, we have to skip the ones than have a from_socket
+        # that is from a Render Layer node and is disabled.
+        # The normal collection exporting can't filter so we recreate it here
+        # with some debug prints to track which links we skip.
+        # see https://github.com/Algebraic-UG/tree_clipper/issues/84
+
+        links = self.exporter._export_obj(
+            obj=self.obj.links,
+            from_root=self.from_root.add_prop(
+                self.obj.bl_rna.properties[NODE_TREE_LINKS]
+            ),
+        )
+
+        link_items = []
+        for i, link in enumerate(self.obj.links):
+            from_root_link = self.from_root.add(f"[{i}] (unnamed)")
+
+            if (
+                isinstance(link.from_node, bpy.types.CompositorNodeRLayers)
+                and not link.from_socket.enabled
+            ):
+                if self.exporter.debug_prints:
+                    print(
+                        f"{from_root_link.to_str()} Skipping link with disabled socket"
+                    )
+                continue
+
+            link_items.append(
+                self.exporter._export_obj(
+                    obj=link,
+                    from_root=from_root_link,
+                )
+            )
+
+        no_clobber(links[DATA], ITEMS, link_items)
+        no_clobber(data, NODE_TREE_LINKS, links)
+
+        return data
 
 
 class NodeTreeImporter(SpecificImporter[bpy.types.NodeTree]):
