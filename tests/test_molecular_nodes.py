@@ -8,7 +8,7 @@ from .util import save_failed, round_trip_with_same_external
 _DIR = Path("tests") / "binary_blend_files" / "molecular_nodes"
 
 
-def test_molecular_nodes():
+def test_node_data_file():
     path = _DIR / "node_data_file.blend"
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
@@ -24,5 +24,5 @@ def test_molecular_nodes():
 
     except:
         # store in case of failure for easy debugging
-        save_failed(f"{test_molecular_nodes.__name__}")
+        save_failed(f"{test_node_data_file.__name__}")
         raise
