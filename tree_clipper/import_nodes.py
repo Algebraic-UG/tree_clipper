@@ -166,11 +166,6 @@ class Importer:
             and prop.type == PROP_TYPE_ENUM
             and identifier == DEFAULT_VALUE
         ):
-            if serialization == "":
-                if self.debug_prints:
-                    print(f"{from_root.to_str()}: skip setting no default")
-                return
-
             if self.debug_prints:
                 print(f"{from_root.to_str()}: defer setting enum default for now")
             self.set_socket_enum_defaults.append(

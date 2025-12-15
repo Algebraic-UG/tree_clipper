@@ -290,6 +290,20 @@ class TreeSocketExporter(SpecificExporter[bpy.types.NodeTreeInterfaceSocket]):
         return data
 
 
+class EnumTreeSocketExporter(SpecificExporter[bpy.types.NodeTreeInterfaceSocketMenu]):
+    f"""The socket can be undefined.
+In these cases the {DEFAULT_VALUE} can be an empty string and we can't set those during import."""
+
+    def serialize(self):
+        data = self.export_all_simple_writable_properties_and_list([ITEM_TYPE, IN_OUT])
+        if self.obj.parent.index >= 0:
+            no_clobber(data, PARENT_INDEX, self.obj.parent.index)
+        if self.obj.default_value == "":
+            default_value = data.pop(DEFAULT_VALUE)
+            assert default_value == ""
+        return data
+
+
 class TreePanelExporter(SpecificExporter[bpy.types.NodeTreeInterfacePanel]):
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list([ITEM_TYPE])
