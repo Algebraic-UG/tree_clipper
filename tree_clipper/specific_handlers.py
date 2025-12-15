@@ -367,6 +367,11 @@ class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
     def deserialize(self):
         # https://github.com/Algebraic-UG/tree_clipper/issues/43
         if DIMENSIONS in self.serialization:
+            prop = self.getter().bl_rna.properties[DIMENSIONS]
+            if self.importer.debug_prints:
+                print(
+                    f"{self.from_root.add_prop(prop).to_str()}: immediately set dimension"
+                )
             self.getter().dimensions = self.serialization[DIMENSIONS]  # ty: ignore[invalid-assignment]
         self.import_all_simple_writable_properties()
 
