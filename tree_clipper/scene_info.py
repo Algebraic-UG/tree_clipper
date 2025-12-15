@@ -26,6 +26,15 @@ USE_PASS_Z = "use_pass_z"
 USE_PASS_GREASE_PENCIL = "use_pass_grease_pencil"
 
 
+class SceneValidationError(Exception):
+    pass
+
+
+def _require(cond: bool, msg: str):
+    if not cond:
+        raise SceneValidationError(msg)
+
+
 def _export_all_boolean_properties(
     obj: bpy.types.bpy_struct,
 ) -> dict[str, bool]:
@@ -44,7 +53,7 @@ def _verify_all_boolean_properties(
         if prop.type == PROP_TYPE_BOOLEAN:
             key = prop.identifier
             value = info[key]
-            assert value == getattr(obj, key), f"Setting {key} must be {value}"
+            _require(value == getattr(obj, key), f"Setting {key} must be {value}")
 
 
 def _verify_listed_properties(
@@ -53,7 +62,7 @@ def _verify_listed_properties(
     for prop in [obj.bl_rna.properties[i] for i in ids]:
         key = prop.identifier
         value = info[key]
-        assert value == getattr(obj, key), f"Setting {key} must be {value}"
+        _require(value == getattr(obj, key), f"Setting {key} must be {value}")
 
 
 # no type hints, sad
@@ -70,7 +79,7 @@ def _export_aovs(aovs: bpy.types.AOVs) -> int:
 
 
 def _verify_aovs(info: int, aovs: bpy.types.AOVs):
-    assert info == len(aovs), f"The number of Shader AOVs must be {info}"
+    _require(info == len(aovs), f"The number of Shader AOVs must be {info}")
 
 
 def _export_lightgroups(lightgroups: bpy.types.Lightgroups) -> int:
@@ -78,7 +87,7 @@ def _export_lightgroups(lightgroups: bpy.types.Lightgroups) -> int:
 
 
 def _verify_lightgroups(info: int, lightgroups: bpy.types.Lightgroups):
-    assert info == len(lightgroups), f"The number of Light Groups must be {info}"
+    _require(info == len(lightgroups), f"The number of Light Groups must be {info}")
 
 
 def _export_render(render: bpy.types.RenderSettings) -> dict[str, Any]:
@@ -86,7 +95,7 @@ def _export_render(render: bpy.types.RenderSettings) -> dict[str, Any]:
 
 
 def _verify_render(info: dict[str, Any], render: bpy.types.RenderSettings):
-    assert info[ENGINE] == render.engine, f"Render engine must be {info[ENGINE]}"
+    _require(info[ENGINE] == render.engine, f"Render engine must be {info[ENGINE]}")
 
 
 def _export_view_layer(view_layer: bpy.types.ViewLayer) -> dict[str, Any]:
@@ -124,7 +133,7 @@ def _verify_view_layer(
     if engine == ENGINE_CYCLES:
         return
 
-    assert False, "unknown engine"
+    _require(False, "unknown engine")
 
 
 def export_scene_info(scene: bpy.types.Scene) -> dict[str, Any]:
@@ -149,6 +158,5 @@ def verify_scene(info: dict[str, Any], scene: bpy.types.Scene):
             ),
             None,
         )
-        if view_layer is None:
-            raise RuntimeError(f"Missing View Layer {view_layer_info[NAME]}")
-        _verify_view_layer(view_layer_info, view_layer, engine)
+        _require(view_layer is not None, f"Missing View Layer {view_layer_info[NAME]}")
+        _verify_view_layer(view_layer_info, view_layer, engine)  # ty:ignore[invalid-argument-type]
