@@ -42,10 +42,11 @@ from .common import (
     EXTERNAL,
     SCENES,
     no_clobber,
+    EXTERNAL_SCENE_ID,
 )
 
 from .id_data_getter import make_id_data_getter
-from .scene_info import verify_scene
+from .scene_info import verify_scene, SceneValidationError
 
 
 class Importer:
@@ -608,13 +609,19 @@ class ImportIntermediate:
     ) -> None:
         self.getters.clear()
         for external_id, external_item in ids_and_references:
-            if external_id in self.data[SCENES]:
+            scene_id = self.get_external()[str(external_id)][EXTERNAL_SCENE_ID]
+            if scene_id is not None:
                 assert isinstance(external_item, bpy.types.Scene), (
                     f"External Scene item {external_id} must be set to a valid Scene"
                 )
-                verify_scene(
-                    info=self.data[SCENES][str(external_id)], scene=external_item
-                )
+                try:
+                    verify_scene(
+                        info=self.data[SCENES][str(scene_id)], scene=external_item
+                    )
+                except SceneValidationError as e:
+                    raise RuntimeError(
+                        f"Failed to validate external Scene {external_id} against info in {scene_id}\n{e}"
+                    ) from e
 
             no_clobber(
                 self.getters,
