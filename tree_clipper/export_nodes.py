@@ -43,6 +43,7 @@ from .common import (
     EXTERNAL_FIXED_TYPE_NAME,
     NODE_TREE,
     SCENES,
+    EXTERNAL_SCENE_ID,
 )
 
 from .id_data_getter import canonical_reference
@@ -499,6 +500,7 @@ class External:
         self,
         *,
         pointed_to_by: Pointer,
+        scene_id: int | None = None,
     ) -> None:
         self.pointed_to_by = pointed_to_by
 
@@ -508,6 +510,9 @@ class External:
 
         # if the user decides this doesn't need setting by the importer
         self.skip = False
+
+        # if the external item is a scene, there's some more info attached
+        self.scene_id = scene_id
 
 
 def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
@@ -558,9 +563,10 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
         else:
             assert isinstance(obj, bpy.types.ID), "Only ID types can be external items"
 
-            scene_id = exporter.next_id
-            exporter.next_id += 1
+            scene_id = None
             if isinstance(obj, bpy.types.Scene):
+                scene_id = exporter.next_id
+                exporter.next_id += 1
                 data[SCENES][scene_id] = export_scene_info(obj)
 
             # Maybe it could be beneficial in some cases to have the option to have a single external item,
@@ -569,7 +575,10 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
             for pointer in pointers:
                 external_id = exporter.next_id
                 exporter.next_id += 1
-                data[EXTERNAL][external_id] = External(pointed_to_by=pointer)
+                data[EXTERNAL][external_id] = External(
+                    pointed_to_by=pointer,
+                    scene_id=scene_id,
+                )
                 pointer.pointee_id = external_id
 
     return data
@@ -579,6 +588,7 @@ def _encode_external(obj: External) -> EXTERNAL_SERIALIZATION:
     return {
         EXTERNAL_DESCRIPTION: obj.description,
         EXTERNAL_FIXED_TYPE_NAME: obj.pointed_to_by.fixed_type_name,
+        EXTERNAL_SCENE_ID: obj.scene_id,
     }
 
 

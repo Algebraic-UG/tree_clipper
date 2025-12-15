@@ -21,6 +21,7 @@ SCENES = "scenes"
 # within each external item
 EXTERNAL_DESCRIPTION = "description"
 EXTERNAL_FIXED_TYPE_NAME = "fixed_type_name"
+EXTERNAL_SCENE_ID = "scene_id"
 
 # for every object
 ID = "id"  # to reference it from elsewhere
@@ -140,6 +141,6 @@ SIMPLE_PROP_TYPE_TUPLE = (
     bpy.types.StringProperty,
     bpy.types.EnumProperty,
 )
-EXTERNAL_SERIALIZATION = dict[str, str | None]
+EXTERNAL_SERIALIZATION = dict[str, int | str | None]
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
