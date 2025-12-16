@@ -79,6 +79,7 @@ IS_PANEL_TOGGLE = "is_panel_toggle"
 ENABLED = "enabled"
 SINGLE_INPUT = "single_input"
 SINGLE_OUTPUT = "single_output"
+FILE_OUTPUT_ITEMS = "file_output_items"
 
 
 # this might not be needed anymore in many cases, because
@@ -1376,6 +1377,15 @@ They'll be empty strings in that case and we can't set those during import."""
             assert view == ""
 
         return data
+
+
+class FileOutputImporter(SpecificImporter[bpy.types.CompositorNodeOutputFile]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the file_output_items implicitly create sockets
+            [FILE_OUTPUT_ITEMS, FORMAT, INPUTS, OUTPUTS]
+        )
+        _import_node_parent(self)
 
 
 class FileOutputItemExporter(SpecificExporter[bpy.types.NodeCompositorFileOutputItem]):
