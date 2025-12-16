@@ -326,7 +326,13 @@ class TreeSocketImporter(SpecificImporter[bpy.types.NodeTreeInterfaceSocket]):
             self.getter().dimensions = dimensions  # ty: ignore[invalid-assignment]
 
             if DEFAULT_VALUE in self.serialization:
-                assert len(self.serialization[DEFAULT_VALUE]) == dimensions
+                default_value = self.serialization[DEFAULT_VALUE]
+                if len(default_value) > dimensions:
+                    if self.importer.debug_prints:
+                        print(
+                            f"{self.from_root.add_prop(prop).to_str()}: fixing dimension mismatch"
+                        )
+                    self.serialization[DEFAULT_VALUE] = default_value[:dimensions]
 
         # importing the socket type resets the dimension!
         self.import_all_simple_writable_properties([SOCKET_TYPE])
@@ -436,7 +442,13 @@ class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
             dimensions = self.serialization[DIMENSIONS]
             self.getter().dimensions = dimensions  # ty: ignore[invalid-assignment]
             if DEFAULT_VALUE in self.serialization:
-                assert len(self.serialization[DEFAULT_VALUE]) == dimensions
+                default_value = self.serialization[DEFAULT_VALUE]
+                if len(default_value) > dimensions:
+                    if self.importer.debug_prints:
+                        print(
+                            f"{self.from_root.add_prop(prop).to_str()}: fixing dimension mismatch"
+                        )
+                    self.serialization[DEFAULT_VALUE] = default_value[:dimensions]
 
         # importing the socket type resets the dimension!
         self.import_all_simple_writable_properties([SOCKET_TYPE])
