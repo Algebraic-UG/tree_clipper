@@ -93,7 +93,8 @@ class Importer:
     ) -> None:
         for prop in assumed_type.bl_rna.properties:
             if prop.identifier in forbidden:
-                print(f"{from_root.add_prop(prop).to_str()}: explicitly forbidden")
+                if self.debug_prints:
+                    print(f"{from_root.add_prop(prop).to_str()}: explicitly forbidden")
                 continue
             if prop.is_readonly or prop.type not in SIMPLE_PROPERTY_TYPES_AS_STRS:
                 continue
