@@ -322,8 +322,14 @@ class TreeSocketImporter(SpecificImporter[bpy.types.NodeTreeInterfaceSocket]):
                 print(
                     f"{self.from_root.add_prop(prop).to_str()}: immediately set dimension"
                 )
-            self.getter().dimensions = self.serialization[DIMENSIONS]  # ty: ignore[invalid-assignment]
-        self.import_all_simple_writable_properties()
+            dimensions = self.serialization[DIMENSIONS]
+            self.getter().dimensions = dimensions  # ty: ignore[invalid-assignment]
+
+            if DEFAULT_VALUE in self.serialization:
+                assert len(self.serialization[DEFAULT_VALUE]) == dimensions
+
+        # importing the socket type resets the dimension!
+        self.import_all_simple_writable_properties([SOCKET_TYPE])
 
 
 class TreePanelImporter(SpecificImporter[bpy.types.NodeTreeInterfacePanel]):
@@ -427,8 +433,13 @@ class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
                 print(
                     f"{self.from_root.add_prop(prop).to_str()}: immediately set dimension"
                 )
-            self.getter().dimensions = self.serialization[DIMENSIONS]  # ty: ignore[invalid-assignment]
-        self.import_all_simple_writable_properties()
+            dimensions = self.serialization[DIMENSIONS]
+            self.getter().dimensions = dimensions  # ty: ignore[invalid-assignment]
+            if DEFAULT_VALUE in self.serialization:
+                assert len(self.serialization[DEFAULT_VALUE]) == dimensions
+
+        # importing the socket type resets the dimension!
+        self.import_all_simple_writable_properties([SOCKET_TYPE])
 
 
 class LinkExporter(SpecificExporter[bpy.types.NodeLink]):
