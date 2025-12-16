@@ -378,6 +378,8 @@ From root: {from_root.to_str()}"""
             serialization: dict[str, Any],
             from_root: FromRoot,
         ) -> None:
+            specific_handler(importer, getter, serialization, from_root)
+
             for identifier in unhandled_prop_ids:
                 prop = getter().bl_rna.properties[identifier]
                 prop_from_root = from_root.add_prop(prop)
@@ -409,8 +411,6 @@ From root: {from_root.to_str()}"""
                     serialization=serialization[identifier],
                     from_root=prop_from_root,
                 )
-
-            specific_handler(importer, getter, serialization, from_root)
 
         self._import_obj_with_deserializer(
             getter=getter,

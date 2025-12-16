@@ -18,6 +18,7 @@ from .common import (
     NAME,
     DEFAULT_VALUE,
     GETTER,
+    NODE_TREE,
 )
 
 # to help prevent typos, especially when used multiple times
@@ -341,6 +342,38 @@ class NodeExporter(SpecificExporter[bpy.types.Node]):
 class NodeImporter(SpecificImporter[bpy.types.Node]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        _import_node_parent(self)
+
+
+class CompositorNodeGroupImporter(SpecificImporter[bpy.types.CompositorNodeGroup]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            [NODE_TREE, INPUTS, OUTPUTS]
+        )
+        _import_node_parent(self)
+
+
+class GeometryNodeGroupImporter(SpecificImporter[bpy.types.GeometryNodeGroup]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            [NODE_TREE, INPUTS, OUTPUTS]
+        )
+        _import_node_parent(self)
+
+
+class ShaderNodeGroupImporter(SpecificImporter[bpy.types.ShaderNodeGroup]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            [NODE_TREE, INPUTS, OUTPUTS]
+        )
+        _import_node_parent(self)
+
+
+class TextureNodeGroupImporter(SpecificImporter[bpy.types.TextureNodeGroup]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            [NODE_TREE, INPUTS, OUTPUTS]
+        )
         _import_node_parent(self)
 
 
