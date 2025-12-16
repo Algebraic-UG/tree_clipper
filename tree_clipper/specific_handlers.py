@@ -80,6 +80,7 @@ ENABLED = "enabled"
 SINGLE_INPUT = "single_input"
 SINGLE_OUTPUT = "single_output"
 FILE_OUTPUT_ITEMS = "file_output_items"
+INDEX_SWITCH_ITEMS = "index_switch_items"
 
 
 # this might not be needed anymore in many cases, because
@@ -647,6 +648,16 @@ class RepeatOutputItemsImporter(
             self.getter().new(socket_type=socket_type, name=name)
 
 
+class IndexSwitchImporter(SpecificImporter[bpy.types.GeometryNodeIndexSwitch]):
+    """We need to trigger the import of the data type first"""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            [INDEX_SWITCH_ITEMS, INPUTS, OUTPUTS]
+        )
+        _import_node_parent(self)
+
+
 class IndexItemExporter(SpecificExporter[bpy.types.IndexSwitchItem]):
     def serialize(self):
         return {}
@@ -980,6 +991,15 @@ They also have an implicit ordering, first the display needs to be set, then the
         self.getter().display_settings.display_device = display_device  # ty: ignore[invalid-assignment]
         self.getter().view_settings.view_transform = view_transform  # ty: ignore[invalid-assignment]
         self.getter().view_settings.look = look  # ty: ignore[invalid-assignment]
+
+
+class NodeEvaluateClosureImporter(SpecificImporter[bpy.types.NodeEvaluateClosure]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the input_items and output_items implicitly create sockets
+            [INPUT_ITEMS, OUTPUT_ITEMS, INPUTS, OUTPUTS]
+        )
+        _import_node_parent(self)
 
 
 class EvalClosureInputItemExporter(
@@ -1421,6 +1441,14 @@ class FileOutputItmesImporter(
             socket_type = item[DATA][SOCKET_TYPE]
             name = item[DATA][NAME]
             self.getter().new(name=name, socket_type=socket_type)
+
+
+class SampleIndexImporter(SpecificImporter[bpy.types.GeometryNodeSampleIndex]):
+    """We need to trigger the import of the data type first"""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        _import_node_parent(self)
 
 
 # now they are cooked and ready to use ~ bon appétit
