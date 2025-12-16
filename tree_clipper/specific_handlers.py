@@ -1451,6 +1451,52 @@ class SampleIndexImporter(SpecificImporter[bpy.types.GeometryNodeSampleIndex]):
         _import_node_parent(self)
 
 
+class StoreNamedAttributeImporter(
+    SpecificImporter[bpy.types.GeometryNodeStoreNamedAttribute]
+):
+    """We need to trigger the import of the data type first"""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        _import_node_parent(self)
+
+
+class NamedAttributeImporter(
+    SpecificImporter[bpy.types.GeometryNodeInputNamedAttribute]
+):
+    """We need to trigger the import of the data type first"""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        _import_node_parent(self)
+
+
+class BlurAttributeImporter(SpecificImporter[bpy.types.GeometryNodeBlurAttribute]):
+    """We need to trigger the import of the data type first"""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        _import_node_parent(self)
+
+
+class SampleUVSurfaceImporter(SpecificImporter[bpy.types.GeometryNodeSampleUVSurface]):
+    """We need to trigger the import of the data type first"""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        _import_node_parent(self)
+
+
+class SampleNearestSurfaceImporter(
+    SpecificImporter[bpy.types.GeometryNodeSampleNearestSurface]
+):
+    """We need to trigger the import of the data type first"""
+
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        _import_node_parent(self)
+
+
 # now they are cooked and ready to use ~ bon appétit
 BUILT_IN_EXPORTER = _BUILT_IN_EXPORTER
 BUILT_IN_IMPORTER = _BUILT_IN_IMPORTER
