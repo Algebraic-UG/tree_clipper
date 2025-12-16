@@ -1296,6 +1296,15 @@ https://projects.blender.org/blender/blender/issues/151276"""
         )
 
 
+class BakeImporter(SpecificImporter[bpy.types.GeometryNodeBake]):
+    def deserialize(self) -> None:
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the bake_items implicitly create sockets
+            [BAKE_ITEMS, INPUTS, OUTPUTS]
+        )
+        _import_node_parent(self)
+
+
 class BakeItemExporter(SpecificExporter[bpy.types.NodeGeometryBakeItem]):
     def serialize(self):
         return self.export_all_simple_writable_properties()
@@ -1319,6 +1328,16 @@ https://projects.blender.org/blender/blender/issues/151276"""
             [INPUTS, OUTPUTS, BL_IDNAME, GRID_ITEMS],
             [PARENT],
         )
+
+
+class FieldToGridImporter(SpecificImporter[bpy.types.GeometryNodeFieldToGrid]):
+    def deserialize(self) -> None:
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the grid_items implicitly create sockets
+            [GRID_ITEMS, INPUTS, OUTPUTS]
+        )
+
+        return super().deserialize()
 
 
 class FieldToGridItemExporter(SpecificExporter[bpy.types.GeometryNodeFieldToGridItem]):
