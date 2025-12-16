@@ -1447,6 +1447,14 @@ class FileOutputItmesImporter(
             self.getter().new(name=name, socket_type=socket_type)
 
 
+class SetMeshNormalImporter(SpecificImporter[bpy.types.GeometryNodeSetMeshNormal]):
+    """We need to trigger the import of mode first"""
+
+    def deserialize(self) -> None:
+        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        _import_node_parent(self)
+
+
 # now they are cooked and ready to use ~ bon appétit
 BUILT_IN_EXPORTER = _BUILT_IN_EXPORTER
 BUILT_IN_IMPORTER = _BUILT_IN_IMPORTER
