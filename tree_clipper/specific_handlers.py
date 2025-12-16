@@ -354,6 +354,10 @@ class NodeExporter(SpecificExporter[bpy.types.Node]):
 
 class NodeImporter(SpecificImporter[bpy.types.Node]):
     def deserialize(self):
+        # this is the case for many node types that would otherwise need a specific handler
+        if DATA_TYPE in self.serialization:
+            self.import_properties_from_id_list([DATA_TYPE])
+
         self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
         _import_node_parent(self)
 
@@ -1441,60 +1445,6 @@ class FileOutputItmesImporter(
             socket_type = item[DATA][SOCKET_TYPE]
             name = item[DATA][NAME]
             self.getter().new(name=name, socket_type=socket_type)
-
-
-class SampleIndexImporter(SpecificImporter[bpy.types.GeometryNodeSampleIndex]):
-    """We need to trigger the import of the data type first"""
-
-    def deserialize(self):
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
-        _import_node_parent(self)
-
-
-class StoreNamedAttributeImporter(
-    SpecificImporter[bpy.types.GeometryNodeStoreNamedAttribute]
-):
-    """We need to trigger the import of the data type first"""
-
-    def deserialize(self):
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
-        _import_node_parent(self)
-
-
-class NamedAttributeImporter(
-    SpecificImporter[bpy.types.GeometryNodeInputNamedAttribute]
-):
-    """We need to trigger the import of the data type first"""
-
-    def deserialize(self):
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
-        _import_node_parent(self)
-
-
-class BlurAttributeImporter(SpecificImporter[bpy.types.GeometryNodeBlurAttribute]):
-    """We need to trigger the import of the data type first"""
-
-    def deserialize(self):
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
-        _import_node_parent(self)
-
-
-class SampleUVSurfaceImporter(SpecificImporter[bpy.types.GeometryNodeSampleUVSurface]):
-    """We need to trigger the import of the data type first"""
-
-    def deserialize(self):
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
-        _import_node_parent(self)
-
-
-class SampleNearestSurfaceImporter(
-    SpecificImporter[bpy.types.GeometryNodeSampleNearestSurface]
-):
-    """We need to trigger the import of the data type first"""
-
-    def deserialize(self):
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
-        _import_node_parent(self)
 
 
 # now they are cooked and ready to use ~ bon appétit
