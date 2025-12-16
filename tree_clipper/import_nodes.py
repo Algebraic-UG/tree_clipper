@@ -253,7 +253,7 @@ class Importer:
             return lambda: getattr(getter(), identifier)[i]
 
         for i, item in enumerate(serialized_items):
-            name = item.get(NAME, "unnamed")
+            name = item[DATA].get(NAME, "unnamed")
             self._import_obj(
                 getter=make_getter(i),
                 serialization=serialized_items[i],
