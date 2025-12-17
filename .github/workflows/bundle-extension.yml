@@ -1,0 +1,34 @@
+name: Bundle Extension
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  bundle-extension:
+    runs-on: [ubuntu-22.04]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Get build script
+        run: curl https://raw.githubusercontent.com/blender/blender/refs/tags/v5.0.0/scripts/addons_core/bl_pkg/cli/blender_ext.py --output blender_ext.py
+
+      - name: Build Blender extension bundles
+        working-directory: tree_clipper
+        run: uv run --python 3.11 ../blender_ext.py build
+
+      - name: Generate index.json for easy updates
+        working-directory: tree_clipper
+        run: uv run --python 3.11 ../blender_ext.py server-generate --repo-dir=./
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tree-clipper-extension
+          path: |
+            tree_clipper/index.json
+            tree_clipper/*.zip
