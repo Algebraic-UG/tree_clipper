@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      draft:
+        type: boolean
+        default: true
+      prerelease:
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    runs-on: [ubuntu-22.04]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Get version from blender_manifest.toml
+        working-directory: tree_clipper
+        id: get_version
+        run: |
+          MANIFEST_VERSION=$(yq '.version' blender_manifest.toml)
+          echo "MANIFEST_VERSION=$MANIFEST_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check if version matches
+        env:
+          MANIFEST_VERSION: ${{ steps.get_version.outputs.MANIFEST_VERSION }}
+        run: |
+          GIT_VERSION="${GITHUB_REF##refs/tags/v}"
+          if [[ "$MANIFEST_VERSION" != "$GIT_VERSION" ]]; then
+            echo "Version mismatch! Manifest: $MANIFEST_VERSION, Git: $GIT_VERSION"
+            exit 1
+          else
+            echo "Version matches"
+          fi
+
+  bundle-extension:
+    needs: [check-version]
+    uses: ./.github/workflows/bundle-extension.yml
+
+  release:
+    needs: [bundle-extension]
+    runs-on: [ubuntu-22.04]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Clear release directory
+        run: rm -rf release
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tree-clipper-extension
+          path: release/
+
+      - name: Collect release files into a list
+        id: filelist
+        run: |
+          {
+            echo 'release_files<<EOF'
+            find release -maxdepth 1 -type f -printf '%p\n'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: ${{ github.event.inputs.draft }}
+          prerelease: ${{ github.event.inputs.prerelease }}
+          body_path: CHANGELOG.md
+          files: ${{ steps.filelist.outputs.release_files }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
