@@ -318,6 +318,7 @@ class TreeSocketImporter(SpecificImporter[bpy.types.NodeTreeInterfaceSocket]):
 
             if DEFAULT_VALUE in self.serialization:
                 default_value = self.serialization[DEFAULT_VALUE]
+                # https://projects.blender.org/blender/blender/issues/151725
                 if len(default_value) > dimensions:
                     if self.importer.debug_prints:
                         print(
