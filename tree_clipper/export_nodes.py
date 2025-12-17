@@ -42,9 +42,12 @@ from .common import (
     EXTERNAL,
     EXTERNAL_FIXED_TYPE_NAME,
     NODE_TREE,
+    SCENES,
+    EXTERNAL_SCENE_ID,
 )
 
 from .id_data_getter import canonical_reference
+from .scene_info import export_scene_info
 
 
 class Pointer:
@@ -70,6 +73,9 @@ class Pointer:
 
         # needed for the selection on import
         self.fixed_type_name = fixed_type_name
+
+    def get_pointee(self) -> bpy.types.bpy_struct:
+        return getattr(self.obj, self.identifier)
 
 
 class Exporter:
@@ -118,6 +124,12 @@ class Exporter:
                 if self.debug_prints:
                     print(f"{prop_from_root.to_str()}: forbidden")
                 continue
+
+            if prop.type in PROP_TYPE_ENUM and getattr(obj, prop.identifier) == "":
+                if self.debug_prints:
+                    print(f"{prop_from_root.to_str()}: skipping empty str enum")
+                continue
+
             data[prop.identifier] = self._export_property_simple(
                 obj=obj,
                 prop=prop,  # type: ignore
@@ -142,6 +154,17 @@ class Exporter:
                 from_root=from_root.add_prop(prop),
             )
         return data
+
+    def register_as_serialized(self, obj: bpy.types.bpy_struct) -> int:
+        this_id = self.next_id
+        self.next_id += 1
+
+        ref = canonical_reference(obj)
+        if ref in self.serialized:
+            raise RuntimeError("Double serialization")
+        self.serialized[ref] = this_id
+
+        return this_id
 
     ################################################################################
     # internals
@@ -406,11 +429,18 @@ From root: {from_root.to_str()}"""
         ) -> dict[str, Any]:
             data = specific_handler(exporter, obj, from_root)
             for prop in unhandled_properties:
+                from_root_prop = from_root.add_prop(prop)
+
+                if prop.type in PROP_TYPE_ENUM and getattr(obj, prop.identifier) == "":
+                    if self.debug_prints:
+                        print(f"{from_root_prop.to_str()}: skipping empty str enum")
+                    continue
+
                 # pylint: disable=protected-access
                 prop_data = exporter._attempt_export_property(
                     obj=obj,
                     prop=prop,
-                    from_root=from_root.add_prop(prop),
+                    from_root=from_root_prop,
                 )
                 no_clobber(data, prop.identifier, prop_data)
 
@@ -483,6 +513,7 @@ class External:
         self,
         *,
         pointed_to_by: Pointer,
+        scene_id: int | None = None,
     ) -> None:
         self.pointed_to_by = pointed_to_by
 
@@ -492,6 +523,9 @@ class External:
 
         # if the user decides this doesn't need setting by the importer
         self.skip = False
+
+        # if the external item is a scene, there's some more info attached
+        self.scene_id = scene_id
 
 
 def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
@@ -533,7 +567,8 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
     if parameters.is_material:
         data[MATERIAL_NAME] = parameters.name
 
-    external = {}
+    data[EXTERNAL] = {}
+    data[SCENES] = {}
     for obj, pointers in exporter.pointers.items():
         if obj in exporter.serialized:
             for pointer in pointers:
@@ -541,16 +576,23 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
         else:
             assert isinstance(obj, bpy.types.ID), "Only ID types can be external items"
 
+            scene_id = None
+            if isinstance(obj, bpy.types.Scene):
+                scene_id = exporter.next_id
+                exporter.next_id += 1
+                data[SCENES][scene_id] = export_scene_info(obj)
+
             # Maybe it could be beneficial in some cases to have the option to have a single external item,
             # but it's also possible to use an additional group node to avieve the same thing.
             # Let's rather keep it simple here for now.
             for pointer in pointers:
                 external_id = exporter.next_id
                 exporter.next_id += 1
-                external[external_id] = External(pointed_to_by=pointer)
+                data[EXTERNAL][external_id] = External(
+                    pointed_to_by=pointer,
+                    scene_id=scene_id,
+                )
                 pointer.pointee_id = external_id
-
-    data[EXTERNAL] = external
 
     return data
 
@@ -559,6 +601,7 @@ def _encode_external(obj: External) -> EXTERNAL_SERIALIZATION:
     return {
         EXTERNAL_DESCRIPTION: obj.description,
         EXTERNAL_FIXED_TYPE_NAME: obj.pointed_to_by.fixed_type_name,
+        EXTERNAL_SCENE_ID: obj.scene_id,
     }
 
 

@@ -16,10 +16,12 @@ TREE_CLIPPER_VERSION = "tree_clipper_version"
 MATERIAL_NAME = "name"
 TREES = "node_trees"
 EXTERNAL = "external"
+SCENES = "scenes"
 
 # within each external item
 EXTERNAL_DESCRIPTION = "description"
 EXTERNAL_FIXED_TYPE_NAME = "fixed_type_name"
+EXTERNAL_SCENE_ID = "scene_id"
 
 # for every object
 ID = "id"  # to reference it from elsewhere
@@ -74,7 +76,7 @@ FORBIDDEN_PROPERTIES = [
 ]
 
 
-def no_clobber(data: dict, key: str, value) -> None:
+def no_clobber(data: dict, key: str | int, value) -> None:
     if key in data:
         raise RuntimeError(f"Clobbering '{key}'")
     data[key] = value
@@ -139,6 +141,6 @@ SIMPLE_PROP_TYPE_TUPLE = (
     bpy.types.StringProperty,
     bpy.types.EnumProperty,
 )
-EXTERNAL_SERIALIZATION = dict[str, str | None]
+EXTERNAL_SERIALIZATION = dict[str, int | str | None]
 
 DEFAULT_FILE = str(Path(tempfile.gettempdir()) / "default.json")
