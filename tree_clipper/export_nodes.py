@@ -124,6 +124,12 @@ class Exporter:
                 if self.debug_prints:
                     print(f"{prop_from_root.to_str()}: forbidden")
                 continue
+
+            if prop.type in PROP_TYPE_ENUM and getattr(obj, prop.identifier) == "":
+                if self.debug_prints:
+                    print(f"{prop_from_root.to_str()}: skipping empty str enum")
+                continue
+
             data[prop.identifier] = self._export_property_simple(
                 obj=obj,
                 prop=prop,  # type: ignore
@@ -423,11 +429,18 @@ From root: {from_root.to_str()}"""
         ) -> dict[str, Any]:
             data = specific_handler(exporter, obj, from_root)
             for prop in unhandled_properties:
+                from_root_prop = from_root.add_prop(prop)
+
+                if prop.type in PROP_TYPE_ENUM and getattr(obj, prop.identifier) == "":
+                    if self.debug_prints:
+                        print(f"{from_root_prop.to_str()}: skipping empty str enum")
+                    continue
+
                 # pylint: disable=protected-access
                 prop_data = exporter._attempt_export_property(
                     obj=obj,
                     prop=prop,
-                    from_root=from_root.add_prop(prop),
+                    from_root=from_root_prop,
                 )
                 no_clobber(data, prop.identifier, prop_data)
 

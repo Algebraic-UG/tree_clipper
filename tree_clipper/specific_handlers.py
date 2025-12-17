@@ -284,31 +284,21 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
         self.import_all_simple_writable_properties_and_list([ITEMS_TREE])
 
 
-class TreeSocketExporter(SpecificExporter[bpy.types.NodeTreeInterfaceSocket]):
-    def serialize(self):
-        data = self.export_all_simple_writable_properties_and_list([ITEM_TYPE, IN_OUT])
-        if self.obj.parent.index >= 0:
-            no_clobber(data, PARENT_INDEX, self.obj.parent.index)
-        return data
-
-
-class EnumTreeSocketExporter(SpecificExporter[bpy.types.NodeTreeInterfaceSocketMenu]):
-    f"""The socket can be undefined.
-In these cases the {DEFAULT_VALUE} can be an empty string and we can't set those during import."""
-
-    def serialize(self):
-        data = self.export_all_simple_writable_properties_and_list([ITEM_TYPE, IN_OUT])
-        if self.obj.parent.index >= 0:
-            no_clobber(data, PARENT_INDEX, self.obj.parent.index)
-        if self.obj.default_value == "":
-            default_value = data.pop(DEFAULT_VALUE)
-            assert default_value == ""
-        return data
-
-
 class TreePanelExporter(SpecificExporter[bpy.types.NodeTreeInterfacePanel]):
+    """We need to skip the sub items, they're already in the interface-level list"""
+
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list([ITEM_TYPE])
+        if self.obj.parent.index >= 0:
+            no_clobber(data, PARENT_INDEX, self.obj.parent.index)
+        return data
+
+
+class TreeSocketExporter(SpecificExporter[bpy.types.NodeTreeInterfaceSocket]):
+    """We need to add in_out which isn't writable"""
+
+    def serialize(self):
+        data = self.export_all_simple_writable_properties_and_list([IN_OUT, ITEM_TYPE])
         if self.obj.parent.index >= 0:
             no_clobber(data, PARENT_INDEX, self.obj.parent.index)
         return data
@@ -421,18 +411,6 @@ we currently don't support creating sockets"""
 class SocketExporter(SpecificExporter[bpy.types.NodeSocket]):
     def serialize(self):
         return self.export_all_simple_writable_properties()
-
-
-class EnumSocketExporter(SpecificExporter[bpy.types.NodeSocketMenu]):
-    f"""The socket can be undefined or duplicated as an output socket.
-In these cases the {DEFAULT_VALUE} can be an empty string and we can't set those during import."""
-
-    def serialize(self):
-        data = self.export_all_simple_writable_properties()
-        if self.obj.default_value == "":
-            default_value = data.pop(DEFAULT_VALUE)
-            assert default_value == ""
-        return data
 
 
 class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
@@ -1378,48 +1356,6 @@ class FieldToGridItemsImporter(
             socket_type = item[DATA][DATA_TYPE]
             name = item[DATA][NAME]
             self.getter().new(name=name, socket_type=socket_type)
-
-
-class ImageExport(SpecificExporter[bpy.types.CompositorNodeImage]):
-    f"""We skip the {LAYER} and/or {VIEW} if the image doesn't have them.
-They'll be empty strings in that case and we can't set those during import."""
-
-    def serialize(self):
-        data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME],
-            [PARENT, IMAGE],
-        )
-
-        if not self.obj.has_layers:
-            layer = data.pop(LAYER)
-            assert layer == ""
-
-        if not self.obj.has_views:
-            view = data.pop(VIEW)
-            assert view == ""
-
-        return data
-
-
-class CryptoMatteExport(SpecificExporter[bpy.types.CompositorNodeCryptomatteV2]):
-    f"""We skip the {LAYER} and/or {VIEW} if the image doesn't have them.
-They'll be empty strings in that case and we can't set those during import."""
-
-    def serialize(self):
-        data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME, ENTRIES],
-            [PARENT, IMAGE],
-        )
-
-        if not self.obj.has_layers:
-            layer = data.pop(LAYER)
-            assert layer == ""
-
-        if not self.obj.has_views:
-            view = data.pop(VIEW)
-            assert view == ""
-
-        return data
 
 
 class FileOutputImporter(SpecificImporter[bpy.types.CompositorNodeOutputFile]):
