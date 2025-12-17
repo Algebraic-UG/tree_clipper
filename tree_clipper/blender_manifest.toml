@@ -11,11 +11,11 @@ maintainer = "Algebraic"
 type = "add-on"
 
 # Optional link to documentation, support, source files, etc
-# website = "https://extensions.blender.org/add-ons/my-example-package/"
+website = "https://github.com/Algebraic-UG/tree_clipper"
 
 # Optional list defined by Blender and server, see:
 # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
-tags = ["Animation", "Sequencer"]
+tags = ["Import-Export", "Node", "Compositing", "Geometry Nodes", "Material"]
 
 
 blender_version_min = "5.0.0"
