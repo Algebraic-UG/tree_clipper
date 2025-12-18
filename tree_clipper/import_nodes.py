@@ -441,10 +441,7 @@ From root: {from_root.to_str()}"""
             if data_block is not None:
                 # we can't write properties of library items
                 # https://github.com/Algebraic-UG/tree_clipper/issues/83
-                if (
-                    data_block.library is not None
-                    or data_block.library_weak_reference is not None
-                ):
+                if data_block.library is not None:
                     raise RuntimeError(f""""{original_name}" appears to be a library item or a reference to one.
 Please make it local so that it can be overwritten.""")
 
