@@ -2,7 +2,7 @@ import bpy
 
 from pathlib import Path
 
-from .util import save_failed, round_trip_with_same_external
+from .util import save_failed, round_trip_with_same_external, make_everything_local
 
 testdata = [
     "01 Pumpkin.blend",  # "https://www.patreon.com/file?h=142546933&m=557444276"
@@ -27,6 +27,7 @@ def test_erindales_nodevember_01():
     path = _DIR / testdata[0]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="Pumpkin", is_material=False)
         round_trip_with_same_external(name="Foliage", is_material=False)
@@ -50,6 +51,7 @@ def test_erindales_nodevember_02():
     path = _DIR / testdata[1]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="02 Fire", is_material=False)
 
@@ -68,6 +70,7 @@ def test_erindales_nodevember_03():
     path = _DIR / testdata[2]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="03 Ice ", is_material=False)
         round_trip_with_same_external(name="03 Ice Edge Card", is_material=False)
@@ -91,6 +94,7 @@ def test_erindales_nodevember_04():
     path = _DIR / testdata[3]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="04 Bouquet", is_material=False)
 
@@ -109,6 +113,7 @@ def test_erindales_nodevember_05():
     path = _DIR / testdata[4]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="05 Feather", is_material=False)
 
@@ -130,6 +135,7 @@ def test_erindales_nodevember_06():
     path = _DIR / testdata[5]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="06 Rivetted", is_material=False)
 
@@ -147,6 +153,7 @@ def test_erindales_nodevember_07():
     path = _DIR / testdata[6]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="07 Precious", is_material=False)
 
@@ -170,6 +177,7 @@ def test_erindales_nodevember_08():
     path = _DIR / testdata[7]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="08 Bejewelled", is_material=False)
 
@@ -197,6 +205,7 @@ def test_erindales_nodevember_09():
     path = _DIR / testdata[8]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="09 Soft", is_material=False)
         round_trip_with_same_external(name="Camera FOV Clip", is_material=False)
@@ -226,6 +235,7 @@ def test_erindales_nodevember_10():
     path = _DIR / testdata[9]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="10 Zip", is_material=False)
 
@@ -248,6 +258,7 @@ def test_erindales_nodevember_11():
     path = _DIR / testdata[10]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="11 Hive", is_material=False)
 
@@ -272,6 +283,7 @@ def test_erindales_nodevember_12():
     path = _DIR / testdata[11]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="12 Monument", is_material=False)
 
@@ -292,6 +304,7 @@ def test_erindales_nodevember_13():
     path = _DIR / testdata[12]
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+        make_everything_local()
 
         round_trip_with_same_external(name="13 Cabin", is_material=False)
 

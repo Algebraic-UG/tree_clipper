@@ -152,3 +152,13 @@ def round_trip_with_same_external(
 
     print(diff.pretty())
     assert diff == {}
+
+
+def make_everything_local():
+    for node_group in bpy.data.node_groups:
+        if node_group.library:
+            node_group.make_local(clear_liboverride=True)
+
+    for material in bpy.data.materials:
+        if material.library:
+            material.make_local(clear_liboverride=True)
