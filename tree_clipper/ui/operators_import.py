@@ -133,7 +133,7 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             )
             for external_item in context.scene.tree_clipper_external_import_items.items
         )
-        _INTERMEDIATE_IMPORT_CACHE.import_nodes(
+        report = _INTERMEDIATE_IMPORT_CACHE.import_nodes(
             ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
                 allow_version_mismatch=self.allow_version_mismatch,
@@ -141,6 +141,10 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
                 debug_prints=self.debug_prints,
             )
         )
+
+        for warning in report.warnings:
+            self.report({"WARNING"}, warning)
+
         _INTERMEDIATE_IMPORT_CACHE = None
         return {"FINISHED"}
 

@@ -539,12 +539,25 @@ class ImportParameters:
         self.debug_prints = debug_prints
 
 
+class ImportReport:
+    def __init__(
+        self,
+        *,
+        is_material: bool,
+        new_name: str,
+        warnings: list[str],
+    ):
+        self.is_material = is_material
+        self.new_name = new_name
+        self.warnings = warnings
+
+
 def _import_nodes_from_dict(
     *,
     data: dict[str, Any],
     getters: dict[int, GETTER],
     parameters: ImportParameters,
-) -> Tuple[bool, str]:
+) -> ImportReport:
     importer = Importer(
         specific_handlers=parameters.specific_handlers,
         getters=getters,
@@ -564,10 +577,16 @@ def _import_nodes_from_dict(
 
     # root tree needs special treatment, might be material
     # pylint: disable=protected-access
-    return importer._import_node_tree(
+    is_material, new_name = importer._import_node_tree(
         serialization=data[TREES][-1],
         overwrite=parameters.overwrite,
         material_name=None if MATERIAL_NAME not in data else data[MATERIAL_NAME],
+    )
+
+    return ImportReport(
+        is_material=is_material,
+        new_name=new_name,
+        warnings=importer.warnings,
     )
 
 
@@ -640,7 +659,7 @@ class ImportIntermediate:
             else:
                 assert int(external_id) in self.getters
 
-    def import_nodes(self, parameters: ImportParameters) -> Tuple[bool, str]:
+    def import_nodes(self, parameters: ImportParameters) -> ImportReport:
         return _import_nodes_from_dict(
             data=self.data,
             getters=self.getters,
