@@ -81,6 +81,7 @@ SINGLE_INPUT = "single_input"
 SINGLE_OUTPUT = "single_output"
 FILE_OUTPUT_ITEMS = "file_output_items"
 INDEX_SWITCH_ITEMS = "index_switch_items"
+INPUT_TYPE = "input_type"
 
 
 # this might not be needed anymore in many cases, because
@@ -527,6 +528,15 @@ class MenuSwitchItemsImporter(SpecificImporter[bpy.types.NodeMenuSwitchItems]):
             if self.importer.debug_prints:
                 print(f"{self.from_root.to_str()}: adding item {name}")
             self.getter().new(name=name)
+
+
+class SwitchImporter(SpecificImporter[bpy.types.GeometryNodeSwitch]):
+    def deserialize(self):
+        self.import_all_simple_writable_properties_and_list(
+            # ordering is important, the input_type resets sockets
+            [INPUT_TYPE, INPUTS, OUTPUTS],
+        )
+        _import_node_parent(self)
 
 
 class CaptureAttrExporter(SpecificExporter[bpy.types.GeometryNodeCaptureAttribute]):
