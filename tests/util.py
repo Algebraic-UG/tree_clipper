@@ -1,5 +1,4 @@
 import deepdiff
-import pprint
 import json
 from pathlib import Path
 from typing import Literal
@@ -97,9 +96,9 @@ def round_trip_without_external(name: str):
         export_intermediate_2.export_to_str(compress=False, json_indent=4)
     )
 
-    diff = deepdiff.DeepDiff(before, after, math_epsilon=0.01)
+    diff = deepdiff.DeepDiff(json.loads(before), json.loads(after), math_epsilon=0.01)
 
-    pprint.pp(diff)
+    print(diff.pretty)
     assert diff == {}
 
 
@@ -159,7 +158,7 @@ def round_trip_with_same_external(
 
     after = export_to_string()
 
-    diff = deepdiff.DeepDiff(before, after, math_epsilon=0.01)
+    diff = deepdiff.DeepDiff(json.loads(before), json.loads(after), math_epsilon=0.01)
 
-    pprint.pp(diff)
+    print(diff.pretty)
     assert diff == {}
