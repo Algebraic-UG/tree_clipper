@@ -1,3 +1,6 @@
+import pprint
+import json
+import jsondiff
 from pathlib import Path
 from typing import Literal
 import bpy
@@ -78,6 +81,26 @@ def round_trip_without_external(name: str):
         )
     )
 
+    export_intermediate_2 = ExportIntermediate(
+        parameters=ExportParameters(
+            is_material=False,
+            name=name,
+            specific_handlers=BUILT_IN_EXPORTER,
+            export_sub_trees=True,
+            debug_prints=True,
+            write_from_roots=False,
+        )
+    )
+
+    before = json.loads(string)
+    after = json.loads(
+        export_intermediate_2.export_to_str(compress=False, json_indent=4)
+    )
+
+    diff = jsondiff.diff(before, after, syntax="symmetric")
+    pprint.pp(diff)
+    assert diff == {}
+
 
 def round_trip_with_same_external(
     name: str, is_material: bool, debug_prints: bool = True
@@ -128,3 +151,23 @@ def round_trip_with_same_external(
             debug_prints=debug_prints,
         )
     )
+
+    export_intermediate_2 = ExportIntermediate(
+        parameters=ExportParameters(
+            is_material=False,
+            name=name,
+            specific_handlers=BUILT_IN_EXPORTER,
+            export_sub_trees=True,
+            debug_prints=True,
+            write_from_roots=False,
+        )
+    )
+
+    before = json.loads(string)
+    after = json.loads(
+        export_intermediate_2.export_to_str(compress=False, json_indent=4)
+    )
+
+    diff = jsondiff.diff(before, after, syntax="symmetric")
+    pprint.pp(diff)
+    assert diff == {}

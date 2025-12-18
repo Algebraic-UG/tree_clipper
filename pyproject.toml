@@ -12,4 +12,5 @@ dependencies = [
 dev = [
     "fake-bpy-module>=20251003",
     "pytest>=9.0.1",
+    "jsondiff>=2.2.1",
 ]
