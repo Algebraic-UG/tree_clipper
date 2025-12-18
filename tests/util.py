@@ -55,22 +55,26 @@ def save_failed(name: str):
 
 
 def round_trip_without_external(name: str):
-    export_intermediate = ExportIntermediate(
-        parameters=ExportParameters(
-            is_material=False,
-            name=name,
-            specific_handlers=BUILT_IN_EXPORTER,
-            export_sub_trees=True,
-            debug_prints=True,
-            write_from_roots=False,
+    def export_to_string() -> str:
+        export_intermediate = ExportIntermediate(
+            parameters=ExportParameters(
+                is_material=False,
+                name=name,
+                specific_handlers=BUILT_IN_EXPORTER,
+                export_sub_trees=True,
+                debug_prints=True,
+                write_from_roots=False,
+            )
         )
-    )
 
-    string = export_intermediate.export_to_str(compress=False, json_indent=4)
-    print(string)
+        string = export_intermediate.export_to_str(compress=False, json_indent=4)
+        print(string)
+        return string
+
+    before = export_to_string()
 
     import_intermediate = ImportIntermediate()
-    import_intermediate.from_str(string)
+    import_intermediate.from_str(before)
     import_intermediate.import_nodes(
         parameters=ImportParameters(
             specific_handlers=BUILT_IN_IMPORTER,
@@ -80,21 +84,7 @@ def round_trip_without_external(name: str):
         )
     )
 
-    export_intermediate_2 = ExportIntermediate(
-        parameters=ExportParameters(
-            is_material=False,
-            name=name,
-            specific_handlers=BUILT_IN_EXPORTER,
-            export_sub_trees=True,
-            debug_prints=True,
-            write_from_roots=False,
-        )
-    )
-
-    before = json.loads(string)
-    after = json.loads(
-        export_intermediate_2.export_to_str(compress=False, json_indent=4)
-    )
+    after = export_to_string()
 
     diff = deepdiff.DeepDiff(json.loads(before), json.loads(after), math_epsilon=0.01)
 
