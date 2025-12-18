@@ -426,18 +426,30 @@ From root: {from_root.to_str()}"""
         overwrite: bool,
         material_name: str | None = None,
     ) -> Tuple[bool, str]:
-        original_name = serialization[DATA][NAME]
+        original_name = (
+            material_name if material_name is not None else serialization[DATA][NAME]
+        )
 
-        if material_name is None:
-            can_overwrite = (
-                overwrite
-                and original_name in bpy.data.node_groups
+        if overwrite:
+            data_block = None
+            if material_name is None:
+                if original_name in bpy.data.node_groups:
+                    data_block = bpy.data.node_groups[original_name]
+            else:
+                if original_name in bpy.data.materials:
+                    data_block = bpy.data.materials[original_name]
+            if data_block is not None:
                 # we can't write properties of library items
                 # https://github.com/Algebraic-UG/tree_clipper/issues/83
-                and bpy.data.node_groups[original_name].library is None
-                and bpy.data.node_groups[original_name].library_weak_reference is None
-            )
-            if can_overwrite:
+                if (
+                    data_block.library is not None
+                    or data_block.library_weak_reference is not None
+                ):
+                    raise RuntimeError(f""""{original_name}" appears to be a library item or a reference to one.
+Please make it local so that it can be overwritten.""")
+
+        if material_name is None:
+            if overwrite and original_name in bpy.data.node_groups:
                 node_tree = bpy.data.node_groups[original_name]
             else:
                 node_tree = bpy.data.node_groups.new(
@@ -454,16 +466,7 @@ From root: {from_root.to_str()}"""
 
         else:
             # this can only happen for the top level
-
-            can_overwrite = (
-                overwrite
-                and original_name in bpy.data.materials
-                # we can't write properties of library items
-                # https://github.com/Algebraic-UG/tree_clipper/issues/83
-                and bpy.data.materials[original_name].library is None
-                and bpy.data.materials[original_name].library_weak_reference is None
-            )
-            if can_overwrite:
+            if overwrite and original_name in bpy.data.materials:
                 mat = bpy.data.materials[material_name]
             else:
                 mat = bpy.data.materials.new(material_name)
@@ -477,12 +480,6 @@ From root: {from_root.to_str()}"""
 
             def getter() -> bpy.types.ShaderNodeTree:
                 return bpy.data.materials[name].node_tree  # type: ignore
-
-        if overwrite and not can_overwrite:
-            warning = f"Can't overwrite {original_name} writing to {name} instead"
-            self.warnings.append(warning)
-            if self.debug_prints:
-                print(warning)
 
         if self.debug_prints:
             print(f"{from_root.to_str()}: entering")
