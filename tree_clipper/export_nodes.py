@@ -183,18 +183,30 @@ class Exporter:
         assert prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS
 
         attribute = getattr(obj, prop.identifier)
-        if prop.type in [PROP_TYPE_BOOLEAN, PROP_TYPE_INT, PROP_TYPE_FLOAT]:
+        if prop.type == PROP_TYPE_BOOLEAN:
+            assert isinstance(prop, bpy.types.BoolProperty)
+            if prop.is_array:
+                return list(attribute)
+
+        if prop.type in [PROP_TYPE_INT, PROP_TYPE_FLOAT]:
             assert isinstance(
                 prop,
                 (
-                    bpy.types.BoolProperty,
                     bpy.types.IntProperty,
                     bpy.types.FloatProperty,
                 ),
             )
 
+            # https://github.com/Algebraic-UG/tree_clipper/issues/96
+            def clamp_and_report(value: int | float) -> int | float:
+                if value < prop.hard_min or value > prop.hard_max and self.debug_prints:
+                    print(f"{from_root.to_str()}: outside of valid range")
+                return min(prop.hard_min, max(prop.hard_max, value))
+
             if prop.is_array:
-                return list(attribute)
+                return [clamp_and_report(value) for value in attribute]
+            else:
+                return clamp_and_report(attribute)
 
         if prop.type == PROP_TYPE_ENUM:
             assert isinstance(prop, bpy.types.EnumProperty)
