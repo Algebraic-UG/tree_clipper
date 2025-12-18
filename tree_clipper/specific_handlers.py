@@ -82,6 +82,8 @@ SINGLE_OUTPUT = "single_output"
 FILE_OUTPUT_ITEMS = "file_output_items"
 INDEX_SWITCH_ITEMS = "index_switch_items"
 INPUT_TYPE = "input_type"
+CURVE_MAPPING = "curve_mapping"
+WHITE_BALANCE_WHITEPOINT = "white_balance_whitepoint"
 
 
 # this might not be needed anymore in many cases, because
@@ -1409,6 +1411,17 @@ class SetMeshNormalImporter(SpecificImporter[bpy.types.GeometryNodeSetMeshNormal
     def deserialize(self) -> None:
         self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
         _import_node_parent(self)
+
+
+class ColorManagedViewSettingsExporter(
+    SpecificExporter[bpy.types.ColorManagedViewSettings]
+):
+    def serialize(self):
+        data = self.export_all_simple_writable_properties_and_list([CURVE_MAPPING])
+        # this is calculated from the other properties and can cause problems on import
+        # https://github.com/Algebraic-UG/tree_clipper/issues/96
+        data.pop(WHITE_BALANCE_WHITEPOINT)
+        return data
 
 
 # now they are cooked and ready to use ~ bon appétit
