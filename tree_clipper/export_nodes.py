@@ -201,7 +201,7 @@ class Exporter:
             def clamp_and_report(value: int | float) -> int | float:
                 if value < prop.hard_min or value > prop.hard_max and self.debug_prints:
                     print(f"{from_root.to_str()}: outside of valid range")
-                return min(prop.hard_min, max(prop.hard_max, value))
+                return max(prop.hard_min, min(prop.hard_max, value))
 
             if prop.is_array:
                 return [clamp_and_report(value) for value in attribute]
