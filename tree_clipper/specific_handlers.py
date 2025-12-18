@@ -449,7 +449,8 @@ class LinkExporter(SpecificExporter[bpy.types.NodeLink]):
 
 class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
     def deserialize(self):
-        for link in self.serialization[ITEMS]:
+        multi_links = []
+        for i, link in enumerate(self.serialization[ITEMS]):
             data = link[DATA]
             from_socket_id = data[FROM_SOCKET]
             to_socket_id = data[TO_SOCKET]
@@ -475,27 +476,35 @@ class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
                     f"{self.from_root.to_str()}: linking {from_node.name}, {from_socket.identifier} to {to_node.name}, {to_socket.identifier}"
                 )
 
-            new_link = self.getter().new(input=from_socket, output=to_socket)
+            self.getter().new(input=from_socket, output=to_socket)
 
             if isinstance(to_node, bpy.types.NodeReroute):
                 continue
             if not to_socket.is_multi_input:
                 continue
 
-            # bubble the link to the correct position
-            multi_input_sort_id = _or_default(
-                data, bpy.types.NodeLink, MULTI_INPUT_SORT_ID
+            multi_links.append(i)
+
+        for i in multi_links:
+            link = self.getter()[i]
+            multi_input_sort_id = self.serialization[ITEMS][i][DATA][
+                MULTI_INPUT_SORT_ID
+            ]
+            if link.multi_input_sort_id == multi_input_sort_id:
+                continue
+
+            other = next(
+                (
+                    other
+                    for other in link.to_socket.links
+                    if other.multi_input_sort_id == multi_input_sort_id
+                ),
+                None,
             )
-            multi_links = to_socket.links
-            assert new_link.multi_input_sort_id + 1 == len(multi_links)  # ty: ignore[invalid-argument-type]
-            while new_link.multi_input_sort_id > multi_input_sort_id:
-                new_link.swap_multi_input_sort_id(
-                    next(
-                        other
-                        for other in multi_links  # ty: ignore[not-iterable]
-                        if other.multi_input_sort_id == new_link.multi_input_sort_id - 1
-                    )
-                )
+            if other is None:
+                raise RuntimeError("No link is occupying sort id {multi_input_sort_id}")
+
+            link.swap_multi_input_sort_id(other)
 
 
 class LinkImporter(SpecificImporter[bpy.types.NodeLink]):
