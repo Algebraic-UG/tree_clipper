@@ -98,7 +98,7 @@ def round_trip_without_external(name: str):
 
     diff = deepdiff.DeepDiff(json.loads(before), json.loads(after), math_epsilon=0.01)
 
-    print(diff.pretty)
+    print(diff.pretty())
     assert diff == {}
 
 
@@ -160,5 +160,5 @@ def round_trip_with_same_external(
 
     diff = deepdiff.DeepDiff(json.loads(before), json.loads(after), math_epsilon=0.01)
 
-    print(diff.pretty)
+    print(diff.pretty())
     assert diff == {}
