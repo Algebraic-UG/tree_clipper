@@ -322,6 +322,15 @@ name = "tree-clipper"
 version = "0.1.0"
 source = { editable = "packages/tree_clipper" }
 
+[package.optional-dependencies]
+bpy = [
+    { name = "bpy" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "bpy", marker = "extra == 'bpy'", specifier = ">=5.0.0" }]
+provides-extras = ["bpy"]
+
 [[package]]
 name = "tree-clipper-addon"
 version = "0.1.0"
