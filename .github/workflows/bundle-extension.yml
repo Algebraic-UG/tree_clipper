@@ -19,6 +19,7 @@ jobs:
         run: uv run python-vendorize
 
       - name: Get build script
+        working-directory: packages/tree_clipper_addon/src
         run: curl https://raw.githubusercontent.com/blender/blender/refs/tags/v5.0.0/scripts/addons_core/bl_pkg/cli/blender_ext.py --output blender_ext.py
 
       - name: Build Blender extension bundles
