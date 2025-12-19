@@ -2,10 +2,10 @@ import bpy
 
 from pathlib import Path
 
-from .util import save_failed, round_trip_with_same_external
+from .util import BINARY_BLEND_FILES_DIR, save_failed, round_trip_with_same_external
 
 
-_DIR = Path("tests") / "binary_blend_files" / "molecular_nodes"
+_DIR = BINARY_BLEND_FILES_DIR / "molecular_nodes"
 
 
 def test_node_data_file():

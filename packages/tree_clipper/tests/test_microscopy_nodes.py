@@ -2,10 +2,15 @@ import bpy
 
 from pathlib import Path
 
-from .util import save_failed, round_trip_with_same_external, make_everything_local
+from .util import (
+    BINARY_BLEND_FILES_DIR,
+    save_failed,
+    round_trip_with_same_external,
+    make_everything_local,
+)
 
 
-_DIR = Path("tests") / "binary_blend_files" / "microscopy_nodes"
+_DIR = BINARY_BLEND_FILES_DIR / "microscopy_nodes"
 
 
 def test_microscopy_nodes():

@@ -162,3 +162,6 @@ def make_everything_local():
     for material in bpy.data.materials:
         if material.library:
             material.make_local(clear_liboverride=True)
+
+
+BINARY_BLEND_FILES_DIR = Path(__file__).parent / "binary_blend_files"
