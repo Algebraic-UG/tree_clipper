@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Get version from blender_manifest.toml
-        working-directory: tree_clipper
+        working-directory: packages/tree_clipper_addon/src/tree_clipper_addon
         id: get_version
         run: |
           MANIFEST_VERSION=$(yq '.version' blender_manifest.toml)
