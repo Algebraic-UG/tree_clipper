@@ -86,6 +86,7 @@ CURVE_MAPPING = "curve_mapping"
 WHITE_BALANCE_WHITEPOINT = "white_balance_whitepoint"
 WIDTH = "width"
 
+
 # this might not be needed anymore in many cases, because
 # due to https://github.com/Algebraic-UG/tree_clipper/issues/59
 # we don't skip defaults anymore
