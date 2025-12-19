@@ -17,7 +17,7 @@ Testing leverages [pytest](https://docs.pytest.org/en/stable/), also see the [CI
 
 ### Binary Blend Files
 
-The directory [tests/binary_blend_files/](tests/binary_blend_files/) contains binary blend files with relatively big node groups from various sources.
+The directory [packages/tree_clipper/tests/binary_blend_files/](packages/tree_clipper/tests/binary_blend_files/) contains binary blend files with relatively big node groups from various sources.
 In certain cases, the files are generated from an add-on.
 
 Note that these files are within Git LFS and optional unless you want to test Tree Clipper.
