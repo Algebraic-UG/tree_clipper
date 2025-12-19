@@ -1,3 +1,5 @@
+import deepdiff
+import json
 from pathlib import Path
 from typing import Literal
 import bpy
@@ -53,22 +55,26 @@ def save_failed(name: str):
 
 
 def round_trip_without_external(name: str):
-    export_intermediate = ExportIntermediate(
-        parameters=ExportParameters(
-            is_material=False,
-            name=name,
-            specific_handlers=BUILT_IN_EXPORTER,
-            export_sub_trees=True,
-            debug_prints=True,
-            write_from_roots=False,
+    def export_to_string() -> str:
+        export_intermediate = ExportIntermediate(
+            parameters=ExportParameters(
+                is_material=False,
+                name=name,
+                specific_handlers=BUILT_IN_EXPORTER,
+                export_sub_trees=True,
+                debug_prints=True,
+                write_from_roots=False,
+            )
         )
-    )
 
-    string = export_intermediate.export_to_str(compress=False, json_indent=4)
-    print(string)
+        string = export_intermediate.export_to_str(compress=False, json_indent=4)
+        print(string)
+        return string
+
+    before = export_to_string()
 
     import_intermediate = ImportIntermediate()
-    import_intermediate.from_str(string)
+    import_intermediate.from_str(before)
     import_intermediate.import_nodes(
         parameters=ImportParameters(
             specific_handlers=BUILT_IN_IMPORTER,
@@ -78,35 +84,46 @@ def round_trip_without_external(name: str):
         )
     )
 
+    after = export_to_string()
+
+    diff = deepdiff.DeepDiff(json.loads(before), json.loads(after), math_epsilon=0.01)
+
+    print(diff.pretty())
+    assert diff == {}
+
 
 def round_trip_with_same_external(
     name: str, is_material: bool, debug_prints: bool = True
 ):
-    export_intermediate = ExportIntermediate(
-        parameters=ExportParameters(
-            is_material=is_material,
-            name=name,
-            specific_handlers=BUILT_IN_EXPORTER,
-            export_sub_trees=True,
-            debug_prints=debug_prints,
-            write_from_roots=False,
+    def export_to_string() -> str:
+        export_intermediate = ExportIntermediate(
+            parameters=ExportParameters(
+                is_material=is_material,
+                name=name,
+                specific_handlers=BUILT_IN_EXPORTER,
+                export_sub_trees=True,
+                debug_prints=debug_prints,
+                write_from_roots=False,
+            )
         )
-    )
 
-    export_intermediate.set_external(
-        (
-            external_id,
-            external_item.pointed_to_by.get_pointee().name,  # ty: ignore[possibly-missing-attribute]
+        export_intermediate.set_external(
+            (
+                external_id,
+                external_item.pointed_to_by.get_pointee().name,  # ty: ignore[possibly-missing-attribute]
+            )
+            for external_id, external_item in export_intermediate.get_external().items()
         )
-        for external_id, external_item in export_intermediate.get_external().items()
-    )
 
-    string = export_intermediate.export_to_str(compress=False, json_indent=4)
-    if debug_prints:
-        print(string)
+        string = export_intermediate.export_to_str(compress=False, json_indent=4)
+        if debug_prints:
+            print(string)
+        return string
+
+    before = export_to_string()
 
     import_intermediate = ImportIntermediate()
-    import_intermediate.from_str(string)
+    import_intermediate.from_str(before)
 
     def get_same_external_item(external_item: EXTERNAL_SERIALIZATION):
         fixed_type_name = external_item[EXTERNAL_FIXED_TYPE_NAME]
@@ -128,3 +145,10 @@ def round_trip_with_same_external(
             debug_prints=debug_prints,
         )
     )
+
+    after = export_to_string()
+
+    diff = deepdiff.DeepDiff(json.loads(before), json.loads(after), math_epsilon=0.01)
+
+    print(diff.pretty())
+    assert diff == {}

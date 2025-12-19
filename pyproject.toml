@@ -12,4 +12,5 @@ dependencies = [
 dev = [
     "fake-bpy-module>=20251003",
     "pytest>=9.0.1",
+    "deepdiff>=8.6.1",
 ]
