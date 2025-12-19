@@ -7,8 +7,6 @@ from pathlib import Path
 from types import NoneType
 from typing import Any, cast, Type, Iterator, Tuple
 
-from importlib.metadata import version
-
 from .common import (
     BLENDER_VERSION,
     CURRENT_TREE_CLIPPER_VERSION,

@@ -8,7 +8,6 @@ from types import NoneType
 from typing import Any, Type, Tuple, Iterator
 
 import sys
-import tomllib
 from pathlib import Path
 
 from .common import (
