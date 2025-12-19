@@ -1,1 +1,1 @@
-tests/binary_blend_files/** filter=lfs diff=lfs merge=lfs -text
+packages/tree_clipper/tests/binary_blend_files/** filter=lfs diff=lfs merge=lfs -text
