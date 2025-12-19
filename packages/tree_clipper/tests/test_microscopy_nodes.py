@@ -1,7 +1,5 @@
 import bpy
 
-from pathlib import Path
-
 from .util import (
     BINARY_BLEND_FILES_DIR,
     save_failed,
