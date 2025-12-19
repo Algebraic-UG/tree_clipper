@@ -293,8 +293,8 @@ class TreePanelExporter(SpecificExporter[bpy.types.NodeTreeInterfacePanel]):
 
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list([ITEM_TYPE])
-        if self.obj.parent.index >= 0:
-            no_clobber(data, PARENT_INDEX, self.obj.parent.index)
+        if self.obj.parent.index >= 0:  # ty:ignore[possibly-missing-attribute]
+            no_clobber(data, PARENT_INDEX, self.obj.parent.index)  # ty:ignore[possibly-missing-attribute]
         return data
 
 
@@ -303,8 +303,8 @@ class TreeSocketExporter(SpecificExporter[bpy.types.NodeTreeInterfaceSocket]):
 
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list([IN_OUT, ITEM_TYPE])
-        if self.obj.parent.index >= 0:
-            no_clobber(data, PARENT_INDEX, self.obj.parent.index)
+        if self.obj.parent.index >= 0:  # ty:ignore[possibly-missing-attribute]
+            no_clobber(data, PARENT_INDEX, self.obj.parent.index)  # ty:ignore[possibly-missing-attribute]
         return data
 
 
@@ -476,7 +476,7 @@ class LinksImporter(SpecificImporter[bpy.types.NodeLinks]):
 
             if self.importer.debug_prints:
                 print(
-                    f"{self.from_root.to_str()}: linking {from_node.name}, {from_socket.identifier} to {to_node.name}, {to_socket.identifier}"
+                    f"{self.from_root.to_str()}: linking {from_node.name}, {from_socket.identifier} to {to_node.name}, {to_socket.identifier}"  # ty:ignore[possibly-missing-attribute]
                 )
 
             self.getter().new(input=from_socket, output=to_socket)
@@ -610,7 +610,7 @@ class RepeatInputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatInput]):
 
         def deferred():
             if not self.getter().pair_with_output(
-                self.importer.current_tree.nodes[output]
+                self.importer.current_tree.nodes[output]  # ty:ignore[possibly-missing-attribute]
             ):
                 raise RuntimeError(
                     f"{self.from_root.to_str()}: failed to pair with {output}"
@@ -777,7 +777,7 @@ class SimulationInputImporter(SpecificImporter[bpy.types.GeometryNodeSimulationI
 
         def deferred():
             if not self.getter().pair_with_output(
-                self.importer.current_tree.nodes[output]
+                self.importer.current_tree.nodes[output]  # ty:ignore[possibly-missing-attribute]
             ):
                 raise RuntimeError(
                     f"{self.from_root.to_str()}: failed to pair with {output}"
@@ -851,7 +851,7 @@ class NodeClosureInputImporter(SpecificImporter[bpy.types.NodeClosureInput]):
 
         def deferred():
             if not self.getter().pair_with_output(
-                self.importer.current_tree.nodes[output]
+                self.importer.current_tree.nodes[output]  # ty:ignore[possibly-missing-attribute]
             ):
                 raise RuntimeError(
                     f"{self.from_root.to_str()}: failed to pair with {output}"
@@ -1239,7 +1239,7 @@ class ForEachInputImporter(
 
         def deferred():
             if not self.getter().pair_with_output(
-                self.importer.current_tree.nodes[output]
+                self.importer.current_tree.nodes[output]  # ty:ignore[possibly-missing-attribute]
             ):
                 raise RuntimeError(
                     f"{self.from_root.to_str()}: failed to pair with {output}"
