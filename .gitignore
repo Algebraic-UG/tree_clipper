@@ -214,3 +214,5 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+packages/tree_clipper_addon/src/tree_clipper_addon/_vendor/

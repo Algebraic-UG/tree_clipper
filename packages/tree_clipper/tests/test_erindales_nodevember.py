@@ -2,7 +2,12 @@ import bpy
 
 from pathlib import Path
 
-from .util import save_failed, round_trip_with_same_external, make_everything_local
+from .util import (
+    BINARY_BLEND_FILES_DIR,
+    save_failed,
+    round_trip_with_same_external,
+    make_everything_local,
+)
 
 testdata = [
     "01 Pumpkin.blend",  # "https://www.patreon.com/file?h=142546933&m=557444276"
@@ -20,7 +25,7 @@ testdata = [
     "13 Cabin.blend",  # "https://www.patreon.com/file?h=144813310&m=573633551"
 ]
 
-_DIR = Path("tests") / "binary_blend_files" / "erindales_nodevember_2025"
+_DIR = BINARY_BLEND_FILES_DIR / "erindales_nodevember_2025"
 
 
 def test_erindales_nodevember_01():

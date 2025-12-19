@@ -7,10 +7,11 @@ from pathlib import Path
 from types import NoneType
 from typing import Any, cast, Type, Iterator, Tuple
 
-import tomllib
+from importlib.metadata import version
 
 from .common import (
     BLENDER_VERSION,
+    CURRENT_TREE_CLIPPER_VERSION,
     DATA,
     DISPLAY_SHAPE,
     EXTERNAL_DESCRIPTION,
@@ -562,13 +563,9 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
     else:
         trees.append((root, from_root))
 
-    manifest_path = Path(__file__).parent / "blender_manifest.toml"
-    with manifest_path.open("rb") as file:
-        blender_manifest = tomllib.load(file)
-
     data = {
         BLENDER_VERSION: bpy.app.version_string,
-        TREE_CLIPPER_VERSION: blender_manifest["version"],
+        TREE_CLIPPER_VERSION: CURRENT_TREE_CLIPPER_VERSION,
         TREES: [
             # pylint: disable=protected-access
             exporter._export_node_tree(node_tree=tree, from_root=from_root)
@@ -592,7 +589,7 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
             if isinstance(obj, bpy.types.Scene):
                 scene_id = exporter.next_id
                 exporter.next_id += 1
-                data[SCENES][scene_id] = export_scene_info(obj)
+                data[SCENES][scene_id] = export_scene_info(obj)  # ty:ignore[invalid-assignment]
 
             # Maybe it could be beneficial in some cases to have the option to have a single external item,
             # but it's also possible to use an additional group node to avieve the same thing.
@@ -600,7 +597,7 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
             for pointer in pointers:
                 external_id = exporter.next_id
                 exporter.next_id += 1
-                data[EXTERNAL][external_id] = External(
+                data[EXTERNAL][external_id] = External(  # ty:ignore[invalid-assignment]
                     pointed_to_by=pointer,
                     scene_id=scene_id,
                 )

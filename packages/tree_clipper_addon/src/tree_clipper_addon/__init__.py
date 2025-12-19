@@ -13,14 +13,14 @@
 
 import bpy
 
-from .ui.operators_export import (
+from .operators_export import (
     Tree_Clipper_External_Export_Item,
     SCENE_UL_Tree_Clipper_External_Export_List,
     SCENE_OT_Tree_Clipper_Export_Cache,
     SCENE_OT_Tree_Clipper_Export_Prepare,
 )
 
-from .ui.operators_import import (
+from .operators_import import (
     Tree_Clipper_External_Import_Item,
     Tree_Clipper_External_Import_Items,
     SCENE_UL_Tree_Clipper_External_Import_List,
@@ -28,7 +28,7 @@ from .ui.operators_import import (
     SCENE_OT_Tree_Clipper_Import_Prepare,
 )
 
-from .ui import SCENE_PT_Tree_Clipper_Panel
+from .panel import SCENE_PT_Tree_Clipper_Panel
 
 classes = [
     Tree_Clipper_External_Export_Item,

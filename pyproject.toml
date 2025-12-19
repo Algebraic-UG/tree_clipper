@@ -1,16 +1,36 @@
 [project]
-name = "tree-clipper"
-version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+name = "tree-clipper-workspace"
+version = "0.0.0"
 requires-python = ">=3.11"
 dependencies = [
     "bpy>=5.0.0",
+    "tree-clipper",
+]
+
+[tool.uv.workspace]
+members = [
+  "packages/*",
 ]
 
 [dependency-groups]
 dev = [
-    "fake-bpy-module>=20251003",
-    "pytest>=9.0.1",
-    "deepdiff>=8.6.1",
+  "fake-bpy-module>=20251003",
+  "pytest>=9.0.1",
+  "deepdiff>=8.6.1",
+  "ruff>=0.14.10",
+  "ty>=0.0.3",
+  "vendorize",
+  "pip>=25.3",
 ]
+
+[tool.uv.sources]
+tree-clipper = { workspace = true }
+# to get support for pyproject.toml (which isn't released) and to upgrade on changes (only in the fork)
+vendorize = { git = "https://github.com/Vollkornaffe/python-vendorize.git", rev = "f284834c558483542ba0886f992ae2b918c22ab3" }
+
+[tool.pytest.ini_options]
+testpaths = ["packages"]
+
+[tool.vendorize]
+target = "packages/tree_clipper_addon/src/tree_clipper_addon/_vendor"
+packages = ["packages/tree_clipper"]

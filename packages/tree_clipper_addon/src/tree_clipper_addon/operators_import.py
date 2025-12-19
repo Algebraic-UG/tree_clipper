@@ -8,13 +8,13 @@ if TYPE_CHECKING:
 
 from pathlib import Path
 
-from ..dynamic_pointer import add_all_known_pointer_properties
-from ..common import DEFAULT_FILE
+from ._vendor.tree_clipper.dynamic_pointer import add_all_known_pointer_properties
+from ._vendor.tree_clipper.common import DEFAULT_FILE
 
-from ..specific_handlers import (
+from ._vendor.tree_clipper.specific_handlers import (
     BUILT_IN_IMPORTER,
 )
-from ..import_nodes import ImportParameters, ImportIntermediate
+from ._vendor.tree_clipper.import_nodes import ImportParameters, ImportIntermediate
 
 
 _INTERMEDIATE_IMPORT_CACHE = None

@@ -2,10 +2,10 @@ import bpy
 
 from pathlib import Path
 
-from .util import save_failed, round_trip_with_same_external
+from .util import BINARY_BLEND_FILES_DIR, save_failed, round_trip_with_same_external
 
 
-_DIR = Path("tests") / "binary_blend_files" / "typst_importer"
+_DIR = BINARY_BLEND_FILES_DIR / "typst_importer"
 
 
 def test_blender_assets():

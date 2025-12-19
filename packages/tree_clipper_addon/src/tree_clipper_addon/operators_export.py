@@ -8,12 +8,12 @@ if TYPE_CHECKING:
 
 from pathlib import Path
 
-from ..common import DEFAULT_FILE
+from ._vendor.tree_clipper.common import DEFAULT_FILE
 
-from ..specific_handlers import (
+from ._vendor.tree_clipper.specific_handlers import (
     BUILT_IN_EXPORTER,
 )
-from ..export_nodes import ExportParameters, ExportIntermediate
+from ._vendor.tree_clipper.export_nodes import ExportParameters, ExportIntermediate
 
 
 _INTERMEDIATE_EXPORT_CACHE = None
