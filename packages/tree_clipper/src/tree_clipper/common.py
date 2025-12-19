@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 # these fields are in the top level JSON object
 BLENDER_VERSION = "blender_version"
 TREE_CLIPPER_VERSION = "tree_clipper_version"
+CURRENT_TREE_CLIPPER_VERSION = "0.1.0"  # tested to match pyproject.toml
 MATERIAL_NAME = "name"
 TREES = "node_trees"
 EXTERNAL = "external"

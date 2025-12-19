@@ -12,6 +12,7 @@ import tomllib
 from pathlib import Path
 
 from .common import (
+    CURRENT_TREE_CLIPPER_VERSION,
     DATA,
     DESERIALIZER,
     FORBIDDEN_PROPERTIES,
@@ -496,21 +497,19 @@ Please make it local so that it can be overwritten.""")
         return (material_name is None, name)
 
 
+# TODO: make this less strict: we should allow import of smaller minor version
 def _check_version(data: dict) -> None | str:
     exporter_blender_version = data[BLENDER_VERSION]
+    exporter_version = data[TREE_CLIPPER_VERSION]
+
     importer_blender_version = bpy.app.version_string
+    importer_version = CURRENT_TREE_CLIPPER_VERSION
+
     if exporter_blender_version != importer_blender_version:
         return f"Blender version mismatch. File version: {exporter_blender_version}, but running {importer_blender_version}"
 
-    exporter_node_as_json_version = data[TREE_CLIPPER_VERSION]
-    manifest_path = Path(__file__).parent / "blender_manifest.toml"
-    with manifest_path.open("rb") as file:
-        blender_manifest = tomllib.load(file)
-    importer_node_as_json_version = blender_manifest["version"]
-    name = blender_manifest["name"]
-
-    if exporter_node_as_json_version != importer_node_as_json_version:
-        return f"{name} version mismatch. File version: {exporter_node_as_json_version}, but running {importer_node_as_json_version}"
+    if exporter_version != CURRENT_TREE_CLIPPER_VERSION:
+        return f"Version mismatch. File version: {exporter_version}, but running {importer_version}"
 
 
 ################################################################################
