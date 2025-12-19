@@ -76,5 +76,7 @@ jobs:
           files: ${{ steps.filelist.outputs.release_files }}
           generate_release_notes: true
           fail_on_unmatched_files: true
+          tag_name: ${{ (github.event.inputs.draft == 'true') && format('draft-{0}', github.run_id) || github.ref_name }}
+          target_commitish: ${{ github.sha }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
