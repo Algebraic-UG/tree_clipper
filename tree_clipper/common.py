@@ -73,6 +73,7 @@ FORBIDDEN_PROPERTIES = [
     "bl_height_default",
     "bl_height_min",
     "bl_height_max",
+    "bl_socket_idname",
 ]
 
 

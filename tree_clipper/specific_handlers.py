@@ -84,6 +84,7 @@ INDEX_SWITCH_ITEMS = "index_switch_items"
 INPUT_TYPE = "input_type"
 CURVE_MAPPING = "curve_mapping"
 WHITE_BALANCE_WHITEPOINT = "white_balance_whitepoint"
+WIDTH = "width"
 
 
 # this might not be needed anymore in many cases, because
@@ -913,6 +914,9 @@ class RerouteExporter(SpecificExporter[bpy.types.NodeReroute]):
         data = self.export_all_simple_writable_properties_and_list(
             [BL_IDNAME], [PARENT]
         )
+
+        # https://github.com/Algebraic-UG/tree_clipper/issues/98
+        data.pop(WIDTH)
 
         no_clobber(
             data,

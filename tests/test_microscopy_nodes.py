@@ -2,7 +2,7 @@ import bpy
 
 from pathlib import Path
 
-from .util import save_failed, round_trip_with_same_external
+from .util import save_failed, round_trip_with_same_external, make_everything_local
 
 
 _DIR = Path("tests") / "binary_blend_files" / "microscopy_nodes"
@@ -12,6 +12,8 @@ def test_microscopy_nodes():
     path = _DIR / "microscopy_nodes.blend"
     try:
         bpy.ops.wm.open_mainfile(filepath=str(path))
+
+        make_everything_local()
 
         round_trip_with_same_external(name="axes", is_material=False)
 
