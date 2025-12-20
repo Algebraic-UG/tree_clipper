@@ -446,8 +446,13 @@ class SocketImporter(SpecificImporter[bpy.types.NodeSocket]):
 
 class LinkExporter(SpecificExporter[bpy.types.NodeLink]):
     def serialize(self):
+        # https://github.com/Algebraic-UG/tree_clipper/issues/114
+        if self.obj.to_socket.is_multi_input:  # ty:ignore[possibly-missing-attribute]
+            additional_props = [MULTI_INPUT_SORT_ID]
+        else:
+            additional_props = []
         return self.export_all_simple_writable_properties_and_list(
-            [MULTI_INPUT_SORT_ID],
+            additional_props,
             [FROM_SOCKET, TO_SOCKET],
         )
 
