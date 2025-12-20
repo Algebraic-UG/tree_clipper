@@ -11,6 +11,7 @@ from .specific_abstract import (
 
 from .common import (
     DATA,
+    DIMENSIONS,
     ID,
     no_clobber,
     ITEMS,
@@ -28,7 +29,6 @@ CAPTURE_ITEMS = "capture_items"
 DATA_TYPE = "data_type"
 DEFAULT_CLOSED = "default_closed"
 DESCRIPTION = "description"
-DIMENSIONS = "dimensions"
 ENUM_ITEMS = "enum_items"
 FROM_NODE = "from_node"
 FROM_SOCKET = "from_socket"
@@ -331,16 +331,6 @@ class TreeSocketImporter(SpecificImporter[bpy.types.NodeTreeInterfaceSocket]):
                 )
             dimensions = self.serialization[DIMENSIONS]
             self.getter().dimensions = dimensions  # ty: ignore[invalid-assignment]
-
-            if DEFAULT_VALUE in self.serialization:
-                default_value = self.serialization[DEFAULT_VALUE]
-                # https://projects.blender.org/blender/blender/issues/151725
-                if len(default_value) > dimensions:
-                    if self.importer.debug_prints:
-                        print(
-                            f"{self.from_root.add_prop(prop).to_str()}: fixing dimension mismatch"
-                        )
-                    self.serialization[DEFAULT_VALUE] = default_value[:dimensions]
 
         # importing the socket type resets the dimension!
         self.import_all_simple_writable_properties([SOCKET_TYPE])
