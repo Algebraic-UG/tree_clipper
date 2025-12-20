@@ -26,7 +26,7 @@ _EXTERNAL_ITEM_MAKER: dict[str, Callable[[], bpy.types.ID]] = {
     "Object": make_test_object,
     "Collection": make_test_collection,
     # this is just so that the tree stays alive in the savefile
-    "NodeTree": make_test_node_tree,
+    "NodeTree": lambda: make_test_node_tree("tree_as_external"),
 }
 
 
@@ -159,8 +159,7 @@ def test_external_items():
         string = export_intermediate.export_to_str(compress=False, json_indent=4)
         print(string)
 
-        bpy.data.node_groups[name].nodes.clear()
-        bpy.data.node_groups[name].annotation = None
+        bpy.data.node_groups.remove(bpy.data.node_groups[name])
 
         import_intermediate = ImportIntermediate()
         import_intermediate.from_str(string)
