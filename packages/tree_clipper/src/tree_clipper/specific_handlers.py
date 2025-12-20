@@ -315,7 +315,7 @@ class TreeSocketExporter(SpecificExporter[bpy.types.NodeTreeInterfaceSocket]):
 
         # https://github.com/Algebraic-UG/tree_clipper/issues/111
         if isinstance(self.exporter.current_tree, bpy.types.ShaderNodeTree):
-            data.pop(DEFAULT_INPUT)
+            data.pop(DEFAULT_INPUT, None)  # can be missing
 
         return data
 
