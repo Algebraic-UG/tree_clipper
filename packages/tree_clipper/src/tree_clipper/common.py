@@ -57,6 +57,8 @@ SIMPLE_PROPERTY_TYPES_AS_STRS = set(
     ]
 )
 NODE_TREE = "node_tree"
+DIMENSIONS = "dimensions"
+
 
 # bl_* properties can be dangerous to set
 # https://github.com/Algebraic-UG/tree_clipper/issues/39

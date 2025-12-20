@@ -11,6 +11,8 @@ from .common import (
     BLENDER_VERSION,
     CURRENT_TREE_CLIPPER_VERSION,
     DATA,
+    DEFAULT_VALUE,
+    DIMENSIONS,
     DISPLAY_SHAPE,
     EXTERNAL_DESCRIPTION,
     FORBIDDEN_PROPERTIES,
@@ -182,6 +184,16 @@ class Exporter:
         assert prop.type in SIMPLE_PROPERTY_TYPES_AS_STRS
 
         attribute = getattr(obj, prop.identifier)
+
+        # https://github.com/Algebraic-UG/tree_clipper/issues/112
+        if prop.identifier == DEFAULT_VALUE and hasattr(obj, DIMENSIONS):
+            assert prop.is_array  # ty:ignore[possibly-missing-attribute]
+            dimensions = obj.dimensions
+            if len(attribute) > dimensions:  # ty:ignore[unsupported-operator, invalid-argument-type]
+                if self.debug_prints:
+                    print(f"{from_root.to_str()}: fixing dimension mismatch")
+                attribute = list(attribute)[:dimensions]
+
         if prop.type == PROP_TYPE_BOOLEAN:
             assert isinstance(prop, bpy.types.BoolProperty)
             if prop.is_array:
@@ -198,14 +210,16 @@ class Exporter:
 
             # https://github.com/Algebraic-UG/tree_clipper/issues/96
             def clamp_and_report(value: int | float) -> int | float:
-                if value < prop.hard_min or value > prop.hard_max and self.debug_prints:
+                if (
+                    value < prop.hard_min or value > prop.hard_max
+                ) and self.debug_prints:
                     print(f"{from_root.to_str()}: outside of valid range")
                 return max(prop.hard_min, min(prop.hard_max, value))
 
             if prop.is_array:
                 return [clamp_and_report(value) for value in attribute]
             else:
-                return clamp_and_report(attribute)
+                return clamp_and_report(attribute)  # ty:ignore[invalid-argument-type]
 
         if prop.type == PROP_TYPE_ENUM:
             assert isinstance(prop, bpy.types.EnumProperty)

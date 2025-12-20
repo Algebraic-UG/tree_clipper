@@ -6,7 +6,7 @@ import bpy
 parser = argparse.ArgumentParser(prog="Get JSON from tree in file")
 parser.add_argument("--filename", required=True)
 parser.add_argument("--name", required=True)
-parser.add_argument("--is_material", required=True)
+parser.add_argument("--is_material")
 parser.add_argument("--debug_prints")
 
 args = parser.parse_args()
