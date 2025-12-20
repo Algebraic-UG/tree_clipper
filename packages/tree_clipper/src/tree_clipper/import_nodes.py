@@ -49,6 +49,15 @@ from .id_data_getter import make_id_data_getter
 from .scene_info import verify_scene, SceneValidationError
 
 
+class ImportReport:
+    def __init__(
+        self,
+    ):
+        self.rename_material: tuple[str, str] | None = None
+        self.renames_node_group: dict[str, str] = {}
+        self.warnings: list[str] = []
+
+
 class Importer:
     def __init__(
         self,
@@ -76,7 +85,7 @@ class Importer:
         # we need to lookup nodes and their sockets for linking them
         self.current_tree = None
 
-        self.warnings: list[str] = []
+        self.report = ImportReport()
 
     ################################################################################
     # helper functions to be used in specific handlers
@@ -424,7 +433,7 @@ From root: {from_root.to_str()}"""
         *,
         serialization: dict[str, Any],
         material_name: str | None = None,
-    ) -> Tuple[bool, str]:
+    ) -> None:
         original_name = (
             material_name if material_name is not None else serialization[DATA][NAME]
         )
@@ -438,6 +447,7 @@ From root: {from_root.to_str()}"""
             from_root = FromRoot([f"Tree ({node_tree.name})"])
 
             name = node_tree.name
+            self.report.renames_node_group[original_name] = name
 
             def getter() -> bpy.types.NodeTree:
                 return bpy.data.node_groups[name]
@@ -451,6 +461,7 @@ From root: {from_root.to_str()}"""
             from_root = FromRoot([f"Material ({mat.name})"])
 
             name = mat.name
+            self.report.rename_material = (original_name, name)
 
             def getter() -> bpy.types.ShaderNodeTree:
                 return bpy.data.materials[name].node_tree  # type: ignore
@@ -469,8 +480,6 @@ From root: {from_root.to_str()}"""
         for func in self.set_socket_enum_defaults:
             func()
         self.set_socket_enum_defaults.clear()
-
-        return (material_name is None, name)
 
 
 # TODO: make this less strict: we should allow import of smaller minor version
@@ -506,19 +515,6 @@ class ImportParameters:
         self.debug_prints = debug_prints
 
 
-class ImportReport:
-    def __init__(
-        self,
-        *,
-        is_material: bool,
-        new_name: str,
-        warnings: list[str],
-    ):
-        self.is_material = is_material
-        self.new_name = new_name
-        self.warnings = warnings
-
-
 def _import_nodes_from_dict(
     *,
     data: dict[str, Any],
@@ -544,16 +540,12 @@ def _import_nodes_from_dict(
 
     # root tree needs special treatment, might be material
     # pylint: disable=protected-access
-    is_material, new_name = importer._import_node_tree(
+    importer._import_node_tree(
         serialization=data[TREES][-1],
         material_name=None if MATERIAL_NAME not in data else data[MATERIAL_NAME],
     )
 
-    return ImportReport(
-        is_material=is_material,
-        new_name=new_name,
-        warnings=importer.warnings,
-    )
+    return importer.report
 
 
 class ImportIntermediate:

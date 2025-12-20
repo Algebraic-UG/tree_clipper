@@ -139,6 +139,16 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             )
         )
 
+        if report.rename_material is not None:
+            original_name, new_name = report.rename_material
+            self.report(
+                {"INFO"}, f"Imported material '{original_name}' as '{new_name}'"
+            )
+        for original_name, new_name in report.renames_node_group.items():
+            self.report(
+                {"INFO"}, f"Imported node_group '{original_name}' as '{new_name}'"
+            )
+
         for warning in report.warnings:
             self.report({"WARNING"}, warning)
 
