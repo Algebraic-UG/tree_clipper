@@ -511,11 +511,9 @@ class ImportParameters:
         self,
         *,
         specific_handlers: dict[type, DESERIALIZER],
-        allow_version_mismatch: bool,
         debug_prints: bool,
     ) -> None:
         self.specific_handlers = specific_handlers
-        self.allow_version_mismatch = allow_version_mismatch
         self.debug_prints = debug_prints
 
 
