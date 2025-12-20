@@ -86,8 +86,6 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
     bl_label = "Import Cache"
     bl_options = {"REGISTER", "UNDO"}
 
-    overwrite: bpy.props.BoolProperty(name="Overwrite", default=True)  # type: ignore
-
     allow_version_mismatch: bpy.props.BoolProperty(name="Ignore Version", default=False)  # type: ignore
     debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=False)  # type: ignore
 
@@ -137,7 +135,6 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
                 allow_version_mismatch=self.allow_version_mismatch,
-                overwrite=self.overwrite,
                 debug_prints=self.debug_prints,
             )
         )
@@ -154,7 +151,6 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             context.scene.tree_clipper_external_import_items,
             Tree_Clipper_External_Import_Items,
         )
-        self.layout.prop(self, "overwrite")
         head, body = self.layout.panel("advanced", default_closed=True)
         head.label(text="Advanced")
         if body is not None:

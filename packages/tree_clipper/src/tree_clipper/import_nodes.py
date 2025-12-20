@@ -423,36 +423,17 @@ From root: {from_root.to_str()}"""
         self,
         *,
         serialization: dict[str, Any],
-        overwrite: bool,
         material_name: str | None = None,
     ) -> Tuple[bool, str]:
         original_name = (
             material_name if material_name is not None else serialization[DATA][NAME]
         )
 
-        if overwrite:
-            data_block = None
-            if material_name is None:
-                if original_name in bpy.data.node_groups:
-                    data_block = bpy.data.node_groups[original_name]
-            else:
-                if original_name in bpy.data.materials:
-                    data_block = bpy.data.materials[original_name]
-            if data_block is not None:
-                # we can't write properties of library items
-                # https://github.com/Algebraic-UG/tree_clipper/issues/83
-                if data_block.library is not None:
-                    raise RuntimeError(f""""{original_name}" appears to be a library item or a reference to one.
-Please make it local so that it can be overwritten.""")
-
         if material_name is None:
-            if overwrite and original_name in bpy.data.node_groups:
-                node_tree = bpy.data.node_groups[original_name]
-            else:
-                node_tree = bpy.data.node_groups.new(
-                    type=serialization[DATA][BL_IDNAME],
-                    name=original_name,
-                )
+            node_tree = bpy.data.node_groups.new(
+                type=serialization[DATA][BL_IDNAME],
+                name=original_name,
+            )
 
             from_root = FromRoot([f"Tree ({node_tree.name})"])
 
@@ -462,11 +443,7 @@ Please make it local so that it can be overwritten.""")
                 return bpy.data.node_groups[name]
 
         else:
-            # this can only happen for the top level
-            if overwrite and original_name in bpy.data.materials:
-                mat = bpy.data.materials[material_name]
-            else:
-                mat = bpy.data.materials.new(material_name)
+            mat = bpy.data.materials.new(material_name)
 
             mat.use_nodes = True
             node_tree = mat.node_tree
@@ -522,12 +499,10 @@ class ImportParameters:
         *,
         specific_handlers: dict[type, DESERIALIZER],
         allow_version_mismatch: bool,
-        overwrite: bool,
         debug_prints: bool,
     ) -> None:
         self.specific_handlers = specific_handlers
         self.allow_version_mismatch = allow_version_mismatch
-        self.overwrite = overwrite
         self.debug_prints = debug_prints
 
 
@@ -565,13 +540,12 @@ def _import_nodes_from_dict(
 
     for tree in data[TREES][:-1]:
         # pylint: disable=protected-access
-        importer._import_node_tree(serialization=tree, overwrite=parameters.overwrite)
+        importer._import_node_tree(serialization=tree)
 
     # root tree needs special treatment, might be material
     # pylint: disable=protected-access
     is_material, new_name = importer._import_node_tree(
         serialization=data[TREES][-1],
-        overwrite=parameters.overwrite,
         material_name=None if MATERIAL_NAME not in data else data[MATERIAL_NAME],
     )
 
