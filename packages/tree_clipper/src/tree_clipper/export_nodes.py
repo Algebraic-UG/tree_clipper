@@ -198,7 +198,9 @@ class Exporter:
 
             # https://github.com/Algebraic-UG/tree_clipper/issues/96
             def clamp_and_report(value: int | float) -> int | float:
-                if value < prop.hard_min or value > prop.hard_max and self.debug_prints:
+                if (
+                    value < prop.hard_min or value > prop.hard_max
+                ) and self.debug_prints:
                     print(f"{from_root.to_str()}: outside of valid range")
                 return max(prop.hard_min, min(prop.hard_max, value))
 
