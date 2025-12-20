@@ -105,7 +105,6 @@ def round_trip_without_external(original_name: str):
     import_report = import_intermediate.import_nodes(
         parameters=ImportParameters(
             specific_handlers=BUILT_IN_IMPORTER,
-            allow_version_mismatch=False,
             debug_prints=True,
         )
     )
@@ -166,7 +165,6 @@ def round_trip(
     import_report = import_intermediate.import_nodes(
         parameters=ImportParameters(
             specific_handlers=BUILT_IN_IMPORTER,
-            allow_version_mismatch=False,
             debug_prints=debug_prints,
         )
     )
