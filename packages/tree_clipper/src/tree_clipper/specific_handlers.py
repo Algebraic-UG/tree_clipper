@@ -85,6 +85,12 @@ INPUT_TYPE = "input_type"
 CURVE_MAPPING = "curve_mapping"
 WHITE_BALANCE_WHITEPOINT = "white_balance_whitepoint"
 WIDTH = "width"
+ACTIVE_INDEX = "active_index"
+ACTIVE_ITEM_INDEX = "active_item_index"
+ACTIVE_INPUT_INDEX = "active_input_index"
+ACTIVE_OUTPUT_INDEX = "active_output_index"
+ACTIVE_GENERATION_INDEX = "active_generation_index"
+ACTIVE_MAIN_INDEX = "active_main_index"
 
 
 # this might not be needed anymore in many cases, because
@@ -527,7 +533,7 @@ class MenuSwitchImporter(SpecificImporter[bpy.types.GeometryNodeMenuSwitch]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the enum_items implicitly create sockets
-            [ENUM_ITEMS, INPUTS, OUTPUTS],
+            [ENUM_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS],
         )
         _import_node_parent(self)
 
@@ -563,7 +569,7 @@ class CaptureAttrImporter(SpecificImporter[bpy.types.GeometryNodeCaptureAttribut
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the capture_items implicitly create sockets
-            [CAPTURE_ITEMS, INPUTS, OUTPUTS],
+            [CAPTURE_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS],
         )
         _import_node_parent(self)
 
@@ -635,7 +641,7 @@ class RepeatOutputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatOutput])
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the repeat_items implicitly create sockets
-            [REPEAT_ITEMS, INPUTS, OUTPUTS]
+            [REPEAT_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
         )
         _import_node_parent(self)
 
@@ -689,7 +695,7 @@ class ViewerImporter(SpecificImporter[bpy.types.GeometryNodeViewer]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the viewer_items implicitly create sockets
-            [VIEWER_ITEMS, INPUTS, OUTPUTS],
+            [VIEWER_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS],
         )
         _import_node_parent(self)
 
@@ -806,7 +812,7 @@ class SimulationOutputImporter(
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the state_items implicitly create sockets
-            [STATE_ITEMS, INPUTS, OUTPUTS]
+            [STATE_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
         )
         _import_node_parent(self)
 
@@ -876,7 +882,14 @@ class NodeClosureOutputImporter(SpecificImporter[bpy.types.NodeClosureOutput]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the items implicitly create sockets
-            [INPUT_ITEMS, OUTPUT_ITEMS, INPUTS, OUTPUTS]
+            [
+                INPUT_ITEMS,
+                OUTPUT_ITEMS,
+                ACTIVE_INPUT_INDEX,
+                ACTIVE_OUTPUT_INDEX,
+                INPUTS,
+                OUTPUTS,
+            ]
         )
         _import_node_parent(self)
 
@@ -1005,7 +1018,14 @@ class NodeEvaluateClosureImporter(SpecificImporter[bpy.types.NodeEvaluateClosure
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the input_items and output_items implicitly create sockets
-            [INPUT_ITEMS, OUTPUT_ITEMS, INPUTS, OUTPUTS]
+            [
+                INPUT_ITEMS,
+                OUTPUT_ITEMS,
+                ACTIVE_INPUT_INDEX,
+                ACTIVE_OUTPUT_INDEX,
+                INPUTS,
+                OUTPUTS,
+            ]
         )
         _import_node_parent(self)
 
@@ -1054,7 +1074,7 @@ class FormatStringNodeImporter(SpecificImporter[bpy.types.FunctionNodeFormatStri
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the format_items implicitly create sockets
-            [FORMAT_ITEMS, INPUTS, OUTPUTS]
+            [FORMAT_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
         )
         _import_node_parent(self)
 
@@ -1081,7 +1101,7 @@ class CombineBundleImporter(SpecificImporter[bpy.types.NodeCombineBundle]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the bundle_items implicitly create sockets
-            [BUNDLE_ITEMS, INPUTS, OUTPUTS]
+            [BUNDLE_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
         )
         _import_node_parent(self)
 
@@ -1104,7 +1124,7 @@ class SeparateBundleImporter(SpecificImporter[bpy.types.NodeSeparateBundle]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the bundle_items implicitly create sockets
-            [BUNDLE_ITEMS, INPUTS, OUTPUTS]
+            [BUNDLE_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
         )
         _import_node_parent(self)
 
@@ -1258,7 +1278,16 @@ class ForEachOutputImporter(
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the items implicitly create sockets
-            [GENERATION_ITEMS, INPUT_ITEMS, MAIN_ITEMS, INPUTS, OUTPUTS]
+            [
+                GENERATION_ITEMS,
+                INPUT_ITEMS,
+                MAIN_ITEMS,
+                ACTIVE_GENERATION_INDEX,
+                ACTIVE_INPUT_INDEX,
+                ACTIVE_MAIN_INDEX,
+                INPUTS,
+                OUTPUTS,
+            ]
         )
         _import_node_parent(self)
 
@@ -1328,7 +1357,7 @@ class BakeImporter(SpecificImporter[bpy.types.GeometryNodeBake]):
     def deserialize(self) -> None:
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the bake_items implicitly create sockets
-            [BAKE_ITEMS, INPUTS, OUTPUTS]
+            [BAKE_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
         )
         _import_node_parent(self)
 
@@ -1362,7 +1391,7 @@ class FieldToGridImporter(SpecificImporter[bpy.types.GeometryNodeFieldToGrid]):
     def deserialize(self) -> None:
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the grid_items implicitly create sockets
-            [GRID_ITEMS, INPUTS, OUTPUTS]
+            [GRID_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
         )
 
         return super().deserialize()
@@ -1388,7 +1417,7 @@ class FileOutputImporter(SpecificImporter[bpy.types.CompositorNodeOutputFile]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the file_output_items implicitly create sockets
-            [FILE_OUTPUT_ITEMS, FORMAT, INPUTS, OUTPUTS]
+            [FILE_OUTPUT_ITEMS, ACTIVE_ITEM_INDEX, FORMAT, INPUTS, OUTPUTS]
         )
         _import_node_parent(self)
 
