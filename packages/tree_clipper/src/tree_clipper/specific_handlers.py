@@ -91,6 +91,7 @@ ACTIVE_INPUT_INDEX = "active_input_index"
 ACTIVE_OUTPUT_INDEX = "active_output_index"
 ACTIVE_GENERATION_INDEX = "active_generation_index"
 ACTIVE_MAIN_INDEX = "active_main_index"
+DEFAULT_INPUT = "default_input"
 
 
 # this might not be needed anymore in many cases, because
@@ -311,6 +312,11 @@ class TreeSocketExporter(SpecificExporter[bpy.types.NodeTreeInterfaceSocket]):
         data = self.export_all_simple_writable_properties_and_list([IN_OUT, ITEM_TYPE])
         if self.obj.parent.index >= 0:  # ty:ignore[possibly-missing-attribute]
             no_clobber(data, PARENT_INDEX, self.obj.parent.index)  # ty:ignore[possibly-missing-attribute]
+
+        # https://github.com/Algebraic-UG/tree_clipper/issues/111
+        if isinstance(self.exporter.current_tree, bpy.types.ShaderNodeTree):
+            data.pop(DEFAULT_INPUT)
+
         return data
 
 
