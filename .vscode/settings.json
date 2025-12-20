@@ -5,5 +5,8 @@
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "blender.addon.sourceDirectory": "./packages/tree_clipper_addon/src/tree_clipper_addon",
-    "blender.addon.buildTaskName": "run-python-vendor"
+    "blender.addon.buildTaskName": "run-python-vendor",
+    "python.testing.pytestArgs": [
+        "packages"
+    ]
 }

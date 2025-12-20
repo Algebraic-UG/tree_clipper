@@ -8,10 +8,14 @@ from tree_clipper.common import (
     EXTERNAL_FIXED_TYPE_NAME,
     EXTERNAL_DESCRIPTION,
     EXTERNAL_SERIALIZATION,
+    DATA,
+    MATERIAL_NAME,
+    TREES,
+    NAME,
 )
 from tree_clipper.id_data_getter import get_data_block_from_id_name
 from tree_clipper.export_nodes import ExportIntermediate, ExportParameters
-from tree_clipper.import_nodes import ImportIntermediate, ImportParameters
+from tree_clipper.import_nodes import ImportIntermediate, ImportParameters, ImportReport
 from tree_clipper.specific_handlers import BUILT_IN_EXPORTER, BUILT_IN_IMPORTER
 
 
@@ -54,8 +58,31 @@ def save_failed(name: str):
     bpy.ops.wm.save_as_mainfile(filepath=path)
 
 
-def round_trip_without_external(name: str):
-    def export_to_string() -> str:
+def diff_exports(
+    *,
+    before: str,
+    import_report: ImportReport,
+    after: str,
+):
+    data_before = json.loads(before)
+    data_after = json.loads(after)
+
+    # we need to make sure that we "fix" the names as they're expected to change on import
+    if import_report.rename_material is not None:
+        original_name, new_name = import_report.rename_material
+        data_after[MATERIAL_NAME] = original_name
+    for original_name, new_name in import_report.renames_node_group.items():
+        tree = next(tree for tree in data_after[TREES] if tree[DATA][NAME] == new_name)
+        tree[DATA][NAME] = original_name
+
+    diff = deepdiff.DeepDiff(data_before, data_after, math_epsilon=0.01)
+
+    print(diff.pretty())
+    assert diff == {}
+
+
+def round_trip_without_external(original_name: str):
+    def export_to_string(name: str) -> str:
         export_intermediate = ExportIntermediate(
             parameters=ExportParameters(
                 is_material=False,
@@ -71,31 +98,30 @@ def round_trip_without_external(name: str):
         print(string)
         return string
 
-    before = export_to_string()
+    before = export_to_string(original_name)
 
     import_intermediate = ImportIntermediate()
     import_intermediate.from_str(before)
-    import_intermediate.import_nodes(
+    import_report = import_intermediate.import_nodes(
         parameters=ImportParameters(
             specific_handlers=BUILT_IN_IMPORTER,
             allow_version_mismatch=False,
-            overwrite=True,
             debug_prints=True,
         )
     )
 
-    after = export_to_string()
+    after = export_to_string(import_report.renames_node_group[original_name])
 
-    diff = deepdiff.DeepDiff(json.loads(before), json.loads(after), math_epsilon=0.01)
-
-    print(diff.pretty())
-    assert diff == {}
+    diff_exports(before=before, import_report=import_report, after=after)
 
 
-def round_trip_with_same_external(
-    name: str, is_material: bool, debug_prints: bool = True
+def round_trip(
+    *,
+    original_name: str,
+    is_material: bool,
+    debug_prints: bool = True,
 ):
-    def export_to_string() -> str:
+    def export_to_string(name: str) -> str:
         export_intermediate = ExportIntermediate(
             parameters=ExportParameters(
                 is_material=is_material,
@@ -120,7 +146,7 @@ def round_trip_with_same_external(
             print(string)
         return string
 
-    before = export_to_string()
+    before = export_to_string(original_name)
 
     import_intermediate = ImportIntermediate()
     import_intermediate.from_str(before)
@@ -137,21 +163,21 @@ def round_trip_with_same_external(
         for external_id, external_item in import_intermediate.get_external().items()
     )
 
-    import_intermediate.import_nodes(
+    import_report = import_intermediate.import_nodes(
         parameters=ImportParameters(
             specific_handlers=BUILT_IN_IMPORTER,
             allow_version_mismatch=False,
-            overwrite=True,
             debug_prints=debug_prints,
         )
     )
 
-    after = export_to_string()
+    after = export_to_string(
+        import_report.rename_material[1]  # ty:ignore[non-subscriptable]
+        if is_material
+        else import_report.renames_node_group[original_name]
+    )
 
-    diff = deepdiff.DeepDiff(json.loads(before), json.loads(after), math_epsilon=0.01)
-
-    print(diff.pretty())
-    assert diff == {}
+    diff_exports(before=before, import_report=import_report, after=after)
 
 
 def make_everything_local():
