@@ -1,21 +1,15 @@
 import bpy
-import _rna_info as rna_info
+import _rna_info as rna_info  # ty:ignore[unresolved-import]
 
 import pytest
 
+from .util import all_subclasses
 from .test_all_nodes import test_all_nodes
 
 
 @pytest.fixture(autouse=True)
 def reset_blender():
     bpy.ops.wm.read_factory_settings(app_template="", use_empty=False)
-
-
-def _all_subclasses(cls):
-    subclasses = set(cls.__subclasses__())
-    for subclass in cls.__subclasses__():
-        subclasses.update(_all_subclasses(subclass))
-    return subclasses
 
 
 def pytest_generate_tests(metafunc):
@@ -25,7 +19,7 @@ def pytest_generate_tests(metafunc):
 
     # we're only interested in the "leaf" types
     node_types = set(
-        cls for cls in _all_subclasses(bpy.types.Node) if len(_all_subclasses(cls)) == 0
+        cls for cls in all_subclasses(bpy.types.Node) if len(all_subclasses(cls)) == 0
     )
 
     if metafunc.function == test_all_nodes:

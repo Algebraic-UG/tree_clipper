@@ -191,3 +191,10 @@ def make_everything_local():
 
 
 BINARY_BLEND_FILES_DIR = Path(__file__).parent / "binary_blend_files"
+
+
+def all_subclasses(cls):
+    subclasses = set(cls.__subclasses__())
+    for subclass in cls.__subclasses__():
+        subclasses.update(all_subclasses(subclass))
+    return subclasses
