@@ -1,7 +1,7 @@
 import deepdiff
 import json
 from pathlib import Path
-from typing import Literal, Any
+from typing import Literal
 import bpy
 
 from tree_clipper.common import (
