@@ -3,7 +3,7 @@ import bpy
 from .util import (
     BINARY_BLEND_FILES_DIR,
     save_failed,
-    round_trip_with_same_external,
+    round_trip,
     make_everything_local,
 )
 
@@ -18,17 +18,15 @@ def test_microscopy_nodes():
 
         make_everything_local()
 
-        round_trip_with_same_external(name="axes", is_material=False)
+        round_trip(original_name="axes", is_material=False)
 
-        round_trip_with_same_external(name="DAPI volume", is_material=True)
-        round_trip_with_same_external(name="Material", is_material=True)
-        round_trip_with_same_external(name="NHS-ester volume", is_material=True)
-        round_trip_with_same_external(name="Slice Cube", is_material=True)
-        round_trip_with_same_external(name="ab-tubulin volume", is_material=True)
-        round_trip_with_same_external(
-            name="acetylated tubulin volume", is_material=True
-        )
-        round_trip_with_same_external(name="axes", is_material=True)
+        round_trip(original_name="DAPI volume", is_material=True)
+        round_trip(original_name="Material", is_material=True)
+        round_trip(original_name="NHS-ester volume", is_material=True)
+        round_trip(original_name="Slice Cube", is_material=True)
+        round_trip(original_name="ab-tubulin volume", is_material=True)
+        round_trip(original_name="acetylated tubulin volume", is_material=True)
+        round_trip(original_name="axes", is_material=True)
 
     except:
         # store in case of failure for easy debugging

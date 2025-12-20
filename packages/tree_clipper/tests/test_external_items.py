@@ -179,7 +179,6 @@ def test_external_items():
             parameters=ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
                 allow_version_mismatch=False,
-                overwrite=True,
                 debug_prints=True,
             )
         )

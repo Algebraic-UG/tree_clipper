@@ -3,7 +3,7 @@ import bpy
 from .util import (
     BINARY_BLEND_FILES_DIR,
     save_failed,
-    round_trip_with_same_external,
+    round_trip,
     make_everything_local,
 )
 
@@ -32,17 +32,17 @@ def test_erindales_nodevember_01():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="Pumpkin", is_material=False)
-        round_trip_with_same_external(name="Foliage", is_material=False)
+        round_trip(original_name="Pumpkin", is_material=False)
+        round_trip(original_name="Foliage", is_material=False)
 
-        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
 
-        round_trip_with_same_external(name="Candle Flame", is_material=True)
-        round_trip_with_same_external(name="Candle Wax", is_material=True)
-        round_trip_with_same_external(name="Grass", is_material=True)
-        round_trip_with_same_external(name="Material", is_material=True)
-        round_trip_with_same_external(name="Pumpkin", is_material=True)
-        round_trip_with_same_external(name="Stalk", is_material=True)
+        round_trip(original_name="Candle Flame", is_material=True)
+        round_trip(original_name="Candle Wax", is_material=True)
+        round_trip(original_name="Grass", is_material=True)
+        round_trip(original_name="Material", is_material=True)
+        round_trip(original_name="Pumpkin", is_material=True)
+        round_trip(original_name="Stalk", is_material=True)
 
     except:
         # store in case of failure for easy debugging
@@ -56,12 +56,12 @@ def test_erindales_nodevember_02():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="02 Fire", is_material=False)
+        round_trip(original_name="02 Fire", is_material=False)
 
-        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
 
-        round_trip_with_same_external(name="02 Fire", is_material=True)
-        round_trip_with_same_external(name="Backdrop", is_material=True)
+        round_trip(original_name="02 Fire", is_material=True)
+        round_trip(original_name="Backdrop", is_material=True)
 
     except:
         # store in case of failure for easy debugging
@@ -75,17 +75,17 @@ def test_erindales_nodevember_03():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="03 Ice ", is_material=False)
-        round_trip_with_same_external(name="03 Ice Edge Card", is_material=False)
-        round_trip_with_same_external(name="03 Ice Smalls", is_material=False)
+        round_trip(original_name="03 Ice ", is_material=False)
+        round_trip(original_name="03 Ice Edge Card", is_material=False)
+        round_trip(original_name="03 Ice Smalls", is_material=False)
 
-        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
-        round_trip_with_same_external(name="Separate Cylindrical", is_material=False)
-        round_trip_with_same_external(name="Tune Image", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Separate Cylindrical", is_material=False)
+        round_trip(original_name="Tune Image", is_material=False)
 
-        round_trip_with_same_external(name="03 Ice", is_material=True)
-        round_trip_with_same_external(name="03 Ice Edge Breaker", is_material=True)
-        round_trip_with_same_external(name="Backdrop", is_material=True)
+        round_trip(original_name="03 Ice", is_material=True)
+        round_trip(original_name="03 Ice Edge Breaker", is_material=True)
+        round_trip(original_name="Backdrop", is_material=True)
 
     except:
         # store in case of failure for easy debugging
@@ -99,12 +99,12 @@ def test_erindales_nodevember_04():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="04 Bouquet", is_material=False)
+        round_trip(original_name="04 Bouquet", is_material=False)
 
-        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
-        round_trip_with_same_external(name="Tune Image", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Tune Image", is_material=False)
 
-        round_trip_with_same_external(name="04 Bouquet", is_material=True)
+        round_trip(original_name="04 Bouquet", is_material=True)
 
     except:
         # store in case of failure for easy debugging
@@ -118,15 +118,15 @@ def test_erindales_nodevember_05():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="05 Feather", is_material=False)
+        round_trip(original_name="05 Feather", is_material=False)
 
-        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
-        round_trip_with_same_external(name="Rounded Square Mask", is_material=False)
-        round_trip_with_same_external(name="Tune Image", is_material=False)
-        round_trip_with_same_external(name="Vignette", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Rounded Square Mask", is_material=False)
+        round_trip(original_name="Tune Image", is_material=False)
+        round_trip(original_name="Vignette", is_material=False)
 
-        round_trip_with_same_external(name="05 Feather", is_material=True)
-        round_trip_with_same_external(name="Backdrop", is_material=True)
+        round_trip(original_name="05 Feather", is_material=True)
+        round_trip(original_name="Backdrop", is_material=True)
 
     except:
         # store in case of failure for easy debugging
@@ -140,11 +140,11 @@ def test_erindales_nodevember_06():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="06 Rivetted", is_material=False)
+        round_trip(original_name="06 Rivetted", is_material=False)
 
-        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
 
-        round_trip_with_same_external(name="06 Rivetted", is_material=True)
+        round_trip(original_name="06 Rivetted", is_material=True)
 
     except:
         # store in case of failure for easy debugging
@@ -158,17 +158,17 @@ def test_erindales_nodevember_07():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="07 Precious", is_material=False)
+        round_trip(original_name="07 Precious", is_material=False)
 
-        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
-        round_trip_with_same_external(name="Chromatic Aberration", is_material=False)
-        round_trip_with_same_external(name="Rounded Square Mask", is_material=False)
-        round_trip_with_same_external(name="Tune Image", is_material=False)
-        round_trip_with_same_external(name="Vignette", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Chromatic Aberration", is_material=False)
+        round_trip(original_name="Rounded Square Mask", is_material=False)
+        round_trip(original_name="Tune Image", is_material=False)
+        round_trip(original_name="Vignette", is_material=False)
 
-        round_trip_with_same_external(name="Precious Her", is_material=True)
-        round_trip_with_same_external(name="Precious Him", is_material=True)
-        round_trip_with_same_external(name="Precious Phone", is_material=True)
+        round_trip(original_name="Precious Her", is_material=True)
+        round_trip(original_name="Precious Him", is_material=True)
+        round_trip(original_name="Precious Phone", is_material=True)
 
     except:
         # store in case of failure for easy debugging
@@ -182,21 +182,21 @@ def test_erindales_nodevember_08():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="08 Bejewelled", is_material=False)
+        round_trip(original_name="08 Bejewelled", is_material=False)
 
-        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
-        round_trip_with_same_external(name="Rounded Square Mask", is_material=False)
-        round_trip_with_same_external(name="Vignette", is_material=False)
-        round_trip_with_same_external(name="Sensor Noise", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Rounded Square Mask", is_material=False)
+        round_trip(original_name="Vignette", is_material=False)
+        round_trip(original_name="Sensor Noise", is_material=False)
 
-        round_trip_with_same_external(name="Fabric", is_material=True)
-        round_trip_with_same_external(name="Floor", is_material=True)
-        round_trip_with_same_external(name="Gambeson", is_material=True)
-        round_trip_with_same_external(name="Gold", is_material=True)
-        round_trip_with_same_external(name="Rope", is_material=True)
-        round_trip_with_same_external(name="Ruby", is_material=True)
-        round_trip_with_same_external(name="Saphire", is_material=True)
-        round_trip_with_same_external(name="Steel", is_material=True)
+        round_trip(original_name="Fabric", is_material=True)
+        round_trip(original_name="Floor", is_material=True)
+        round_trip(original_name="Gambeson", is_material=True)
+        round_trip(original_name="Gold", is_material=True)
+        round_trip(original_name="Rope", is_material=True)
+        round_trip(original_name="Ruby", is_material=True)
+        round_trip(original_name="Saphire", is_material=True)
+        round_trip(original_name="Steel", is_material=True)
 
     except:
         # store in case of failure for easy debugging
@@ -210,23 +210,23 @@ def test_erindales_nodevember_09():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="09 Soft", is_material=False)
-        round_trip_with_same_external(name="Camera FOV Clip", is_material=False)
+        round_trip(original_name="09 Soft", is_material=False)
+        round_trip(original_name="Camera FOV Clip", is_material=False)
 
-        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
-        round_trip_with_same_external(name="Simple Painterly", is_material=False)
-        round_trip_with_same_external(name="Chromatic Aberration", is_material=False)
-        round_trip_with_same_external(name="Rounded Square Mask", is_material=False)
-        round_trip_with_same_external(name="Sensor Noise", is_material=False)
-        round_trip_with_same_external(name="Vignette", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Simple Painterly", is_material=False)
+        round_trip(original_name="Chromatic Aberration", is_material=False)
+        round_trip(original_name="Rounded Square Mask", is_material=False)
+        round_trip(original_name="Sensor Noise", is_material=False)
+        round_trip(original_name="Vignette", is_material=False)
 
-        round_trip_with_same_external(name="Grass", is_material=True)
-        round_trip_with_same_external(name="Ground", is_material=True)
-        round_trip_with_same_external(name="Lens", is_material=True)
-        round_trip_with_same_external(name="Seeds", is_material=True)
-        round_trip_with_same_external(name="Stone", is_material=True)
-        round_trip_with_same_external(name="Water", is_material=True)
-        round_trip_with_same_external(name="Wood", is_material=True)
+        round_trip(original_name="Grass", is_material=True)
+        round_trip(original_name="Ground", is_material=True)
+        round_trip(original_name="Lens", is_material=True)
+        round_trip(original_name="Seeds", is_material=True)
+        round_trip(original_name="Stone", is_material=True)
+        round_trip(original_name="Water", is_material=True)
+        round_trip(original_name="Wood", is_material=True)
 
     except:
         # store in case of failure for easy debugging
@@ -240,16 +240,16 @@ def test_erindales_nodevember_10():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="10 Zip", is_material=False)
+        round_trip(original_name="10 Zip", is_material=False)
 
-        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
-        round_trip_with_same_external(name="Simple Painterly", is_material=False)
-        round_trip_with_same_external(name="Rounded Square Mask", is_material=False)
-        round_trip_with_same_external(name="Sensor Noise", is_material=False)
-        round_trip_with_same_external(name="Tune Image", is_material=False)
-        round_trip_with_same_external(name="Vignette", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Simple Painterly", is_material=False)
+        round_trip(original_name="Rounded Square Mask", is_material=False)
+        round_trip(original_name="Sensor Noise", is_material=False)
+        round_trip(original_name="Tune Image", is_material=False)
+        round_trip(original_name="Vignette", is_material=False)
 
-        round_trip_with_same_external(name="10 Zip", is_material=True)
+        round_trip(original_name="10 Zip", is_material=True)
 
     except:
         # store in case of failure for easy debugging
@@ -263,18 +263,18 @@ def test_erindales_nodevember_11():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="11 Hive", is_material=False)
+        round_trip(original_name="11 Hive", is_material=False)
 
-        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
-        round_trip_with_same_external(name="Chromatic Aberration", is_material=False)
-        round_trip_with_same_external(name="Rounded Square Mask", is_material=False)
-        round_trip_with_same_external(name="Sensor Noise", is_material=False)
-        round_trip_with_same_external(name="Vignette", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Chromatic Aberration", is_material=False)
+        round_trip(original_name="Rounded Square Mask", is_material=False)
+        round_trip(original_name="Sensor Noise", is_material=False)
+        round_trip(original_name="Vignette", is_material=False)
 
-        round_trip_with_same_external(name="Ground", is_material=True)
-        round_trip_with_same_external(name="Honey", is_material=True)
-        round_trip_with_same_external(name="Honeycomb", is_material=True)
-        round_trip_with_same_external(name="Wood", is_material=True)
+        round_trip(original_name="Ground", is_material=True)
+        round_trip(original_name="Honey", is_material=True)
+        round_trip(original_name="Honeycomb", is_material=True)
+        round_trip(original_name="Wood", is_material=True)
 
     except:
         # store in case of failure for easy debugging
@@ -288,14 +288,14 @@ def test_erindales_nodevember_12():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="12 Monument", is_material=False)
+        round_trip(original_name="12 Monument", is_material=False)
 
-        round_trip_with_same_external(name="Compositing Nodetree", is_material=False)
-        round_trip_with_same_external(name="Deform", is_material=False)
-        round_trip_with_same_external(name="Simple Painterly", is_material=False)
-        round_trip_with_same_external(name="Sensor Noise", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Deform", is_material=False)
+        round_trip(original_name="Simple Painterly", is_material=False)
+        round_trip(original_name="Sensor Noise", is_material=False)
 
-        round_trip_with_same_external(name="12 Monument", is_material=True)
+        round_trip(original_name="12 Monument", is_material=True)
 
     except:
         # store in case of failure for easy debugging
@@ -309,17 +309,17 @@ def test_erindales_nodevember_13():
         bpy.ops.wm.open_mainfile(filepath=str(path))
         make_everything_local()
 
-        round_trip_with_same_external(name="13 Cabin", is_material=False)
+        round_trip(original_name="13 Cabin", is_material=False)
 
-        round_trip_with_same_external("Compositing Nodetree", is_material=False)
-        round_trip_with_same_external("Compositing Nodetree.001", is_material=False)
-        round_trip_with_same_external("Simple Painterly", is_material=False)
-        round_trip_with_same_external("Chromatic Aberration", is_material=False)
-        round_trip_with_same_external("Rounded Square Mask", is_material=False)
-        round_trip_with_same_external("Sensor Noise", is_material=False)
-        round_trip_with_same_external("Vignette", is_material=False)
+        round_trip(original_name="Compositing Nodetree", is_material=False)
+        round_trip(original_name="Compositing Nodetree.001", is_material=False)
+        round_trip(original_name="Simple Painterly", is_material=False)
+        round_trip(original_name="Chromatic Aberration", is_material=False)
+        round_trip(original_name="Rounded Square Mask", is_material=False)
+        round_trip(original_name="Sensor Noise", is_material=False)
+        round_trip(original_name="Vignette", is_material=False)
 
-        round_trip_with_same_external(name="13 Cabin", is_material=True)
+        round_trip(original_name="13 Cabin", is_material=True)
 
     except:
         # store in case of failure for easy debugging

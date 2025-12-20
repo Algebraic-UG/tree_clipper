@@ -3,7 +3,7 @@ import bpy
 from .util import (
     make_test_node_tree,
     save_failed,
-    round_trip_with_same_external,
+    round_trip,
 )
 
 
@@ -40,7 +40,7 @@ def test_render_layers_edgecase():
 
         layers.update()
 
-        round_trip_with_same_external(name=tree.name, is_material=False)
+        round_trip(original_name=tree.name, is_material=False)
     except:
         # store in case of failure for easy debugging
         save_failed(f"{test_render_layers_edgecase.__name__}")
