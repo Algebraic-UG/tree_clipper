@@ -119,7 +119,7 @@ def round_trip(
     *,
     original_name: str,
     is_material: bool,
-    debug_prints: bool = True,
+    debug_prints: bool = False,
 ):
     def export_to_string(name: str) -> str:
         export_intermediate = ExportIntermediate(
