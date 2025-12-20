@@ -30,6 +30,8 @@ vendorize = { git = "https://github.com/Vollkornaffe/python-vendorize.git", rev 
 
 [tool.pytest.ini_options]
 testpaths = ["packages"]
+norecursedirs = [".git", "build", "__pycache__", "_vendor"]
+
 
 [tool.vendorize]
 target = "packages/tree_clipper_addon/src/tree_clipper_addon/_vendor"
