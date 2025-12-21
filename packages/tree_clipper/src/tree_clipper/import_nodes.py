@@ -52,6 +52,9 @@ class ImportReport:
     def __init__(
         self,
     ):
+        self.imported_nodes: int = 0
+        self.imported_links: int = 0
+        self.imported_trees: int = 0
         self.rename_material: tuple[str, str] | None = None
         self.renames_node_group: dict[str, str] = {}
         self.warnings: list[str] = []
@@ -346,6 +349,13 @@ From root: {from_root.to_str()}"""
         serialization: dict[str, Any],
         from_root: FromRoot,
     ) -> None:
+        if isinstance(getter(), bpy.types.Node):
+            self.report.imported_nodes += 1
+        if isinstance(getter(), bpy.types.NodeLink):
+            self.report.imported_links += 1
+        if isinstance(getter(), bpy.types.NodeTree):
+            self.report.imported_trees += 1
+
         # edge case for things like bpy_prop_collection that aren't real RNA types?
         if not hasattr(getter(), BL_RNA):
             assert isinstance(getter(), bpy.types.bpy_prop_collection)
