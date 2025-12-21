@@ -146,6 +146,10 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             self.report(
                 {"INFO"}, f"Imported node_group '{original_name}' as '{new_name}'"
             )
+        self.report(
+            {"INFO"},
+            f"Imported {report.imported_trees} trees, {report.imported_nodes} nodes, and {report.imported_links} links",
+        )
 
         for warning in report.warnings:
             self.report({"WARNING"}, warning)
