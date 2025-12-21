@@ -1,16 +1,76 @@
 import bpy
-import _rna_info as rna_info
 
 from typing import Type
 
 from .common import no_clobber
 
 
-def _all_subclasses(cls):
-    subclasses = set(cls.__subclasses__())
-    for subclass in cls.__subclasses__():
-        subclasses.update(_all_subclasses(subclass))
-    return subclasses
+# TODO: we might need to return a list that fits the Blender version
+KNOWN_POINTABLES = {
+    bpy.types.SunLight,
+    bpy.types.Texture,
+    bpy.types.Object,
+    bpy.types.WorkSpace,
+    bpy.types.Mesh,
+    bpy.types.Text,
+    bpy.types.Lattice,
+    bpy.types.Material,
+    bpy.types.Camera,
+    bpy.types.World,
+    bpy.types.Volume,
+    bpy.types.FreestyleLineStyle,
+    bpy.types.MovieClip,
+    bpy.types.PointLight,
+    bpy.types.LightProbeVolume,
+    bpy.types.TextureNodeTree,
+    bpy.types.AreaLight,
+    bpy.types.VoronoiTexture,
+    bpy.types.CompositorNodeTree,
+    bpy.types.NoiseTexture,
+    bpy.types.Image,
+    bpy.types.SpotLight,
+    bpy.types.ImageTexture,
+    bpy.types.VectorFont,
+    bpy.types.ParticleSettings,
+    bpy.types.Screen,
+    bpy.types.Annotation,
+    bpy.types.MagicTexture,
+    bpy.types.MetaBall,
+    bpy.types.Key,
+    bpy.types.MarbleTexture,
+    bpy.types.MusgraveTexture,
+    bpy.types.StucciTexture,
+    bpy.types.WoodTexture,
+    bpy.types.DistortedNoiseTexture,
+    bpy.types.LightProbeSphere,
+    bpy.types.Scene,
+    bpy.types.CloudsTexture,
+    bpy.types.Brush,
+    bpy.types.WindowManager,
+    bpy.types.Library,
+    bpy.types.Collection,
+    bpy.types.Sound,
+    bpy.types.NodeTree,
+    bpy.types.GreasePencil,
+    bpy.types.Curves,
+    bpy.types.Armature,
+    bpy.types.Light,
+    bpy.types.Curve,
+    bpy.types.Speaker,
+    bpy.types.Action,
+    bpy.types.GeometryNodeTree,
+    bpy.types.ShaderNodeTree,
+    bpy.types.PointCloud,
+    bpy.types.LightProbe,
+    bpy.types.CacheFile,
+    bpy.types.TextCurve,
+    bpy.types.BlendTexture,
+    bpy.types.Mask,
+    bpy.types.PaintCurve,
+    bpy.types.LightProbePlane,
+    bpy.types.Palette,
+    bpy.types.SurfaceCurve,
+}
 
 
 def add_all_known_pointer_properties(
@@ -20,23 +80,6 @@ def add_all_known_pointer_properties(
 ):
     def get_pointer_property_name(ty: type):
         return f"{prefix}{ty.__name__}"
-
-    # TODO: it seems that it's not possible to create a writable pointer property
-    # that is pointing to a custom type, meaning one that is derived from a PropertyGroup.
-    # If this is somehow possible we'll need to revisit this.
-    # pointable_groups = set(
-    #    cls
-    #    for cls in _all_subclasses(bpy.types.PropertyGroup)
-    #    if getattr(cls, "is_registered", False)
-    # )
-    # pointable_ids = _all_subclasses(bpy.types.ID)
-    # pointables = pointable_groups.union(pointable_ids)
-
-    # Blender doc generation does this to force type creation which is otherwise lazy
-    # https://github.com/blender/blender/blob/19891e0faa60e6c3cadc093ba871bc850c9233d4/doc/python_api/sphinx_doc_gen.py#L65
-    rna_info.BuildRNAInfo()
-
-    pointables = _all_subclasses(bpy.types.ID)
 
     # does this even ever happen
     if not hasattr(cls, "__annotations__"):
@@ -50,7 +93,7 @@ def add_all_known_pointer_properties(
     )
 
     # now actually register all the properties
-    for pointable in pointables:
+    for pointable in KNOWN_POINTABLES:
         no_clobber(
             cls.__annotations__,
             get_pointer_property_name(pointable),
@@ -60,7 +103,7 @@ def add_all_known_pointer_properties(
     # this switches the type we're pointing to and clears all
     def set_active_pointer_type(self, type_name: str):
         self.active_ptr_type_name = type_name
-        for ty in pointables:
+        for ty in KNOWN_POINTABLES:
             setattr(self, get_pointer_property_name(ty), None)
 
     # this is needed to display the property
