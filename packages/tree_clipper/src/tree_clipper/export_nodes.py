@@ -668,6 +668,9 @@ class ExportIntermediate:
 
         return False
 
+    def progress(self) -> int:
+        return self.total_steps - len(self.unexported_trees)
+
     def export_to_str(self, *, compress: bool, json_indent: int) -> str:
         assert not self.unexported_trees
         if compress:

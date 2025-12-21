@@ -17,6 +17,7 @@ from .operators_export import (
     Tree_Clipper_External_Export_Item,
     SCENE_UL_Tree_Clipper_External_Export_List,
     SCENE_OT_Tree_Clipper_Export_Cache,
+    SCENE_OT_Tree_Clipper_Export_Modal,
     SCENE_OT_Tree_Clipper_Export_Prepare,
 )
 
@@ -34,6 +35,7 @@ classes = [
     Tree_Clipper_External_Export_Item,
     SCENE_UL_Tree_Clipper_External_Export_List,
     SCENE_OT_Tree_Clipper_Export_Cache,
+    SCENE_OT_Tree_Clipper_Export_Modal,
     SCENE_OT_Tree_Clipper_Export_Prepare,
     Tree_Clipper_External_Import_Item,
     Tree_Clipper_External_Import_Items,

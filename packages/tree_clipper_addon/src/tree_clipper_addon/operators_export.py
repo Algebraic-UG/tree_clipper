@@ -51,19 +51,8 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
             )
         )
 
-        while _INTERMEDIATE_EXPORT_CACHE.step():
-            pass
-
-        report = _INTERMEDIATE_EXPORT_CACHE.exporter.report
-        self.report(
-            {"INFO"},
-            f"Exported {report.exported_trees} trees, {report.exported_nodes} nodes, and {report.exported_links} links",
-        )
-        for warning in report.warnings:
-            self.report({"WARNING"}, warning)
-
         # seems impossible to use bl_idname here
-        bpy.ops.scene.tree_clipper_export_cache("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
+        bpy.ops.scene.tree_clipper_export_modal("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
         return {"FINISHED"}
 
     def draw(self, context: bpy.types.Context) -> None:
@@ -77,6 +66,52 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
             body.prop(self, "export_sub_trees")
             body.prop(self, "debug_prints")
             body.prop(self, "write_from_roots")
+
+
+class SCENE_OT_Tree_Clipper_Export_Modal(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_export_modal"
+    bl_label = "Export Modal"
+    bl_options = {"REGISTER"}
+
+    _timer = None
+
+    def invoke(
+        self, context: bpy.types.Context, event: bpy.types.Event
+    ) -> set["rna_enums.OperatorReturnItems"]:
+        assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
+        self._timer = context.window_manager.event_timer_add(0, window=context.window)
+        context.window_manager.progress_begin(0, _INTERMEDIATE_EXPORT_CACHE.total_steps)
+        context.window_manager.modal_handler_add(self)
+
+        return {"RUNNING_MODAL"}
+
+    def modal(self, context, event):
+        global _INTERMEDIATE_EXPORT_CACHE
+        assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
+
+        if event.type in {"RIGHTMOUSE", "ESC"}:
+            context.window_manager.event_timer_remove(self._timer)
+            _INTERMEDIATE_EXPORT_CACHE = None
+            return {"CANCELLED"}
+
+        if _INTERMEDIATE_EXPORT_CACHE.step():
+            context.window_manager.progress_update(
+                _INTERMEDIATE_EXPORT_CACHE.progress()
+            )
+            return {"RUNNING_MODAL"}
+
+        context.window_manager.progress_end()
+        report = _INTERMEDIATE_EXPORT_CACHE.exporter.report
+        self.report(
+            {"INFO"},
+            f"Exported {report.exported_trees} trees, {report.exported_nodes} nodes, and {report.exported_links} links",
+        )
+        for warning in _INTERMEDIATE_EXPORT_CACHE.exporter.report.warnings:
+            self.report({"WARNING"}, warning)
+
+        # seems impossible to use bl_idname here
+        bpy.ops.scene.tree_clipper_export_cache("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
+        return {"FINISHED"}
 
 
 class SCENE_UL_Tree_Clipper_External_Export_List(bpy.types.UIList):
