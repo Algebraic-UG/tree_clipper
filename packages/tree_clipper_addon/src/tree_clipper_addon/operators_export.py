@@ -51,7 +51,10 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
             )
         )
 
-        report = _INTERMEDIATE_EXPORT_CACHE.report
+        while _INTERMEDIATE_EXPORT_CACHE.step():
+            pass
+
+        report = _INTERMEDIATE_EXPORT_CACHE.exporter.report
         self.report(
             {"INFO"},
             f"Exported {report.exported_trees} trees, {report.exported_nodes} nodes, and {report.exported_links} links",

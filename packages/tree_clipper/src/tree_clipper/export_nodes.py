@@ -574,73 +574,6 @@ class External:
         self.scene_id = scene_id
 
 
-def _export_nodes_to_dict(
-    parameters: ExportParameters,
-) -> Tuple[dict[str, Any], ExportReport]:
-    exporter = Exporter(
-        specific_handlers=parameters.specific_handlers,
-        debug_prints=parameters.debug_prints,
-        write_from_roots=parameters.write_from_roots,
-    )
-
-    if parameters.is_material:
-        from_root = FromRoot([f"Material ({parameters.name})"])
-        root = bpy.data.materials[parameters.name].node_tree
-    else:
-        from_root = FromRoot([f"Root ({parameters.name})"])
-        root = bpy.data.node_groups[parameters.name]
-
-    assert root is not None
-
-    trees = []
-    if parameters.export_sub_trees:
-        _collect_sub_trees(current=root, trees=trees, from_root=from_root)
-    else:
-        trees.append((root, from_root))
-
-    data = {
-        BLENDER_VERSION: bpy.app.version_string,
-        TREE_CLIPPER_VERSION: CURRENT_TREE_CLIPPER_VERSION,
-        TREES: [
-            # pylint: disable=protected-access
-            exporter._export_node_tree(node_tree=tree, from_root=from_root)
-            for (tree, from_root) in trees
-        ],
-    }
-
-    if parameters.is_material:
-        data[MATERIAL_NAME] = parameters.name
-
-    data[EXTERNAL] = {}
-    data[SCENES] = {}
-    for obj, pointers in exporter.pointers.items():
-        if obj in exporter.serialized:
-            for pointer in pointers:
-                pointer.pointee_id = exporter.serialized[obj]
-        else:
-            assert isinstance(obj, bpy.types.ID), "Only ID types can be external items"
-
-            scene_id = None
-            if isinstance(obj, bpy.types.Scene):
-                scene_id = exporter.next_id
-                exporter.next_id += 1
-                data[SCENES][scene_id] = export_scene_info(obj)  # ty:ignore[invalid-assignment]
-
-            # Maybe it could be beneficial in some cases to have the option to have a single external item,
-            # but it's also possible to use an additional group node to avieve the same thing.
-            # Let's rather keep it simple here for now.
-            for pointer in pointers:
-                external_id = exporter.next_id
-                exporter.next_id += 1
-                data[EXTERNAL][external_id] = External(  # ty:ignore[invalid-assignment]
-                    pointed_to_by=pointer,
-                    scene_id=scene_id,
-                )
-                pointer.pointee_id = external_id
-
-    return data, exporter.report
-
-
 def _encode_external(obj: External) -> EXTERNAL_SERIALIZATION:
     return {
         EXTERNAL_DESCRIPTION: obj.description,
@@ -660,9 +593,83 @@ class _Encoder(json.JSONEncoder):
 
 class ExportIntermediate:
     def __init__(self, parameters: ExportParameters) -> None:
-        self.data, self.report = _export_nodes_to_dict(parameters=parameters)
+        exporter = Exporter(
+            specific_handlers=parameters.specific_handlers,
+            debug_prints=parameters.debug_prints,
+            write_from_roots=parameters.write_from_roots,
+        )
+
+        if parameters.is_material:
+            from_root = FromRoot([f"Material ({parameters.name})"])
+            root = bpy.data.materials[parameters.name].node_tree
+        else:
+            from_root = FromRoot([f"Root ({parameters.name})"])
+            root = bpy.data.node_groups[parameters.name]
+
+        assert root is not None
+
+        trees = []
+        if parameters.export_sub_trees:
+            _collect_sub_trees(current=root, trees=trees, from_root=from_root)
+        else:
+            trees.append((root, from_root))
+
+        data = {
+            BLENDER_VERSION: bpy.app.version_string,
+            TREE_CLIPPER_VERSION: CURRENT_TREE_CLIPPER_VERSION,
+            # to be filled in the step calls
+            TREES: [],
+            EXTERNAL: {},
+            SCENES: {},
+        }
+
+        if parameters.is_material:
+            data[MATERIAL_NAME] = parameters.name
+
+        self.total_steps = len(trees) + 1
+        self.exporter = exporter
+        self.unexported_trees = trees
+        self.data = data
+
+    def step(self) -> bool:
+        if self.unexported_trees:
+            tree, from_root = self.unexported_trees.pop(0)
+            self.data[TREES].append(
+                self.exporter._export_node_tree(node_tree=tree, from_root=from_root)
+            )
+            return True
+
+        for obj, pointers in self.exporter.pointers.items():
+            if obj in self.exporter.serialized:
+                for pointer in pointers:
+                    pointer.pointee_id = self.exporter.serialized[obj]
+            else:
+                assert isinstance(obj, bpy.types.ID), (
+                    "Only ID types can be external items"
+                )
+
+                scene_id = None
+                if isinstance(obj, bpy.types.Scene):
+                    scene_id = self.exporter.next_id
+                    self.exporter.next_id += 1
+                    self.data[SCENES][scene_id] = export_scene_info(obj)  # ty:ignore[invalid-assignment]
+
+                # Maybe it could be beneficial in some cases to have the option to have a single external item,
+                # but it's also possible to use an additional group node to avieve the same thing.
+                # Let's rather keep it simple here for now.
+                for pointer in pointers:
+                    external_id = self.exporter.next_id
+                    self.exporter.next_id += 1
+                    self.data[EXTERNAL][external_id] = External(  # ty:ignore[invalid-assignment]
+                        pointed_to_by=pointer,
+                        scene_id=scene_id,
+                    )
+                    pointer.pointee_id = external_id
+
+        return False
 
     def export_to_str(self, *, compress: bool, json_indent: int) -> str:
+        assert not self.unexported_trees
         if compress:
             json_str = json.dumps(self.data, cls=_Encoder)
             gzipped = gzip.compress(json_str.encode("utf-8"))
@@ -678,6 +685,7 @@ class ExportIntermediate:
         compress: bool,
         json_indent: int,
     ) -> None:
+        assert not self.unexported_trees
         with file_path.open("w", encoding="utf-8") as file:
             if compress:
                 string = self.export_to_str(compress=compress, json_indent=json_indent)
@@ -686,11 +694,13 @@ class ExportIntermediate:
                 json.dump(self.data, file, cls=_Encoder, indent=json_indent)
 
     def get_external(self) -> dict[int, External]:
-        return self.data[EXTERNAL]
+        assert not self.unexported_trees
+        return self.data[EXTERNAL]  # ty:ignore[invalid-return-type]
 
     def set_external(
         self,
         ids_and_descriptions: Iterator[Tuple[int, str]],
     ) -> None:
+        assert not self.unexported_trees
         for external_id, description in ids_and_descriptions:
-            self.data[EXTERNAL][external_id].description = description
+            self.data[EXTERNAL][external_id].description = description  # ty:ignore[invalid-assignment]
