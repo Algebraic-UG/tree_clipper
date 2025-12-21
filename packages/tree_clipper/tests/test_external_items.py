@@ -177,7 +177,6 @@ def test_external_items():
         import_intermediate.import_nodes(
             parameters=ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
-                allow_version_mismatch=False,
                 debug_prints=True,
             )
         )

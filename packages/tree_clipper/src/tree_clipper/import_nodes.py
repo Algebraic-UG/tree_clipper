@@ -7,7 +7,6 @@ from types import NoneType
 
 from typing import Any, Type, Tuple, Iterator
 
-import sys
 from pathlib import Path
 
 from .common import (
@@ -483,7 +482,7 @@ From root: {from_root.to_str()}"""
 
 
 # TODO: make this less strict: we should allow import of smaller minor version
-def _check_version(data: dict) -> None | str:
+def _check_version(data: dict) -> None:
     exporter_blender_version = data[BLENDER_VERSION]
     exporter_version = data[TREE_CLIPPER_VERSION]
 
@@ -491,10 +490,14 @@ def _check_version(data: dict) -> None | str:
     importer_version = CURRENT_TREE_CLIPPER_VERSION
 
     if exporter_blender_version != importer_blender_version:
-        return f"Blender version mismatch. File version: {exporter_blender_version}, but running {importer_blender_version}"
+        raise RuntimeError(
+            f"Blender version mismatch. File version: {exporter_blender_version}, but running {importer_blender_version}"
+        )
 
     if exporter_version != CURRENT_TREE_CLIPPER_VERSION:
-        return f"Version mismatch. File version: {exporter_version}, but running {importer_version}"
+        raise RuntimeError(
+            f"Version mismatch. File version: {exporter_version}, but running {importer_version}"
+        )
 
 
 ################################################################################
@@ -507,11 +510,9 @@ class ImportParameters:
         self,
         *,
         specific_handlers: dict[type, DESERIALIZER],
-        allow_version_mismatch: bool,
         debug_prints: bool,
     ) -> None:
         self.specific_handlers = specific_handlers
-        self.allow_version_mismatch = allow_version_mismatch
         self.debug_prints = debug_prints
 
 
@@ -526,13 +527,6 @@ def _import_nodes_from_dict(
         getters=getters,
         debug_prints=parameters.debug_prints,
     )
-
-    version_mismatch = _check_version(data)
-    if version_mismatch is not None:
-        if parameters.allow_version_mismatch:
-            print(version_mismatch, file=sys.stderr)
-        else:
-            raise RuntimeError(version_mismatch)
 
     for tree in data[TREES][:-1]:
         # pylint: disable=protected-access
@@ -563,6 +557,7 @@ class ImportIntermediate:
         else:
             data = json.loads(string)
 
+        _check_version(data)
         self.data = data
 
     def from_file(self, file_path: Path) -> None:
@@ -575,6 +570,7 @@ class ImportIntermediate:
                 self.from_str(full)
             else:
                 data = json.load(file)
+                _check_version(data)
                 self.data = data
 
     def get_external(self) -> dict[str, EXTERNAL_SERIALIZATION]:
