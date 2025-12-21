@@ -51,6 +51,14 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
             )
         )
 
+        report = _INTERMEDIATE_EXPORT_CACHE.report
+        self.report(
+            {"INFO"},
+            f"Exported {report.exported_trees} trees, {report.exported_nodes} nodes, and {report.exported_links} links",
+        )
+        for warning in report.warnings:
+            self.report({"WARNING"}, warning)
+
         # seems impossible to use bl_idname here
         bpy.ops.scene.tree_clipper_export_cache("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
         return {"FINISHED"}

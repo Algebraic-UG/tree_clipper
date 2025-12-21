@@ -574,7 +574,9 @@ class External:
         self.scene_id = scene_id
 
 
-def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
+def _export_nodes_to_dict(
+    parameters: ExportParameters,
+) -> Tuple[dict[str, Any], ExportReport]:
     exporter = Exporter(
         specific_handlers=parameters.specific_handlers,
         debug_prints=parameters.debug_prints,
@@ -636,7 +638,7 @@ def _export_nodes_to_dict(parameters: ExportParameters) -> dict[str, Any]:
                 )
                 pointer.pointee_id = external_id
 
-    return data
+    return data, exporter.report
 
 
 def _encode_external(obj: External) -> EXTERNAL_SERIALIZATION:
@@ -658,7 +660,7 @@ class _Encoder(json.JSONEncoder):
 
 class ExportIntermediate:
     def __init__(self, parameters: ExportParameters) -> None:
-        self.data = _export_nodes_to_dict(parameters=parameters)
+        self.data, self.report = _export_nodes_to_dict(parameters=parameters)
 
     def export_to_str(self, *, compress: bool, json_indent: int) -> str:
         if compress:
