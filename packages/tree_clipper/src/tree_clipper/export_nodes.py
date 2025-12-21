@@ -51,6 +51,14 @@ from .id_data_getter import canonical_reference
 from .scene_info import export_scene_info
 
 
+class ExportReport:
+    def __init__(self) -> None:
+        self.exported_nodes: int = 0
+        self.exported_links: int = 0
+        self.exported_trees: int = 0
+        self.warnings: list[str] = []
+
+
 class Pointer:
     def __init__(
         self,
@@ -94,6 +102,7 @@ class Exporter:
         self.pointers = {}
         self.serialized = {}
         self.current_tree = None
+        self.report = ExportReport()
 
     ################################################################################
     # helper functions to be used in specific handlers
@@ -117,8 +126,10 @@ class Exporter:
                     isinstance(obj, bpy.types.NodeSocket)
                     and prop.identifier == DISPLAY_SHAPE
                 ):
+                    warning = f"{prop_from_root.to_str()}: skipping broken"
+                    self.report.warnings.append(warning)
                     if self.debug_prints:
-                        print(f"{prop_from_root.to_str()}: skipping broken")
+                        print(warning)
                     continue
 
             if prop.identifier in FORBIDDEN_PROPERTIES:
@@ -190,8 +201,10 @@ class Exporter:
             assert prop.is_array  # ty:ignore[possibly-missing-attribute]
             dimensions = obj.dimensions
             if len(attribute) > dimensions:  # ty:ignore[unsupported-operator, invalid-argument-type]
+                warning = f"{from_root.to_str()}: fixing dimension mismatch"
+                self.report.warnings.append(warning)
                 if self.debug_prints:
-                    print(f"{from_root.to_str()}: fixing dimension mismatch")
+                    print(warning)
                 attribute = list(attribute)[:dimensions]
 
         if prop.type == PROP_TYPE_BOOLEAN:
@@ -210,10 +223,11 @@ class Exporter:
 
             # https://github.com/Algebraic-UG/tree_clipper/issues/96
             def clamp_and_report(value: int | float) -> int | float:
-                if (
-                    value < prop.hard_min or value > prop.hard_max
-                ) and self.debug_prints:
-                    print(f"{from_root.to_str()}: outside of valid range")
+                if value < prop.hard_min or value > prop.hard_max:
+                    warning = f"{from_root.to_str()}: outside of valid range"
+                    self.report.warnings.append(warning)
+                    if self.debug_prints:
+                        print(warning)
                 return max(prop.hard_min, min(prop.hard_max, value))
 
             if prop.is_array:
@@ -423,6 +437,13 @@ From root: {from_root.to_str()}"""
         obj: bpy.types.bpy_struct,
         from_root: FromRoot,
     ) -> dict[str, Any]:
+        if isinstance(obj, bpy.types.Node):
+            self.report.exported_nodes += 1
+        if isinstance(obj, bpy.types.NodeLink):
+            self.report.exported_links += 1
+        if isinstance(obj, bpy.types.NodeTree):
+            self.report.exported_trees += 1
+
         # edge case for things like bpy_prop_collection that aren't real RNA types?
         # https://projects.blender.org/blender/blender/issues/150092
         if not hasattr(obj, BL_RNA):

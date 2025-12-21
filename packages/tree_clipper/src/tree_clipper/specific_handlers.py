@@ -167,10 +167,12 @@ class NodeTreeExporter(SpecificExporter[bpy.types.NodeTree]):
                 isinstance(link.from_node, bpy.types.CompositorNodeRLayers)
                 and not link.from_socket.enabled
             ):
+                warning = (
+                    f"{from_root_link.to_str()} Skipping link with disabled socket"
+                )
+                self.exporter.report.warnings.append(warning)
                 if self.exporter.debug_prints:
-                    print(
-                        f"{from_root_link.to_str()} Skipping link with disabled socket"
-                    )
+                    print(warning)
                 continue
 
             link_items.append(
