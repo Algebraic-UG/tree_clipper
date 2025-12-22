@@ -1,5 +1,7 @@
 import bpy
 
+from operator import xor
+
 import base64
 import gzip
 import json
@@ -538,50 +540,47 @@ def _import_nodes_from_dict(
         debug_prints=parameters.debug_prints,
     )
 
-    for tree in data[TREES][:-1]:
-        # pylint: disable=protected-access
-        importer._import_node_tree(serialization=tree)
 
-    # root tree needs special treatment, might be material
-    # pylint: disable=protected-access
-    importer._import_node_tree(
-        serialization=data[TREES][-1],
-        material_name=None if MATERIAL_NAME not in data else data[MATERIAL_NAME],
-    )
+def _from_str(string: str) -> dict[str, Any]:
+    compressed = string.startswith(MAGIC_STRING)
+    if compressed:
+        base64_str = string[len(MAGIC_STRING) :]
+        gzipped = base64.b64decode(base64_str)
+        json_str = gzip.decompress(gzipped).decode("utf-8")
+        return json.loads(json_str)
+    else:
+        return json.loads(string)
 
-    return importer.report
+
+def _from_file(file_path: Path) -> dict[str, Any]:
+    with file_path.open("r", encoding="utf-8") as file:
+        compressed = file.read(len(MAGIC_STRING)) == MAGIC_STRING
+
+    with file_path.open("r", encoding="utf-8") as file:
+        if compressed:
+            full = file.read()
+            return _from_str(full)
+        else:
+            return json.load(file)
 
 
 class ImportIntermediate:
-    def __init__(self) -> None:
-        self.data: dict[str, Any] = None
-        self.getters: dict[int, GETTER] = {}
+    def __init__(
+        self,
+        *,
+        string: str | None = None,
+        file_path: Path | None = None,
+    ) -> None:
+        if xor(string is None, file_path is None):
+            raise RuntimeError("Either provide string xor file_path")
 
-    def from_str(self, string: str) -> None:
-        compressed = string.startswith(MAGIC_STRING)
-        if compressed:
-            base64_str = string[len(MAGIC_STRING) :]
-            gzipped = base64.b64decode(base64_str)
-            json_str = gzip.decompress(gzipped).decode("utf-8")
-            data = json.loads(json_str)
-        else:
-            data = json.loads(string)
+        if string is not None:
+            self.data = _from_str(string)
+        if file_path is not None:
+            self.data = _from_file(file_path)
 
-        _check_version(data)
-        self.data = data
-
-    def from_file(self, file_path: Path) -> None:
-        with file_path.open("r", encoding="utf-8") as file:
-            compressed = file.read(len(MAGIC_STRING)) == MAGIC_STRING
-
-        with file_path.open("r", encoding="utf-8") as file:
-            if compressed:
-                full = file.read()
-                self.from_str(full)
-            else:
-                data = json.load(file)
-                _check_version(data)
-                self.data = data
+        _check_version(self.data)
+        self.total_steps = len(self.data[TREES])
 
     def get_external(self) -> dict[str, EXTERNAL_SERIALIZATION]:
         assert isinstance(self.data, dict)
@@ -591,7 +590,7 @@ class ImportIntermediate:
         self,
         ids_and_references: Iterator[Tuple[int, bpy.types.ID]],
     ) -> None:
-        self.getters.clear()
+        self.getters: dict[int, GETTER] = {}
         for external_id, external_item in ids_and_references:
             scene_id = self.get_external()[str(external_id)][EXTERNAL_SCENE_ID]
             if scene_id is not None:
@@ -622,6 +621,33 @@ class ImportIntermediate:
                 self.getters[int(external_id)] = lambda: None
             else:
                 assert int(external_id) in self.getters
+
+    def start_import(self, parameters: ImportParameters) -> None:
+        self.importer = Importer(
+            specific_handlers=parameters.specific_handlers,
+            getters=self.getters,
+            debug_prints=parameters.debug_prints,
+        )
+
+    def step(self) -> bool:
+        assert isinstance(self.importer, Importer)
+        if not self.data[TREES]:
+            return False
+
+        tree = self.data[TREES].pop(0)
+
+        # root tree needs special treatment, might be material
+        if not self.data[TREES] and MATERIAL_NAME in self.data:
+            material_name = self.data[MATERIAL_NAME]
+        else:
+            material_name = None
+
+        self.importer._import_node_tree(
+            serialization=tree,
+            material_name=material_name,
+        )
+
+        return True
 
     def import_nodes(self, parameters: ImportParameters) -> ImportReport:
         return _import_nodes_from_dict(

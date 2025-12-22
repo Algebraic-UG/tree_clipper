@@ -162,7 +162,7 @@ def test_external_items():
         bpy.data.node_groups.remove(bpy.data.node_groups[name])
 
         import_intermediate = ImportIntermediate()
-        import_intermediate.from_str(string)
+        import_intermediate._from_str(string)
 
         _check_before_import(list(import_intermediate.get_external().values()))
 
