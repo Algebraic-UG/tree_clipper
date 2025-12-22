@@ -101,7 +101,7 @@ def round_trip_without_external(original_name: str):
     before = export_to_string(original_name)
 
     import_intermediate = ImportIntermediate()
-    import_intermediate.from_str(before)
+    import_intermediate._from_str(before)
     import_report = import_intermediate.import_nodes(
         parameters=ImportParameters(
             specific_handlers=BUILT_IN_IMPORTER,
@@ -148,7 +148,7 @@ def round_trip(
     before = export_to_string(original_name)
 
     import_intermediate = ImportIntermediate()
-    import_intermediate.from_str(before)
+    import_intermediate._from_str(before)
 
     def get_same_external_item(external_item: EXTERNAL_SERIALIZATION):
         fixed_type_name = external_item[EXTERNAL_FIXED_TYPE_NAME]
