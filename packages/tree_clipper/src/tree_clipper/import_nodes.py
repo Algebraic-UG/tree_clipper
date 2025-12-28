@@ -567,6 +567,8 @@ class ImportIntermediate:
             self.data = _from_file(file_path)
 
         _check_version(self.data)
+
+        self.getters: dict[int, GETTER] = {}
         self.total_steps = len(self.data[TREES])
 
     def get_external(self) -> dict[str, EXTERNAL_SERIALIZATION]:
@@ -577,7 +579,6 @@ class ImportIntermediate:
         self,
         ids_and_references: Iterator[Tuple[int, bpy.types.ID]],
     ) -> None:
-        self.getters: dict[int, GETTER] = {}
         for external_id, external_item in ids_and_references:
             scene_id = self.get_external()[str(external_id)][EXTERNAL_SCENE_ID]
             if scene_id is not None:
@@ -638,3 +639,9 @@ class ImportIntermediate:
 
     def progress(self) -> int:
         return self.total_steps - len(self.data[TREES])
+
+    def import_all(self, parameters: ImportParameters) -> ImportReport:
+        self.start_import(parameters)
+        while self.step():
+            pass
+        return self.importer.report
