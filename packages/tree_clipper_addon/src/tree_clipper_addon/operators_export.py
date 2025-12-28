@@ -3,7 +3,7 @@ import bpy
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import bpy._typing.rna_enums as rna_enums  # ty: ignore[unresolved-import]
+    import bpy._typing.rna_enums as rna_enums  # type: ignore
 
 
 from pathlib import Path
@@ -34,7 +34,7 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
     def invoke(
         self, context: bpy.types.Context, event: bpy.types.Event
     ) -> set["rna_enums.OperatorReturnItems"]:
-        return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self)  # ty:ignore[possibly-missing-attribute]
 
     def execute(
         self, context: bpy.types.Context
@@ -56,11 +56,11 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
         return {"FINISHED"}
 
     def draw(self, context: bpy.types.Context) -> None:
-        self.layout.prop(self, "is_material")
-        self.layout.prop(
+        self.layout.prop(self, "is_material")  # ty:ignore[possibly-missing-attribute]
+        self.layout.prop(  # ty:ignore[possibly-missing-attribute]
             self, "name", text="Material" if self.is_material else "Node Tree"
         )
-        head, body = self.layout.panel("advanced", default_closed=True)
+        head, body = self.layout.panel("advanced", default_closed=True)  # ty:ignore[possibly-missing-attribute]
         head.label(text="Advanced")
         if body is not None:
             body.prop(self, "export_sub_trees")
@@ -79,9 +79,9 @@ class SCENE_OT_Tree_Clipper_Export_Modal(bpy.types.Operator):
         self, context: bpy.types.Context, event: bpy.types.Event
     ) -> set["rna_enums.OperatorReturnItems"]:
         assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
-        self._timer = context.window_manager.event_timer_add(0, window=context.window)
-        context.window_manager.progress_begin(0, _INTERMEDIATE_EXPORT_CACHE.total_steps)
-        context.window_manager.modal_handler_add(self)
+        self._timer = context.window_manager.event_timer_add(0, window=context.window)  # ty:ignore[possibly-missing-attribute]
+        context.window_manager.progress_begin(0, _INTERMEDIATE_EXPORT_CACHE.total_steps)  # ty:ignore[possibly-missing-attribute]
+        context.window_manager.modal_handler_add(self)  # ty:ignore[possibly-missing-attribute]
 
         return {"RUNNING_MODAL"}
 
@@ -168,7 +168,7 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
         for external_id in _INTERMEDIATE_EXPORT_CACHE.get_external().keys():
             item = self.external_items.add()
             item.external_id = external_id
-        return context.window_manager.invoke_props_dialog(self, width=600)
+        return context.window_manager.invoke_props_dialog(self, width=600)  # ty:ignore[possibly-missing-attribute]
 
     def execute(
         self, context: bpy.types.Context
@@ -189,14 +189,14 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
         return {"FINISHED"}
 
     def draw(self, context: bpy.types.Context) -> None:
-        self.layout.prop(self, "output_file")
-        self.layout.prop(self, "compress")
+        self.layout.prop(self, "output_file")  # ty:ignore[possibly-missing-attribute]
+        self.layout.prop(self, "compress")  # ty:ignore[possibly-missing-attribute]
         if not self.compress:
-            self.layout.prop(self, "json_indent")
+            self.layout.prop(self, "json_indent")  # ty:ignore[possibly-missing-attribute]
         if len(self.external_items) == 0:
             return
-        self.layout.label(text="References to External:")
-        self.layout.template_list(
+        self.layout.label(text="References to External:")  # ty:ignore[possibly-missing-attribute]
+        self.layout.template_list(  # ty:ignore[possibly-missing-attribute]
             listtype_name="SCENE_UL_Tree_Clipper_External_Export_List",
             list_id="",
             dataptr=self,
@@ -208,7 +208,7 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
         assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
         external = _INTERMEDIATE_EXPORT_CACHE.get_external()[external_item.external_id]
         pointer = external.pointed_to_by
-        head, body = self.layout.panel("details", default_closed=True)
+        head, body = self.layout.panel("details", default_closed=True)  # ty:ignore[possibly-missing-attribute]
         head.label(text="Item Details")
         if body is not None:
             body.label(text=f"Id in JSON: {pointer.pointer_id}")

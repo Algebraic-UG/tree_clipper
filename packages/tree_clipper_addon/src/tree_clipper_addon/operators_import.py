@@ -3,7 +3,7 @@ import bpy
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import bpy._typing.rna_enums as rna_enums  # ty: ignore[unresolved-import]
+    import bpy._typing.rna_enums as rna_enums  # type: ignore
 
 
 from pathlib import Path
@@ -34,7 +34,7 @@ class SCENE_OT_Tree_Clipper_Import_Prepare(bpy.types.Operator):
     def invoke(
         self, context: bpy.types.Context, event: bpy.types.Event
     ) -> set["rna_enums.OperatorReturnItems"]:
-        return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self)  # ty:ignore[possibly-missing-attribute]
 
     def execute(
         self, context: bpy.types.Context
@@ -108,7 +108,7 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             item.description = external_item["description"]
             item.set_active_pointer_type(external_item["fixed_type_name"])
 
-        return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self)  # ty:ignore[possibly-missing-attribute]
 
     def execute(
         self, context: bpy.types.Context
@@ -147,14 +147,14 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             context.scene.tree_clipper_external_import_items,
             Tree_Clipper_External_Import_Items,
         )
-        head, body = self.layout.panel("advanced", default_closed=True)
+        head, body = self.layout.panel("advanced", default_closed=True)  # ty:ignore[possibly-missing-attribute]
         head.label(text="Advanced")
         if body is not None:
             body.prop(self, "debug_prints")
         if len(context.scene.tree_clipper_external_import_items.items) == 0:
             return
-        self.layout.label(text="References to External:")
-        self.layout.template_list(
+        self.layout.label(text="References to External:")  # ty:ignore[possibly-missing-attribute]
+        self.layout.template_list(  # ty:ignore[possibly-missing-attribute]
             listtype_name="SCENE_UL_Tree_Clipper_External_Import_List",
             list_id="",
             dataptr=context.scene.tree_clipper_external_import_items,
@@ -175,9 +175,9 @@ class SCENE_OT_Tree_Clipper_Import_Modal(bpy.types.Operator):
         self, context: bpy.types.Context, event: bpy.types.Event
     ) -> set["rna_enums.OperatorReturnItems"]:
         assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
-        self._timer = context.window_manager.event_timer_add(0, window=context.window)
-        context.window_manager.progress_begin(0, _INTERMEDIATE_IMPORT_CACHE.total_steps)
-        context.window_manager.modal_handler_add(self)
+        self._timer = context.window_manager.event_timer_add(0, window=context.window)  # ty:ignore[possibly-missing-attribute]
+        context.window_manager.progress_begin(0, _INTERMEDIATE_IMPORT_CACHE.total_steps)  # ty:ignore[possibly-missing-attribute]
+        context.window_manager.modal_handler_add(self)  # ty:ignore[possibly-missing-attribute]
 
         return {"RUNNING_MODAL"}
 

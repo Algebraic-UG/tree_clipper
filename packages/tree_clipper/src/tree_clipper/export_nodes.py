@@ -634,7 +634,7 @@ class ExportIntermediate:
     def step(self) -> bool:
         if self.unexported_trees:
             tree, from_root = self.unexported_trees.pop(0)
-            self.data[TREES].append(
+            self.data[TREES].append(  # ty:ignore[possibly-missing-attribute]
                 self.exporter._export_node_tree(node_tree=tree, from_root=from_root)
             )
             return True
