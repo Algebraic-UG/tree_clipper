@@ -27,6 +27,7 @@ from .operators_import import (
     SCENE_UL_Tree_Clipper_External_Import_List,
     SCENE_OT_Tree_Clipper_Import_Cache,
     SCENE_OT_Tree_Clipper_Import_Prepare,
+    SCENE_OT_Tree_Clipper_Import_Modal,
 )
 
 from .panel import SCENE_PT_Tree_Clipper_Panel
@@ -40,6 +41,7 @@ classes = [
     Tree_Clipper_External_Import_Item,
     Tree_Clipper_External_Import_Items,
     SCENE_UL_Tree_Clipper_External_Import_List,
+    SCENE_OT_Tree_Clipper_Import_Modal,
     SCENE_OT_Tree_Clipper_Import_Cache,
     SCENE_OT_Tree_Clipper_Import_Prepare,
     SCENE_PT_Tree_Clipper_Panel,

@@ -40,8 +40,7 @@ class SCENE_OT_Tree_Clipper_Import_Prepare(bpy.types.Operator):
         self, context: bpy.types.Context
     ) -> set["rna_enums.OperatorReturnItems"]:
         global _INTERMEDIATE_IMPORT_CACHE
-        _INTERMEDIATE_IMPORT_CACHE = ImportIntermediate()
-        _INTERMEDIATE_IMPORT_CACHE.from_file(Path(self.input_file))
+        _INTERMEDIATE_IMPORT_CACHE = ImportIntermediate(file_path=Path(self.input_file))
 
         # seems impossible to use bl_idname here
         bpy.ops.scene.tree_clipper_import_cache("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
@@ -130,31 +129,16 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             )
             for external_item in context.scene.tree_clipper_external_import_items.items
         )
-        report = _INTERMEDIATE_IMPORT_CACHE.import_nodes(
+
+        _INTERMEDIATE_IMPORT_CACHE.start_import(
             ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
                 debug_prints=self.debug_prints,
             )
         )
 
-        if report.rename_material is not None:
-            original_name, new_name = report.rename_material
-            self.report(
-                {"INFO"}, f"Imported material '{original_name}' as '{new_name}'"
-            )
-        for original_name, new_name in report.renames_node_group.items():
-            self.report(
-                {"INFO"}, f"Imported node_group '{original_name}' as '{new_name}'"
-            )
-        self.report(
-            {"INFO"},
-            f"Imported {report.imported_trees} trees, {report.imported_nodes} nodes, and {report.imported_links} links",
-        )
-
-        for warning in report.warnings:
-            self.report({"WARNING"}, warning)
-
-        _INTERMEDIATE_IMPORT_CACHE = None
+        # seems impossible to use bl_idname here
+        bpy.ops.scene.tree_clipper_import_modal("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
         return {"FINISHED"}
 
     def draw(self, context: bpy.types.Context) -> None:
@@ -178,3 +162,59 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             active_dataptr=context.scene.tree_clipper_external_import_items,
             active_propname="selected",
         )
+
+
+class SCENE_OT_Tree_Clipper_Import_Modal(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_import_modal"
+    bl_label = "Import Modal"
+    bl_options = {"REGISTER", "UNDO"}
+
+    _timer = None
+
+    def invoke(
+        self, context: bpy.types.Context, event: bpy.types.Event
+    ) -> set["rna_enums.OperatorReturnItems"]:
+        assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
+        self._timer = context.window_manager.event_timer_add(0, window=context.window)
+        context.window_manager.progress_begin(0, _INTERMEDIATE_IMPORT_CACHE.total_steps)
+        context.window_manager.modal_handler_add(self)
+
+        return {"RUNNING_MODAL"}
+
+    def modal(self, context, event):
+        global _INTERMEDIATE_IMPORT_CACHE
+        assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
+
+        if event.type in {"RIGHTMOUSE", "ESC"}:
+            context.window_manager.event_timer_remove(self._timer)
+            _INTERMEDIATE_IMPORT_CACHE = None
+            return {"FINISHED"}
+
+        if _INTERMEDIATE_IMPORT_CACHE.step():
+            context.window_manager.progress_update(
+                _INTERMEDIATE_IMPORT_CACHE.progress()
+            )
+            return {"RUNNING_MODAL"}
+
+        context.window_manager.progress_end()
+        report = _INTERMEDIATE_IMPORT_CACHE.importer.report
+
+        if report.rename_material is not None:
+            original_name, new_name = report.rename_material
+            self.report(
+                {"INFO"}, f"Imported material '{original_name}' as '{new_name}'"
+            )
+        for original_name, new_name in report.renames_node_group.items():
+            self.report(
+                {"INFO"}, f"Imported node_group '{original_name}' as '{new_name}'"
+            )
+        self.report(
+            {"INFO"},
+            f"Imported {report.imported_trees} trees, {report.imported_nodes} nodes, and {report.imported_links} links",
+        )
+
+        for warning in report.warnings:
+            self.report({"WARNING"}, warning)
+
+        _INTERMEDIATE_IMPORT_CACHE = None
+        return {"FINISHED"}

@@ -528,19 +528,6 @@ class ImportParameters:
         self.debug_prints = debug_prints
 
 
-def _import_nodes_from_dict(
-    *,
-    data: dict[str, Any],
-    getters: dict[int, GETTER],
-    parameters: ImportParameters,
-) -> ImportReport:
-    importer = Importer(
-        specific_handlers=parameters.specific_handlers,
-        getters=getters,
-        debug_prints=parameters.debug_prints,
-    )
-
-
 def _from_str(string: str) -> dict[str, Any]:
     compressed = string.startswith(MAGIC_STRING)
     if compressed:
@@ -571,7 +558,7 @@ class ImportIntermediate:
         string: str | None = None,
         file_path: Path | None = None,
     ) -> None:
-        if xor(string is None, file_path is None):
+        if not xor(string is None, file_path is None):
             raise RuntimeError("Either provide string xor file_path")
 
         if string is not None:
@@ -649,9 +636,5 @@ class ImportIntermediate:
 
         return True
 
-    def import_nodes(self, parameters: ImportParameters) -> ImportReport:
-        return _import_nodes_from_dict(
-            data=self.data,
-            getters=self.getters,
-            parameters=parameters,
-        )
+    def progress(self) -> int:
+        return self.total_steps - len(self.data[TREES])
