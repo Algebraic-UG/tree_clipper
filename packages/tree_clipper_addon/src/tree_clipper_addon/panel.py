@@ -1,7 +1,10 @@
 import bpy
 
 from .operators_export import SCENE_OT_Tree_Clipper_Export_Prepare
-from .operators_import import SCENE_OT_Tree_Clipper_Import_Prepare
+from .operators_import import (
+    SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare,
+    SCENE_OT_Tree_Clipper_Import_File_Prepare,
+)
 
 
 class SCENE_PT_Tree_Clipper_Panel(bpy.types.Panel):
@@ -28,4 +31,7 @@ class SCENE_PT_Tree_Clipper_Panel(bpy.types.Panel):
         export_op.is_material = is_material
         export_op.name = name
 
-        self.layout.operator(SCENE_OT_Tree_Clipper_Import_Prepare.bl_idname)  # ty:ignore[possibly-missing-attribute]
+        self.layout.separator()  # ty:ignore[possibly-missing-attribute]
+
+        self.layout.operator(SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare.bl_idname)  # ty:ignore[possibly-missing-attribute]
+        self.layout.operator(SCENE_OT_Tree_Clipper_Import_File_Prepare.bl_idname)  # ty:ignore[possibly-missing-attribute]

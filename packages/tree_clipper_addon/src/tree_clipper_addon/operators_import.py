@@ -20,9 +20,9 @@ from ._vendor.tree_clipper.import_nodes import ImportParameters, ImportIntermedi
 _INTERMEDIATE_IMPORT_CACHE = None
 
 
-class SCENE_OT_Tree_Clipper_Import_Prepare(bpy.types.Operator):
-    bl_idname = "scene.tree_clipper_import_prepare"
-    bl_label = "Import"
+class SCENE_OT_Tree_Clipper_Import_File_Prepare(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_import_file_prepare"
+    bl_label = "Import File"
     bl_options = {"REGISTER"}
 
     input_file: bpy.props.StringProperty(
@@ -41,6 +41,24 @@ class SCENE_OT_Tree_Clipper_Import_Prepare(bpy.types.Operator):
     ) -> set["rna_enums.OperatorReturnItems"]:
         global _INTERMEDIATE_IMPORT_CACHE
         _INTERMEDIATE_IMPORT_CACHE = ImportIntermediate(file_path=Path(self.input_file))
+
+        # seems impossible to use bl_idname here
+        bpy.ops.scene.tree_clipper_import_cache("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
+        return {"FINISHED"}
+
+
+class SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_import_clipboard_prepare"
+    bl_label = "Import Clipboard"
+    bl_options = {"REGISTER"}
+
+    def execute(
+        self, context: bpy.types.Context
+    ) -> set["rna_enums.OperatorReturnItems"]:
+        global _INTERMEDIATE_IMPORT_CACHE
+        _INTERMEDIATE_IMPORT_CACHE = ImportIntermediate(
+            string=bpy.context.window_manager.clipboard  # ty:ignore[possibly-missing-attribute]
+        )
 
         # seems impossible to use bl_idname here
         bpy.ops.scene.tree_clipper_import_cache("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
