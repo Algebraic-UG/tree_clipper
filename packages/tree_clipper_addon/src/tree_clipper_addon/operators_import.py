@@ -3,7 +3,7 @@ import bpy
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import bpy._typing.rna_enums as rna_enums  # ty: ignore[unresolved-import]
+    import bpy._typing.rna_enums as rna_enums  # type: ignore
 
 
 from pathlib import Path
@@ -34,14 +34,13 @@ class SCENE_OT_Tree_Clipper_Import_Prepare(bpy.types.Operator):
     def invoke(
         self, context: bpy.types.Context, event: bpy.types.Event
     ) -> set["rna_enums.OperatorReturnItems"]:
-        return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self)  # ty:ignore[possibly-missing-attribute]
 
     def execute(
         self, context: bpy.types.Context
     ) -> set["rna_enums.OperatorReturnItems"]:
         global _INTERMEDIATE_IMPORT_CACHE
-        _INTERMEDIATE_IMPORT_CACHE = ImportIntermediate()
-        _INTERMEDIATE_IMPORT_CACHE.from_file(Path(self.input_file))
+        _INTERMEDIATE_IMPORT_CACHE = ImportIntermediate(file_path=Path(self.input_file))
 
         # seems impossible to use bl_idname here
         bpy.ops.scene.tree_clipper_import_cache("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
@@ -84,7 +83,7 @@ class Tree_Clipper_External_Import_Items(bpy.types.PropertyGroup):
 class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_cache"
     bl_label = "Import Cache"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"REGISTER"}
 
     debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=False)  # type: ignore
 
@@ -109,7 +108,7 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             item.description = external_item["description"]
             item.set_active_pointer_type(external_item["fixed_type_name"])
 
-        return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self)  # ty:ignore[possibly-missing-attribute]
 
     def execute(
         self, context: bpy.types.Context
@@ -130,12 +129,75 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
             )
             for external_item in context.scene.tree_clipper_external_import_items.items
         )
-        report = _INTERMEDIATE_IMPORT_CACHE.import_nodes(
+
+        _INTERMEDIATE_IMPORT_CACHE.start_import(
             ImportParameters(
                 specific_handlers=BUILT_IN_IMPORTER,
                 debug_prints=self.debug_prints,
             )
         )
+
+        # seems impossible to use bl_idname here
+        bpy.ops.scene.tree_clipper_import_modal("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
+        return {"FINISHED"}
+
+    def draw(self, context: bpy.types.Context) -> None:
+        assert hasattr(context.scene, "tree_clipper_external_import_items")
+        assert isinstance(
+            context.scene.tree_clipper_external_import_items,
+            Tree_Clipper_External_Import_Items,
+        )
+        head, body = self.layout.panel("advanced", default_closed=True)  # ty:ignore[possibly-missing-attribute]
+        head.label(text="Advanced")
+        if body is not None:
+            body.prop(self, "debug_prints")
+        if len(context.scene.tree_clipper_external_import_items.items) == 0:
+            return
+        self.layout.label(text="References to External:")  # ty:ignore[possibly-missing-attribute]
+        self.layout.template_list(  # ty:ignore[possibly-missing-attribute]
+            listtype_name="SCENE_UL_Tree_Clipper_External_Import_List",
+            list_id="",
+            dataptr=context.scene.tree_clipper_external_import_items,
+            propname="items",
+            active_dataptr=context.scene.tree_clipper_external_import_items,
+            active_propname="selected",
+        )
+
+
+class SCENE_OT_Tree_Clipper_Import_Modal(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_import_modal"
+    bl_label = "Import Modal"
+    bl_options = {"REGISTER", "UNDO"}
+
+    _timer = None
+
+    def invoke(
+        self, context: bpy.types.Context, event: bpy.types.Event
+    ) -> set["rna_enums.OperatorReturnItems"]:
+        assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
+        self._timer = context.window_manager.event_timer_add(0, window=context.window)  # ty:ignore[possibly-missing-attribute]
+        context.window_manager.progress_begin(0, _INTERMEDIATE_IMPORT_CACHE.total_steps)  # ty:ignore[possibly-missing-attribute]
+        context.window_manager.modal_handler_add(self)  # ty:ignore[possibly-missing-attribute]
+
+        return {"RUNNING_MODAL"}
+
+    def modal(self, context, event):
+        global _INTERMEDIATE_IMPORT_CACHE
+        assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
+
+        if event.type in {"RIGHTMOUSE", "ESC"}:
+            context.window_manager.event_timer_remove(self._timer)
+            _INTERMEDIATE_IMPORT_CACHE = None
+            return {"FINISHED"}
+
+        if _INTERMEDIATE_IMPORT_CACHE.step():
+            context.window_manager.progress_update(
+                _INTERMEDIATE_IMPORT_CACHE.progress()
+            )
+            return {"RUNNING_MODAL"}
+
+        context.window_manager.progress_end()
+        report = _INTERMEDIATE_IMPORT_CACHE.importer.report
 
         if report.rename_material is not None:
             original_name, new_name = report.rename_material
@@ -156,25 +218,3 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
 
         _INTERMEDIATE_IMPORT_CACHE = None
         return {"FINISHED"}
-
-    def draw(self, context: bpy.types.Context) -> None:
-        assert hasattr(context.scene, "tree_clipper_external_import_items")
-        assert isinstance(
-            context.scene.tree_clipper_external_import_items,
-            Tree_Clipper_External_Import_Items,
-        )
-        head, body = self.layout.panel("advanced", default_closed=True)
-        head.label(text="Advanced")
-        if body is not None:
-            body.prop(self, "debug_prints")
-        if len(context.scene.tree_clipper_external_import_items.items) == 0:
-            return
-        self.layout.label(text="References to External:")
-        self.layout.template_list(
-            listtype_name="SCENE_UL_Tree_Clipper_External_Import_List",
-            list_id="",
-            dataptr=context.scene.tree_clipper_external_import_items,
-            propname="items",
-            active_dataptr=context.scene.tree_clipper_external_import_items,
-            active_propname="selected",
-        )
