@@ -143,18 +143,25 @@ class Tree_Clipper_External_Export_Item(bpy.types.PropertyGroup):
     skip: bpy.props.BoolProperty(name="Hide in Import", default=False)  # type: ignore
 
 
+_COMPRESS = "Compress"
+_JSON = "JSON"
+_CLIPBOARD = "Clipboard"
+_FILE = "File"
+
+
 class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_cache"
     bl_label = "Export Cache"
     bl_options = {"REGISTER"}
 
+    clipboard_or_file: bpy.props.EnumProperty(items=[(_CLIPBOARD,) * 3, (_FILE,) * 3])  # type: ignore
     output_file: bpy.props.StringProperty(
         name="Output File",
         default=DEFAULT_FILE,
         subtype="FILE_PATH",
     )  # type: ignore
 
-    compress: bpy.props.BoolProperty(name="Compress", default=True)  # type: ignore
+    compress_or_json: bpy.props.EnumProperty(items=[(_COMPRESS,) * 3, (_JSON,) * 3])  # type: ignore
     json_indent: bpy.props.IntProperty(name="JSON Indent", default=4, min=0)  # type: ignore
 
     external_items: bpy.props.CollectionProperty(type=Tree_Clipper_External_Export_Item)  # type: ignore
@@ -168,33 +175,56 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
         for external_id in _INTERMEDIATE_EXPORT_CACHE.get_external().keys():
             item = self.external_items.add()
             item.external_id = external_id
-        return context.window_manager.invoke_props_dialog(self, width=600)  # ty:ignore[possibly-missing-attribute]
+        return context.window_manager.invoke_props_dialog(self, width=300)  # ty:ignore[possibly-missing-attribute]
 
     def execute(
         self, context: bpy.types.Context
     ) -> set["rna_enums.OperatorReturnItems"]:
         global _INTERMEDIATE_EXPORT_CACHE
         assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
+
+        clipboard = self.clipboard_or_file == _CLIPBOARD
+        compress = self.compress_or_json == _COMPRESS
+
         _INTERMEDIATE_EXPORT_CACHE.set_external(
             (external_item.external_id, external_item.description)
             for external_item in self.external_items
             if not external_item.skip
         )
-        _INTERMEDIATE_EXPORT_CACHE.export_to_file(
-            file_path=Path(self.output_file),
-            compress=self.compress,
-            json_indent=self.json_indent,
-        )
+        if clipboard:
+            bpy.context.window_manager.clipboard = (  # ty:ignore[invalid-assignment]
+                _INTERMEDIATE_EXPORT_CACHE.export_to_str(
+                    compress=compress,
+                    json_indent=self.json_indent,
+                )
+            )
+        else:
+            _INTERMEDIATE_EXPORT_CACHE.export_to_file(
+                file_path=Path(self.output_file),
+                compress=compress,
+                json_indent=self.json_indent,
+            )
         _INTERMEDIATE_EXPORT_CACHE = None
         return {"FINISHED"}
 
     def draw(self, context: bpy.types.Context) -> None:
-        self.layout.prop(self, "output_file")  # ty:ignore[possibly-missing-attribute]
-        self.layout.prop(self, "compress")  # ty:ignore[possibly-missing-attribute]
-        if not self.compress:
-            self.layout.prop(self, "json_indent")  # ty:ignore[possibly-missing-attribute]
+        self.layout.prop(self, "clipboard_or_file", expand=True)  # ty:ignore[possibly-missing-attribute]
+        clipboard = self.clipboard_or_file == _CLIPBOARD
+
+        file_col = self.layout.column()  # ty:ignore[possibly-missing-attribute]
+        file_col.prop(self, "output_file")  # ty:ignore[possibly-missing-attribute]
+        file_col.enabled = not clipboard
+
+        self.layout.prop(self, "compress_or_json", expand=True)  # ty:ignore[possibly-missing-attribute]
+        compress = self.compress_or_json == _COMPRESS
+
+        json_col = self.layout.column()  # ty:ignore[possibly-missing-attribute]
+        json_col.prop(self, "json_indent")  # ty:ignore[possibly-missing-attribute]
+        json_col.enabled = not compress
+
         if len(self.external_items) == 0:
             return
+
         self.layout.label(text="References to External:")  # ty:ignore[possibly-missing-attribute]
         self.layout.template_list(  # ty:ignore[possibly-missing-attribute]
             listtype_name="SCENE_UL_Tree_Clipper_External_Export_List",
