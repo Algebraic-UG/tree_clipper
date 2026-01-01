@@ -36,3 +36,25 @@ Note that these files are within Git LFS and optional unless you want to test Tr
 
 Included assets are used with permission from the respective authors for testing purposes in this repository.
 If you reuse or redistribute them, please follow each project’s license/terms and attribution requirements.
+
+## Development
+
+It is recommended to use [vscode](https://code.visualstudio.com/) with these extensions:
+- [ruff](https://github.com/astral-sh/ruff-vscode)
+- [ty](https://github.com/astral-sh/ty-vscode)
+- [Python Debugger](https://code.visualstudio.com/docs/python/debugging)
+- [Blender Development](https://github.com/JacquesLucke/blender_vscode)
+
+[uv](https://docs.astral.sh/uv/) is also required for this workflow.
+
+### Vendorizing Tree Clipper
+
+Ideally, the [core logic](packages/tree_clipper/) of Tree Clipper is not used as dependency in downstream addons directly and it should be [vendorized](https://pypi.org/project/vendorize/) instead.
+This is what the [Tree Clipper Addon](packages/tree_clipper_addon/) does as well.
+
+The motivation for this is that we expect other addons like [Squishy Volumes](https://github.com/Algebraic-UG/squishy_volumes) to use an incompatible version of Tree Clipper.
+Vendoring avoids version conflicts and ensures that all addons can load.
+> [!IMPORTANT]
+> Vendoring currently has two drawbacks developers must be aware of:
+> 1. There is the editable code of the core logic in [packages/tree_clipper/](packages/tree_clipper/) and there's the vendorized code which will reside in packages/tree_clipper_addon/src/tree_clipper_addon/_vendor/. The vendorized code runs and can be debugged, but should not be edited directly.
+> 2. Depending on your version of the [Blender Development](https://github.com/JacquesLucke/blender_vscode) addon (whether it has [this change](https://github.com/JacquesLucke/blender_vscode/pull/258)), the task [`run-python-vendor`](.vscode/tasks.json) must run before starting Blender. Subsequent reloads will do this automatically.
