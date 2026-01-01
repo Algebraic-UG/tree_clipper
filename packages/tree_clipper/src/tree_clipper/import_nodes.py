@@ -61,6 +61,8 @@ class ImportReport:
         self.renames_node_group: dict[str, str] = {}
         self.warnings: list[str] = []
 
+        self.last_getter: GETTER | None = None
+
 
 class Importer:
     def __init__(
@@ -492,6 +494,8 @@ From root: {from_root.to_str()}"""
             func()
         self.set_socket_enum_defaults.clear()
 
+        self.report.last_getter = getter
+
 
 # TODO: make this less strict: we should allow import of smaller minor version
 def _check_version(data: dict) -> None:
@@ -567,6 +571,9 @@ class ImportIntermediate:
             self.data = _from_file(file_path)
 
         _check_version(self.data)
+
+        if not self.data[TREES]:
+            raise RuntimeError("There appear to be no trees to be imported")
 
         self.getters: dict[int, GETTER] = {}
         self.total_steps = len(self.data[TREES])

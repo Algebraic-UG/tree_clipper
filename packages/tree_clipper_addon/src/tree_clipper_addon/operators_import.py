@@ -16,6 +16,7 @@ from ._vendor.tree_clipper.specific_handlers import (
 )
 from ._vendor.tree_clipper.import_nodes import ImportParameters, ImportIntermediate
 
+from .post_import import post_import
 
 _INTERMEDIATE_IMPORT_CACHE = None
 
@@ -199,7 +200,7 @@ class SCENE_OT_Tree_Clipper_Import_Modal(bpy.types.Operator):
 
         return {"RUNNING_MODAL"}
 
-    def modal(self, context, event):
+    def modal(self, context: bpy.types.Context, event: bpy.types.Event):
         global _INTERMEDIATE_IMPORT_CACHE
         assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
 
@@ -235,4 +236,7 @@ class SCENE_OT_Tree_Clipper_Import_Modal(bpy.types.Operator):
             self.report({"WARNING"}, warning)
 
         _INTERMEDIATE_IMPORT_CACHE = None
+
+        post_import(context=context, event=event, report=report)
+
         return {"FINISHED"}
