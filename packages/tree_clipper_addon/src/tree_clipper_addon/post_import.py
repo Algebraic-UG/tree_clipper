@@ -63,5 +63,3 @@ def post_import(
 
         # we need to defer, otherwise Blender crashes
         bpy.app.timers.register(warn_popup)
-
-    pass
