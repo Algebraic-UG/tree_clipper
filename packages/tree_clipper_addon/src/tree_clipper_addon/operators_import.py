@@ -101,7 +101,7 @@ class Tree_Clipper_External_Import_Items(bpy.types.PropertyGroup):
 class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_cache"
     bl_label = "Import Cache"
-    bl_options = {"REGISTER"}
+    bl_options = set()
 
     debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=False)  # type: ignore
 
@@ -185,7 +185,7 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
 class SCENE_OT_Tree_Clipper_Import_Modal(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_modal"
     bl_label = "Import Modal"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"UNDO"}
 
     _timer = None
 
