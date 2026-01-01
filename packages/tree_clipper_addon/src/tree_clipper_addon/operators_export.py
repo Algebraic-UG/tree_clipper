@@ -71,7 +71,7 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
 class SCENE_OT_Tree_Clipper_Export_Modal(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_modal"
     bl_label = "Export Modal"
-    bl_options = {"REGISTER"}
+    bl_options = set()
 
     _timer = None
 
@@ -152,7 +152,7 @@ _FILE = "File"
 class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_cache"
     bl_label = "Export Cache"
-    bl_options = {"REGISTER"}
+    bl_options = set()
 
     clipboard_or_file: bpy.props.EnumProperty(items=[(_CLIPBOARD,) * 3, (_FILE,) * 3])  # type: ignore
     output_file: bpy.props.StringProperty(
