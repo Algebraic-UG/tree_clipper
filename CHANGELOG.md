@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.7] - 2026-06-05
+
+Support for the next LTS version of Blender!
+
+### Added
+
+- [Support for Blender 5.2](https://github.com/Algebraic-UG/tree_clipper/issues/181).
+- A bunch of new tests based on the bundled assets from Blender itself.
+
+### Changed
+
+### Fixed
+
+- Get Bundle Item import [must have been broken](https://github.com/Algebraic-UG/tree_clipper/issues/214).
+
 ## [0.1.6] - 2026-02-26
 
 This release is a Banger.
