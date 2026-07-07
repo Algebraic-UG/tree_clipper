@@ -661,7 +661,7 @@ class ImportIntermediate:
             getters=self.getters,
             debug_prints=parameters.debug_prints,
         )
-        if len(version_cycle) > 1:
+        if len(version_cycle) > 1 and version_cycle[1] != "LTS":
             self.importer.report.warnings.append(
                 f"This was exported from a Blender {version_cycle[1]} version."
             )
