@@ -253,7 +253,9 @@ class SpecificImporter[AssumedType](ABC):
         self.serialization = serialization
         self.from_root = from_root
 
-    def import_all_simple_writable_properties(self, forbidden: list[str] = []):
+    def import_all_simple_writable_properties(self, forbidden: list[str] | None = None):
+        if forbidden is None:
+            forbidden = []
         self.importer.import_all_simple_writable_properties(
             getter=self.getter,
             serialization=self.serialization,
