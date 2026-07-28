@@ -139,7 +139,6 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
     def execute(
         self, context: bpy.types.Context
     ) -> set["rna_enums.OperatorReturnItems"]:
-        global _INTERMEDIATE_IMPORT_CACHE
         assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
         assert hasattr(context.scene, "tree_clipper_external_import_items")
         assert isinstance(

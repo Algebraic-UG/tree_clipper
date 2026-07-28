@@ -171,7 +171,7 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
     ) -> set["rna_enums.OperatorReturnItems"]:
         self.external_items.clear()
         assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
-        for external_id in _INTERMEDIATE_EXPORT_CACHE.get_external().keys():
+        for external_id in _INTERMEDIATE_EXPORT_CACHE.get_external():
             item = self.external_items.add()
             item.external_id = external_id
         return context.window_manager.invoke_props_dialog(self, width=300)  # ty:ignore[possibly-missing-attribute]

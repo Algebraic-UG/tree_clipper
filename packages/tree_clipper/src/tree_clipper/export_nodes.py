@@ -310,9 +310,7 @@ class Exporter:
         items = [
             self._export_obj(
                 obj=element,
-                from_root=from_root.add(
-                    f"[{i}] ({getattr(element, NAME, 'unnamed')})"
-                ),
+                from_root=from_root.add(f"[{i}] ({getattr(element, NAME, 'unnamed')})"),
             )
             for i, element in enumerate(attribute)
         ]

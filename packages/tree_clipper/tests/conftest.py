@@ -18,9 +18,9 @@ def pytest_generate_tests(metafunc):
     rna_info.BuildRNAInfo()
 
     # we're only interested in the "leaf" types
-    node_types = set(
+    node_types = {
         cls for cls in all_subclasses(bpy.types.Node) if len(all_subclasses(cls)) == 0
-    )
+    }
 
     if metafunc.function == test_all_nodes:
         metafunc.parametrize("node_type", node_types)
