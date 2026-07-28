@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from types import NoneType
-from typing import Any, ClassVar, Generic, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 import bpy
 
@@ -14,9 +14,9 @@ from .import_nodes import GETTER, Importer
 AssumedType = TypeVar("AssumedType", bound=bpy.types.bpy_struct)
 
 
-def default_serializer(
+def default_serializer[T](
     _exporter: Exporter,
-    _obj: AssumedType,
+    _obj: T,
     _from_root: FromRoot,
 ) -> dict[str, Any]:
     return {}
@@ -40,7 +40,7 @@ _BUILT_IN_IMPORTER = {
 }
 
 
-class SpecificExporter(Generic[AssumedType], ABC):
+class SpecificExporter[AssumedType](ABC):
     """Helper class for specific exporting.
     One can also just define functions but this is more convenient.
 
@@ -164,7 +164,7 @@ class SpecificExporter(Generic[AssumedType], ABC):
         """Do the actual exporting here"""
 
 
-class SpecificImporter(Generic[AssumedType], ABC):
+class SpecificImporter[AssumedType](ABC):
     """Helper class for specific importing.
     One can also just define functions but this is more convenient.
 
