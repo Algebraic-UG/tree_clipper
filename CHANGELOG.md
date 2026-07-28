@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.9] - 2026-07-28
+
+Patch release to aid importing trees containing fonts and a few internal code changes.
+Some of which might fix bugs that were undiscovered.
+
+### Fixed
+- In a new project, [the user might be missing a font to select](https://github.com/Algebraic-UG/tree_clipper/issues/219).
+
+### Changed
+- Updated to new version of `ruff` and fixed the new findings.
+
 ## [0.1.8] - 2026-07-07
 
 Trying to get the PyPI publish job to work >.<
