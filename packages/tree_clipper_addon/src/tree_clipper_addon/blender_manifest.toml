@@ -3,7 +3,7 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "tree_clipper"
-version = "0.1.7" # should match tree_clipper (core logic)
+version = "0.1.8" # should match tree_clipper (core logic)
 name = "Tree Clipper"
 tagline = "Export and import Blender node trees as JSON"
 maintainer = "Algebraic <tree.clipper@algebraic.games>"
