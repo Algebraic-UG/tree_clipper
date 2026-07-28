@@ -110,7 +110,7 @@ def add_all_known_pointer_properties(
 
         # Otherwise, there might be no font to select
         # https://github.com/Algebraic-UG/tree_clipper/issues/219
-        if type_name == "VectorFont":
+        if type_name == "VectorFont" and not bpy.data.fonts:
             font_path = (
                 Path(bpy.utils.system_resource("DATAFILES")) / "fonts" / "Inter.woff2"
             )
