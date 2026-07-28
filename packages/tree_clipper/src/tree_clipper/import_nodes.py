@@ -183,9 +183,8 @@ class Importer:
             return
 
         if (
-            (
-                isinstance(getter(), bpy.types.NodeSocket)
-                or isinstance(getter(), bpy.types.NodeTreeInterfaceSocket)
+            isinstance(
+                getter(), (bpy.types.NodeSocket, bpy.types.NodeTreeInterfaceSocket)
             )
             and prop.type == PROP_TYPE_ENUM
             and identifier == DEFAULT_VALUE
