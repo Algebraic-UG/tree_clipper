@@ -36,7 +36,7 @@ dev = [
   "fake-bpy-module>=20251003",
   "pytest>=9.0.1",
   "deepdiff>=8.6.1",
-  "ruff>=0.14.10",
+  "ruff>=0.16.0",
   "ty>=0.0.3",
   "vendorize",
   "pip>=25.3",
