@@ -4,11 +4,11 @@
 # parameters to reconstruct the tree around the nodes that reference it and it's view layers.
 # All of this is very ad-hoc and might well break in the future.
 
-import bpy
-
 from typing import Any
 
-from .common import no_clobber, PROP_TYPE_BOOLEAN, NAME
+import bpy
+
+from .common import NAME, PROP_TYPE_BOOLEAN, no_clobber
 
 # to help prevent typos
 VIEW_LAYERS = "view_layers"

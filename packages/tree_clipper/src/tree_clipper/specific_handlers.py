@@ -1,27 +1,25 @@
+from typing import Any
+
 import bpy
 
-from typing import Type, Any
-
+from .common import (
+    BL_IDNAME,
+    DATA,
+    DEFAULT_VALUE,
+    DIMENSIONS,
+    GETTER,
+    ID,
+    ITEMS,
+    NAME,
+    NODE_TREE,
+    no_clobber,
+)
+from .import_nodes import Importer
 from .specific_abstract import (
     _BUILT_IN_EXPORTER,
     _BUILT_IN_IMPORTER,
     SpecificExporter,
     SpecificImporter,
-)
-
-from .import_nodes import Importer
-
-from .common import (
-    DATA,
-    DIMENSIONS,
-    ID,
-    no_clobber,
-    ITEMS,
-    BL_IDNAME,
-    NAME,
-    DEFAULT_VALUE,
-    GETTER,
-    NODE_TREE,
 )
 
 # to help prevent typos, especially when used multiple times
@@ -112,7 +110,7 @@ SOCKET_IDNAME = "socket_idname"
 # this might not be needed anymore in many cases, because
 # due to https://github.com/Algebraic-UG/tree_clipper/issues/59
 # we don't skip defaults anymore
-def _or_default(serialization: dict, ty: Type[bpy.types.bpy_struct], identifier: str):
+def _or_default(serialization: dict, ty: type[bpy.types.bpy_struct], identifier: str):
     return serialization.get(identifier, ty.bl_rna.properties[identifier].default)  # ty: ignore[unresolved-attribute]
 
 
@@ -304,7 +302,7 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
             name = _or_default(data, ty, NAME)
             description = _or_default(data, ty, DESCRIPTION)
 
-            def get_parent() -> None | bpy.types.NodeTreeInterfacePanel:
+            def get_parent(data) -> None | bpy.types.NodeTreeInterfacePanel:
                 if PARENT_INDEX in data:
                     parent_index = data[PARENT_INDEX]
                     assert parent_index < len(self.getter().items_tree)
@@ -324,7 +322,7 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
                     description=description,
                     in_out=_or_default(data, ty, "in_out"),
                     socket_type=data[SOCKET_TYPE],
-                    parent=get_parent(),
+                    parent=get_parent(data),
                 )
                 if isinstance(new_item, bpy.types.NodeTreeInterfaceSocketBool):
                     new_item.is_panel_toggle = data[IS_PANEL_TOGGLE]
@@ -336,7 +334,7 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
                     description=description,
                     default_closed=_or_default(data, ty, DEFAULT_CLOSED),
                 )
-                parent = get_parent()
+                parent = get_parent(data)
                 if parent is not None:
                     self.getter().move_to_parent(
                         item=new_item,
@@ -1276,14 +1274,14 @@ class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
 
 
 class CurveMapPointExporter(SpecificExporter[bpy.types.CurveMapPoint]):
-    f"""The container constructs them using the {LOCATION}"""
+    __doc__ = f"""The container constructs them using the {LOCATION}"""
 
     def serialize(self):
         return self.export_all_simple_writable_properties()
 
 
 class CurveMapPointsImporter(SpecificImporter[bpy.types.CurveMapPoints]):  # ty:ignore[invalid-type-arguments]
-    f"""The {LOCATION} needs to be picked apart into argumets
+    __doc__ = f"""The {LOCATION} needs to be picked apart into argumets
 and there are always at least two points.
 We remove all but two and skip first and last from the serialization."""
 
@@ -1310,7 +1308,7 @@ class CurveMappingImporter(SpecificImporter[bpy.types.CurveMapping]):
 class ConvertToDisplayImporter(
     SpecificImporter[bpy.types.CompositorNodeConvertToDisplay]
 ):
-    f"""The properties on this one are special.
+    __doc__ = f"""The properties on this one are special.
 The properties of the pointees {DISPLAY_SETTINGS} and {VIEW_SETTINGS} are set implicitly
 by setting certain enums values.
 They also have an implicit ordering, first the display needs to be set, then the view."""
@@ -1346,7 +1344,7 @@ class NodeEvaluateClosureImporter(SpecificImporter[bpy.types.NodeEvaluateClosure
 class EvalClosureInputItemExporter(
     SpecificExporter[bpy.types.NodeEvaluateClosureInputItem]
 ):
-    f"""We need {SOCKET_TYPE} and {NAME}, both are simple & writable"""
+    __doc__ = f"""We need {SOCKET_TYPE} and {NAME}, both are simple & writable"""
 
     def serialize(self):
         return self.export_all_simple_writable_properties()
@@ -1366,7 +1364,7 @@ class EvalClosureInputItemsImporter(
 class EvalClosureOutputItemExporter(
     SpecificExporter[bpy.types.NodeEvaluateClosureOutputItem]
 ):
-    f"""We need {SOCKET_TYPE} and {NAME}, both are simple & writable"""
+    __doc__ = f"""We need {SOCKET_TYPE} and {NAME}, both are simple & writable"""
 
     def serialize(self):
         return self.export_all_simple_writable_properties()
@@ -1457,7 +1455,7 @@ class SeparateBundleItemsImporter(SpecificImporter[bpy.types.NodeSeparateBundleI
 
 
 class RenderLayersExporter(SpecificExporter[bpy.types.CompositorNodeRLayers]):
-    f"""We skip the {LAYER} if the {SCENE} is not set.
+    __doc__ = f"""We skip the {LAYER} if the {SCENE} is not set.
 {LAYER} is an empty string in that case and we can't set that during import."""
 
     def serialize(self):
@@ -1538,7 +1536,7 @@ class RenderLayersImporter(SpecificImporter[bpy.types.CompositorNodeRLayers]):
             name = item.get(NAME, "unnamed")
             self.importer._import_obj(
                 getter=make_getter(i),
-                serialization=serialized_outputs[i],
+                serialization=item,
                 from_root=self.from_root.add(f"[{i}] ({name})"),
             )
 
@@ -1656,7 +1654,7 @@ class MainItemsImporter(
 
 
 class BakeExporter(SpecificExporter[bpy.types.GeometryNodeBake]):
-    f"""We need to specialize to avoid {ACTIVE_ITEM}, which is broken
+    __doc__ = f"""We need to specialize to avoid {ACTIVE_ITEM}, which is broken
 https://projects.blender.org/blender/blender/issues/151276"""
 
     def serialize(self):
@@ -1690,7 +1688,7 @@ class BackeItemsImporter(SpecificImporter[bpy.types.NodeGeometryBakeItems]):  # 
 
 
 class FieldToGridExporter(SpecificExporter[bpy.types.GeometryNodeFieldToGrid]):
-    f"""We need to specialize to avoid {ACTIVE_ITEM}, which is broken
+    __doc__ = f"""We need to specialize to avoid {ACTIVE_ITEM}, which is broken
 https://projects.blender.org/blender/blender/issues/151276"""
 
     def serialize(self):

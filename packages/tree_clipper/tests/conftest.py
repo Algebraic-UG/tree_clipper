@@ -1,11 +1,11 @@
-import bpy
+import bpy  # noqa: I001
 import _rna_info as rna_info
 
 import pytest
 
-from .util import all_subclasses, BACKWARDS_COMPATIBILITY_FILES_DIR
 from .test_all_nodes import test_all_nodes
 from .test_backwards_compatibility import test_backwards_compatibility_to_0_1_1
+from .util import BACKWARDS_COMPATIBILITY_FILES_DIR, all_subclasses
 
 
 @pytest.fixture(autouse=True)
@@ -19,9 +19,9 @@ def pytest_generate_tests(metafunc):
     rna_info.BuildRNAInfo()
 
     # we're only interested in the "leaf" types
-    node_types = set(
+    node_types = {
         cls for cls in all_subclasses(bpy.types.Node) if len(all_subclasses(cls)) == 0
-    )
+    }
 
     if metafunc.function == test_all_nodes:
         metafunc.parametrize("node_type", node_types)

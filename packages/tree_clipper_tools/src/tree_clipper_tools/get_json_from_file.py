@@ -1,7 +1,8 @@
-from tree_clipper.specific_handlers import BUILT_IN_EXPORTER
-from tree_clipper.export_nodes import ExportIntermediate, ExportParameters
 import argparse
+
 import bpy
+from tree_clipper.export_nodes import ExportIntermediate, ExportParameters
+from tree_clipper.specific_handlers import BUILT_IN_EXPORTER
 
 parser = argparse.ArgumentParser(prog="Get JSON from tree in file")
 parser.add_argument("--filename", required=True)

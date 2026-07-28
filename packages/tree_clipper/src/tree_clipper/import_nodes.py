@@ -1,53 +1,50 @@
-import bpy
-
-from operator import xor
-
 import base64
 import gzip
 import json
-from types import NoneType
-
-from typing import Any, Type, Tuple, Iterator
-
+from collections.abc import Iterator
+from operator import xor
 from pathlib import Path
+from types import NoneType
+from typing import Any
+
+import bpy
 
 from .common import (
+    BL_IDNAME,
+    BL_RNA,
+    BLENDER_VERSION,
     CURRENT_TREE_CLIPPER_VERSION,
     DATA,
+    DEFAULT_VALUE,
     DESERIALIZER,
+    EXTERNAL,
+    EXTERNAL_DESCRIPTION,
+    EXTERNAL_SCENE_ID,
+    EXTERNAL_SERIALIZATION,
     FORBIDDEN_PROPERTIES,
     GETTER,
     ID,
+    ITEMS,
+    MAGIC_STRING,
     MATERIAL_NAME,
-    SIMPLE_PROP_TYPE,
-    SIMPLE_PROPERTY_TYPES_AS_STRS,
-    BLENDER_VERSION,
+    NAME,
+    PROP_TYPE_COLLECTION,
+    PROP_TYPE_ENUM,
+    PROP_TYPE_POINTER,
+    RNA_TYPE,
+    SCENES,
     SIMPLE_DATA_TYPE,
+    SIMPLE_PROP_TYPE,
     SIMPLE_PROP_TYPE_TUPLE,
+    SIMPLE_PROPERTY_TYPES_AS_STRS,
     TREE_CLIPPER_VERSION,
     TREES,
     FromRoot,
     most_specific_type_handled,
-    MAGIC_STRING,
-    EXTERNAL_SERIALIZATION,
-    PROP_TYPE_ENUM,
-    DEFAULT_VALUE,
-    PROP_TYPE_POINTER,
-    PROP_TYPE_COLLECTION,
-    ITEMS,
-    NAME,
-    BL_RNA,
-    RNA_TYPE,
-    BL_IDNAME,
-    EXTERNAL_DESCRIPTION,
-    EXTERNAL,
-    SCENES,
     no_clobber,
-    EXTERNAL_SCENE_ID,
 )
-
 from .id_data_getter import make_id_data_getter
-from .scene_info import verify_scene, SceneValidationError
+from .scene_info import SceneValidationError, verify_scene
 
 
 class ImportReport:
@@ -113,7 +110,7 @@ class Importer:
         *,
         getter: GETTER,
         serialization: dict[str, Any],
-        assumed_type: Type[bpy.types.bpy_struct],
+        assumed_type: type[bpy.types.bpy_struct],
         forbidden: list[str],
         from_root: FromRoot,
     ) -> None:
@@ -186,9 +183,8 @@ class Importer:
             return
 
         if (
-            (
-                isinstance(getter(), bpy.types.NodeSocket)
-                or isinstance(getter(), bpy.types.NodeTreeInterfaceSocket)
+            isinstance(
+                getter(), (bpy.types.NodeSocket, bpy.types.NodeTreeInterfaceSocket)
             )
             and prop.type == PROP_TYPE_ENUM
             and identifier == DEFAULT_VALUE
@@ -282,7 +278,7 @@ class Importer:
             name = item[DATA].get(NAME, "unnamed")
             self._import_obj(
                 getter=make_getter(i),
-                serialization=serialized_items[i],
+                serialization=item,
                 from_root=from_root.add(f"[{i}] ({name})"),
             )
 
@@ -619,7 +615,7 @@ class ImportIntermediate:
 
     def set_external(
         self,
-        ids_and_references: Iterator[Tuple[int, bpy.types.ID | None]],
+        ids_and_references: Iterator[tuple[int, bpy.types.ID | None]],
     ) -> None:
         for external_id, external_item in ids_and_references:
             scene_id = self.get_external()[str(external_id)][EXTERNAL_SCENE_ID]

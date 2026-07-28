@@ -14,25 +14,22 @@
 import bpy
 
 from .operators_export import (
-    Tree_Clipper_External_Export_Item,
-    SCENE_UL_Tree_Clipper_External_Export_List,
     SCENE_OT_Tree_Clipper_Export_Cache,
     SCENE_OT_Tree_Clipper_Export_Modal,
     SCENE_OT_Tree_Clipper_Export_Prepare,
+    SCENE_UL_Tree_Clipper_External_Export_List,
+    Tree_Clipper_External_Export_Item,
 )
-
 from .operators_import import (
+    SCENE_OT_Tree_Clipper_Import_Cache,
+    SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare,
+    SCENE_OT_Tree_Clipper_Import_File_Prepare,
+    SCENE_OT_Tree_Clipper_Import_Modal,
+    SCENE_UL_Tree_Clipper_External_Import_List,
     Tree_Clipper_External_Import_Item,
     Tree_Clipper_External_Import_Items,
-    SCENE_UL_Tree_Clipper_External_Import_List,
-    SCENE_OT_Tree_Clipper_Import_Cache,
-    SCENE_OT_Tree_Clipper_Import_File_Prepare,
-    SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare,
-    SCENE_OT_Tree_Clipper_Import_Modal,
 )
-
 from .panel import SCENE_PT_Tree_Clipper_Panel
-
 from .preferences import TreeClipperPreferences
 
 classes = [

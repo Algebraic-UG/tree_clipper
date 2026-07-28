@@ -1,52 +1,52 @@
-import bpy
-
 import base64
 import gzip
 import json
+from collections.abc import Iterator
 from pathlib import Path
 from types import NoneType
-from typing import Any, cast, Type, Iterator, Tuple
+from typing import Any, cast
+
+import bpy
 
 from .common import (
+    BL_RNA,
     BLENDER_VERSION,
     CURRENT_TREE_CLIPPER_VERSION,
     DATA,
     DEFAULT_VALUE,
     DIMENSIONS,
     DISPLAY_SHAPE,
+    EXTERNAL,
     EXTERNAL_DESCRIPTION,
+    EXTERNAL_FIXED_TYPE_NAME,
+    EXTERNAL_SCENE_ID,
+    EXTERNAL_SERIALIZATION,
     FORBIDDEN_PROPERTIES,
+    FROM_ROOT,
     ID,
+    ITEMS,
     MAGIC_STRING,
     MATERIAL_NAME,
-    SIMPLE_PROPERTY_TYPES_AS_STRS,
+    NAME,
+    NODE_TREE,
+    PROP_TYPE_BOOLEAN,
+    PROP_TYPE_COLLECTION,
+    PROP_TYPE_ENUM,
+    PROP_TYPE_FLOAT,
+    PROP_TYPE_INT,
+    PROP_TYPE_POINTER,
+    RNA_TYPE,
+    SCENES,
     SERIALIZER,
     SIMPLE_DATA_TYPE,
     SIMPLE_PROP_TYPE,
+    SIMPLE_PROPERTY_TYPES_AS_STRS,
     TREE_CLIPPER_VERSION,
     TREES,
     FromRoot,
     most_specific_type_handled,
     no_clobber,
-    EXTERNAL_SERIALIZATION,
-    PROP_TYPE_BOOLEAN,
-    PROP_TYPE_INT,
-    PROP_TYPE_FLOAT,
-    PROP_TYPE_ENUM,
-    PROP_TYPE_POINTER,
-    PROP_TYPE_COLLECTION,
-    NAME,
-    ITEMS,
-    BL_RNA,
-    FROM_ROOT,
-    RNA_TYPE,
-    EXTERNAL,
-    EXTERNAL_FIXED_TYPE_NAME,
-    NODE_TREE,
-    SCENES,
-    EXTERNAL_SCENE_ID,
 )
-
 from .id_data_getter import canonical_reference
 from .scene_info import export_scene_info
 
@@ -112,7 +112,7 @@ class Exporter:
         self,
         *,
         obj: bpy.types.bpy_struct,
-        assumed_type: Type[bpy.types.bpy_struct],
+        assumed_type: type[bpy.types.bpy_struct],
         from_root: FromRoot,
     ) -> dict[str, SIMPLE_DATA_TYPE]:
         data = {}
@@ -222,7 +222,7 @@ class Exporter:
             )
 
             # https://github.com/Algebraic-UG/tree_clipper/issues/96
-            def clamp_and_report(value: int | float) -> int | float:
+            def clamp_and_report(value: float) -> int | float:
                 # https://github.com/Algebraic-UG/tree_clipper/issues/162
                 if isinstance(obj, bpy.types.NodeTreeInterfaceSocket):
                     return value
@@ -310,9 +310,7 @@ class Exporter:
         items = [
             self._export_obj(
                 obj=element,
-                from_root=from_root.add(
-                    f"[{i}] ({getattr(attribute[i], NAME, 'unnamed')})"
-                ),
+                from_root=from_root.add(f"[{i}] ({getattr(element, NAME, 'unnamed')})"),
             )
             for i, element in enumerate(attribute)
         ]
@@ -712,7 +710,7 @@ class ExportIntermediate:
 
     def set_external(
         self,
-        ids_and_descriptions: Iterator[Tuple[int, str]],
+        ids_and_descriptions: Iterator[tuple[int, str]],
     ) -> None:
         assert not self.unexported_trees
         for external_id, description in ids_and_descriptions:

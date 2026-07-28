@@ -1,6 +1,6 @@
-import bpy
+from collections.abc import Callable
 
-from typing import Callable
+import bpy
 
 _ID_TYPE_TO_DATA_BLOCK: dict[str, Callable[[], bpy.types.bpy_prop_collection]] = {
     "ACTION": lambda: bpy.data.actions,

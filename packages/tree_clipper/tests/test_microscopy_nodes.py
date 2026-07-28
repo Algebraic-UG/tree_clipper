@@ -2,11 +2,10 @@ import bpy
 
 from .util import (
     BINARY_BLEND_FILES_DIR,
-    save_failed,
-    round_trip,
     make_everything_local,
+    round_trip,
+    save_failed,
 )
-
 
 _DIR = BINARY_BLEND_FILES_DIR / "microscopy_nodes"
 

@@ -36,7 +36,7 @@ dev = [
   "fake-bpy-module>=20251003",
   "pytest>=9.0.1",
   "deepdiff>=8.6.1",
-  "ruff>=0.14.10",
+  "ruff>=0.16.0",
   "ty>=0.0.3",
   "vendorize",
   "pip>=25.3",
@@ -55,12 +55,17 @@ norecursedirs = [".git", "build", "__pycache__", "_vendor"]
 target = "packages/tree_clipper_addon/src/tree_clipper_addon/_vendor"
 packages = ["packages/tree_clipper"]
 
-[[tool.uv.index]]
-name = "bpy"
-url = "https://bradyajohnston.github.io/dailybpy/"
+#[[tool.uv.index]]
+#name = "bpy"
+#url = "https://bradyajohnston.github.io/dailybpy/"
 
 [[tool.uv.index]]
 name = "testpypi"
 url = "https://test.pypi.org/simple/"
 publish-url = "https://test.pypi.org/legacy/"
 explicit = true
+
+[tool.ruff.lint]
+ignore = [
+  "SIM102" # > Nesting if statements harder to read -- I disagree!
+]

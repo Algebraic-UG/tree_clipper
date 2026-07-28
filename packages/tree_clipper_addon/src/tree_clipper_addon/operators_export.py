@@ -1,20 +1,18 @@
+from typing import TYPE_CHECKING, Any, ClassVar
+
 import bpy
 
-from typing import Any, TYPE_CHECKING
-
 if TYPE_CHECKING:
-    import bpy._typing.rna_enums as rna_enums  # type: ignore
+    from bpy._typing import rna_enums  # type: ignore
 
 
 from pathlib import Path
 
 from ._vendor.tree_clipper.common import DEFAULT_FILE, DEFAULT_HINT
-
+from ._vendor.tree_clipper.export_nodes import ExportIntermediate, ExportParameters
 from ._vendor.tree_clipper.specific_handlers import (
     BUILT_IN_EXPORTER,
 )
-from ._vendor.tree_clipper.export_nodes import ExportParameters, ExportIntermediate
-
 from .preferences import get_max_clipboard_bytes, get_show_advanced_options
 
 _INTERMEDIATE_EXPORT_CACHE = None
@@ -23,7 +21,7 @@ _INTERMEDIATE_EXPORT_CACHE = None
 class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_prepare"
     bl_label = "Export"
-    bl_options = {"REGISTER"}
+    bl_options: ClassVar[set[str]] = {"REGISTER"}  # ty:ignore[invalid-attribute-override]
 
     is_material: bpy.props.BoolProperty(name="Top level Material")  # type: ignore
     name: bpy.props.StringProperty(name="Material/NodeTree")  # type: ignore
@@ -72,7 +70,7 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
 class SCENE_OT_Tree_Clipper_Export_Modal(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_modal"
     bl_label = "Export Modal"
-    bl_options = set()
+    bl_options: ClassVar[set[str]] = set()  # ty:ignore[invalid-attribute-override]
 
     _timer = None
 
@@ -153,7 +151,7 @@ _FILE = "File"
 class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_cache"
     bl_label = "Export Cache"
-    bl_options = set()
+    bl_options: ClassVar[set[str]] = set()  # ty:ignore[invalid-attribute-override]
 
     clipboard_or_file: bpy.props.EnumProperty(items=[(_CLIPBOARD,) * 3, (_FILE,) * 3])  # type: ignore
     output_file: bpy.props.StringProperty(
@@ -173,7 +171,7 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
     ) -> set["rna_enums.OperatorReturnItems"]:
         self.external_items.clear()
         assert isinstance(_INTERMEDIATE_EXPORT_CACHE, ExportIntermediate)
-        for external_id in _INTERMEDIATE_EXPORT_CACHE.get_external().keys():
+        for external_id in _INTERMEDIATE_EXPORT_CACHE.get_external():
             item = self.external_items.add()
             item.external_id = external_id
         return context.window_manager.invoke_props_dialog(self, width=300)  # ty:ignore[possibly-missing-attribute]

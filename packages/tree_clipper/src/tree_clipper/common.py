@@ -1,10 +1,10 @@
-import bpy
-
-from types import NoneType
-from typing import Any, Callable, TYPE_CHECKING
-from pathlib import Path
 import tempfile
+from collections.abc import Callable
+from pathlib import Path
+from types import NoneType
+from typing import TYPE_CHECKING, Any
 
+import bpy
 
 if TYPE_CHECKING:
     from .export_nodes import Exporter
@@ -47,15 +47,13 @@ PROP_TYPE_STRING = "STRING"
 PROP_TYPE_ENUM = "ENUM"
 PROP_TYPE_POINTER = "POINTER"
 PROP_TYPE_COLLECTION = "COLLECTION"
-SIMPLE_PROPERTY_TYPES_AS_STRS = set(
-    [
-        PROP_TYPE_BOOLEAN,
-        PROP_TYPE_INT,
-        PROP_TYPE_FLOAT,
-        PROP_TYPE_STRING,
-        PROP_TYPE_ENUM,
-    ]
-)
+SIMPLE_PROPERTY_TYPES_AS_STRS = {
+    PROP_TYPE_BOOLEAN,
+    PROP_TYPE_INT,
+    PROP_TYPE_FLOAT,
+    PROP_TYPE_STRING,
+    PROP_TYPE_ENUM,
+}
 NODE_TREE = "node_tree"
 DIMENSIONS = "dimensions"
 
@@ -110,7 +108,7 @@ def most_specific_type_handled(
         return next(
             (
                 ty
-                for ty in specific_handlers.keys()
+                for ty in specific_handlers
                 if ty != NoneType and ty.bl_rna.identifier == obj.bl_rna.identifier  # type: ignore
             ),
             NoneType,
@@ -118,7 +116,7 @@ def most_specific_type_handled(
 
     ty = type(obj)
     while True:
-        if ty in specific_handlers.keys():
+        if ty in specific_handlers:
             return ty
         if len(ty.__bases__) == 0:
             return NoneType

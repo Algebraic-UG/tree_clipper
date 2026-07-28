@@ -1,20 +1,18 @@
+from collections.abc import Callable
+
+import bpy
+from tree_clipper.common import EXTERNAL_SERIALIZATION
+from tree_clipper.export_nodes import ExportIntermediate, ExportParameters, External
+from tree_clipper.import_nodes import ImportIntermediate, ImportParameters
+from tree_clipper.specific_handlers import BUILT_IN_EXPORTER, BUILT_IN_IMPORTER
+
 from tests.util import (
-    make_test_object,
     make_test_collection,
     make_test_node_tree,
+    make_test_object,
     make_test_sound,
     save_failed,
 )
-import bpy
-
-from typing import Callable
-
-from tree_clipper.common import EXTERNAL_SERIALIZATION
-from tree_clipper.import_nodes import ImportIntermediate, ImportParameters
-
-from tree_clipper.specific_handlers import BUILT_IN_EXPORTER, BUILT_IN_IMPORTER
-from tree_clipper.export_nodes import ExportIntermediate, ExportParameters, External
-
 
 _EXTERNAL_ITEM_MAKER: dict[str, Callable[[], bpy.types.ID]] = {
     "Image": lambda: bpy.data.images.new(name="test", width=10, height=10),
@@ -91,7 +89,7 @@ def _check_before_export(external_items: list[External]):
             == external_item.pointed_to_by.fixed_type_name
         )
 
-    for expected_external_type in _EXTERNAL_ITEM_MAKER.keys():
+    for expected_external_type in _EXTERNAL_ITEM_MAKER:
         assert (
             len(
                 [
@@ -115,7 +113,7 @@ def _check_before_import(external_items: list[EXTERNAL_SERIALIZATION]):
             external_item["fixed_type_name"]  # ty: ignore[invalid-argument-type]
         )
 
-    for expected_external_type in _EXTERNAL_ITEM_MAKER.keys():
+    for expected_external_type in _EXTERNAL_ITEM_MAKER:
         assert (
             len(
                 [

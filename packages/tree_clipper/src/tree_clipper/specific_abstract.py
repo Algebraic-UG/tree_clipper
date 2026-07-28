@@ -1,23 +1,22 @@
 from __future__ import annotations
 
-import bpy
-
-from types import NoneType
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Generic, TypeVar, ClassVar, Type
+from collections.abc import Callable
+from types import NoneType
+from typing import Any, ClassVar, TypeVar
 
+import bpy
 
 from .common import FromRoot, no_clobber
 from .export_nodes import Exporter
 from .import_nodes import GETTER, Importer
 
-
 AssumedType = TypeVar("AssumedType", bound=bpy.types.bpy_struct)
 
 
-def default_serializer(
+def default_serializer[T](
     _exporter: Exporter,
-    _obj: AssumedType,
+    _obj: T,
     _from_root: FromRoot,
 ) -> dict[str, Any]:
     return {}
@@ -41,7 +40,7 @@ _BUILT_IN_IMPORTER = {
 }
 
 
-class SpecificExporter(Generic[AssumedType], ABC):
+class SpecificExporter[AssumedType](ABC):
     """Helper class for specific exporting.
     One can also just define functions but this is more convenient.
 
@@ -67,7 +66,7 @@ class SpecificExporter(Generic[AssumedType], ABC):
     """
 
     # the concrete bpy type for this subclass, e.g. bpy.types.NodeTree
-    assumed_type: ClassVar[Type[AssumedType]]
+    assumed_type: ClassVar[type[AssumedType]]
 
     # this does three things
     # 1. fetch the type we want to treat and store it in `assumed_type`
@@ -80,7 +79,7 @@ class SpecificExporter(Generic[AssumedType], ABC):
         # Infer AssumedType from: class Foo(SpecificExporter[SomeType]):
         # it's a bit complicated to allow for multiple base classes
         # (if you wanted that for some reason)
-        assumed_type: Type[bpy.types.bpy_struct] | None = None
+        assumed_type: type[bpy.types.bpy_struct] | None = None
         for base in getattr(cls, "__orig_bases__", ()):
             origin = getattr(base, "__origin__", None)
             if origin is SpecificExporter:
@@ -165,7 +164,7 @@ class SpecificExporter(Generic[AssumedType], ABC):
         """Do the actual exporting here"""
 
 
-class SpecificImporter(Generic[AssumedType], ABC):
+class SpecificImporter[AssumedType](ABC):
     """Helper class for specific importing.
     One can also just define functions but this is more convenient.
 
@@ -192,7 +191,7 @@ class SpecificImporter(Generic[AssumedType], ABC):
     """
 
     # the concrete bpy type for this subclass, e.g. bpy.types.NodeTree
-    assumed_type: ClassVar[Type[AssumedType]]
+    assumed_type: ClassVar[type[AssumedType]]
 
     # this does three things
     # 1. fetch the type we want to treat and store it in `assumed_type`
@@ -205,7 +204,7 @@ class SpecificImporter(Generic[AssumedType], ABC):
         # Infer AssumedType from: class Foo(SpecificImporter[SomeType]):
         # it's a bit complicated to allow for multiple base classes
         # (if you wanted that for some reason)
-        assumed_type: Type[bpy.types.bpy_struct] | None = None
+        assumed_type: type[bpy.types.bpy_struct] | None = None
         for base in getattr(cls, "__orig_bases__", ()):
             origin = getattr(base, "__origin__", None)
             if origin is SpecificImporter:
@@ -254,7 +253,9 @@ class SpecificImporter(Generic[AssumedType], ABC):
         self.serialization = serialization
         self.from_root = from_root
 
-    def import_all_simple_writable_properties(self, forbidden: list[str] = []):
+    def import_all_simple_writable_properties(self, forbidden: list[str] | None = None):
+        if forbidden is None:
+            forbidden = []
         self.importer.import_all_simple_writable_properties(
             getter=self.getter,
             serialization=self.serialization,
@@ -276,9 +277,12 @@ class SpecificImporter(Generic[AssumedType], ABC):
         self.import_properties_from_id_list(id_list)
 
     def only_create_getters(self, id_list: list[str]):
+        def create_getter(identifier):
+            return lambda: getattr(self.getter(), identifier)
+
         for identifier in id_list:
             self.register_getter(
-                getter=lambda: getattr(self.getter(), identifier),
+                getter=create_getter(identifier),
                 serialization=self.serialization[identifier],
                 from_root=self.from_root.add_prop(
                     self.getter().bl_rna.properties[identifier]

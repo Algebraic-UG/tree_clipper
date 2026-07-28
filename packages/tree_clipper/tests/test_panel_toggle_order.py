@@ -1,5 +1,6 @@
 import bpy
-from .util import round_trip_without_external, make_test_node_tree, save_failed
+
+from .util import make_test_node_tree, round_trip_without_external, save_failed
 
 
 # https://github.com/Algebraic-UG/tree_clipper/issues/80

@@ -1,9 +1,6 @@
 import bpy
 
-from typing import Type
-
 from .common import no_clobber
-
 
 # TODO: we might need to return a list that fits the Blender version
 KNOWN_POINTABLES = {
@@ -75,7 +72,7 @@ KNOWN_POINTABLES = {
 
 def add_all_known_pointer_properties(
     *,
-    cls: Type[bpy.types.PropertyGroup],
+    cls: type[bpy.types.PropertyGroup],
     prefix: str,
 ):
     def get_pointer_property_name(ty: type):
@@ -105,6 +102,12 @@ def add_all_known_pointer_properties(
         self.active_ptr_type_name = type_name
         for ty in KNOWN_POINTABLES:
             setattr(self, get_pointer_property_name(ty), None)
+
+        # Otherwise, there might be no font to select
+        # https://github.com/Algebraic-UG/tree_clipper/issues/219
+        if type_name == "VectorFont" and not bpy.data.fonts:
+            text_curve = bpy.data.curves.new("Temp Text", type="FONT")
+            bpy.data.curves.remove(text_curve)
 
     # this is needed to display the property
     def get_active_pointer_identifier(self) -> str:

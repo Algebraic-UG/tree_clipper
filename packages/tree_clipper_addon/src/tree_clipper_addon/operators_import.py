@@ -1,22 +1,20 @@
-import bpy
 import time
+from typing import TYPE_CHECKING, Any, ClassVar
 
-from typing import Any, TYPE_CHECKING
+import bpy
 
 if TYPE_CHECKING:
-    import bpy._typing.rna_enums as rna_enums  # type: ignore
+    from bpy._typing import rna_enums  # type: ignore
 
 
 from pathlib import Path
 
-from ._vendor.tree_clipper.dynamic_pointer import add_all_known_pointer_properties
 from ._vendor.tree_clipper.common import DEFAULT_FILE
-
+from ._vendor.tree_clipper.dynamic_pointer import add_all_known_pointer_properties
+from ._vendor.tree_clipper.import_nodes import ImportIntermediate, ImportParameters
 from ._vendor.tree_clipper.specific_handlers import (
     BUILT_IN_IMPORTER,
 )
-from ._vendor.tree_clipper.import_nodes import ImportParameters, ImportIntermediate
-
 from .post_import import post_import
 from .preferences import get_show_advanced_options
 
@@ -27,7 +25,7 @@ TIMER = None
 class SCENE_OT_Tree_Clipper_Import_File_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_file_prepare"
     bl_label = "Import File"
-    bl_options = {"REGISTER"}
+    bl_options: ClassVar[set[str]] = {"REGISTER"}  # ty:ignore[invalid-attribute-override]
 
     input_file: bpy.props.StringProperty(
         name="Input File",
@@ -54,7 +52,7 @@ class SCENE_OT_Tree_Clipper_Import_File_Prepare(bpy.types.Operator):
 class SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_clipboard_prepare"
     bl_label = "Import Clipboard"
-    bl_options = {"REGISTER"}
+    bl_options: ClassVar[set[str]] = {"REGISTER"}  # ty:ignore[invalid-attribute-override]
 
     def execute(
         self, context: bpy.types.Context
@@ -105,7 +103,7 @@ class Tree_Clipper_External_Import_Items(bpy.types.PropertyGroup):
 class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_cache"
     bl_label = "Import Cache"
-    bl_options = set()
+    bl_options: ClassVar[set[str]] = set()  # ty:ignore[invalid-attribute-override]
 
     debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=False)  # type: ignore
 
@@ -141,7 +139,6 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
     def execute(
         self, context: bpy.types.Context
     ) -> set["rna_enums.OperatorReturnItems"]:
-        global _INTERMEDIATE_IMPORT_CACHE
         assert isinstance(_INTERMEDIATE_IMPORT_CACHE, ImportIntermediate)
         assert hasattr(context.scene, "tree_clipper_external_import_items")
         assert isinstance(
@@ -197,7 +194,7 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
 class SCENE_OT_Tree_Clipper_Import_Modal(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_modal"
     bl_label = "Import Modal"
-    bl_options = {"UNDO"}
+    bl_options: ClassVar[set[str]] = {"UNDO"}  # ty:ignore[invalid-attribute-override]
 
     _timer = None
 

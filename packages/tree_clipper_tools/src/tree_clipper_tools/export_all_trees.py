@@ -1,10 +1,10 @@
-from tree_clipper.specific_handlers import BUILT_IN_EXPORTER
-from tree_clipper.export_nodes import ExportIntermediate, ExportParameters
 import argparse
 from pathlib import Path
-import bpy
 
+import bpy
 from tree_clipper.common import NODE_TREE
+from tree_clipper.export_nodes import ExportIntermediate, ExportParameters
+from tree_clipper.specific_handlers import BUILT_IN_EXPORTER
 
 
 def _collect_sub_trees(
