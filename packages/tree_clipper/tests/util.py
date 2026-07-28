@@ -1,24 +1,24 @@
-import deepdiff
 import json
 from pathlib import Path
 from typing import Literal
-import bpy
 
+import bpy
+import deepdiff
 from tree_clipper.common import (
-    EXTERNAL_FIXED_TYPE_NAME,
-    EXTERNAL_DESCRIPTION,
-    EXTERNAL_SERIALIZATION,
-    DATA,
-    MATERIAL_NAME,
-    TREES,
-    NAME,
-    DEFAULT_HINT,
-    TREE_CLIPPER_VERSION,
-    CURRENT_TREE_CLIPPER_VERSION,
     BLENDER_VERSION,
+    CURRENT_TREE_CLIPPER_VERSION,
+    DATA,
+    DEFAULT_HINT,
+    EXTERNAL_DESCRIPTION,
+    EXTERNAL_FIXED_TYPE_NAME,
+    EXTERNAL_SERIALIZATION,
+    MATERIAL_NAME,
+    NAME,
+    TREE_CLIPPER_VERSION,
+    TREES,
 )
-from tree_clipper.id_data_getter import get_data_block_from_id_name
 from tree_clipper.export_nodes import ExportIntermediate, ExportParameters
+from tree_clipper.id_data_getter import get_data_block_from_id_name
 from tree_clipper.import_nodes import ImportIntermediate, ImportParameters, ImportReport
 from tree_clipper.specific_handlers import BUILT_IN_EXPORTER, BUILT_IN_IMPORTER
 

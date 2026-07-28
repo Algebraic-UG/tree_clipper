@@ -1,11 +1,10 @@
-import bpy
 import _rna_info as rna_info
-
+import bpy
 import pytest
 
-from .util import all_subclasses, BACKWARDS_COMPATIBILITY_FILES_DIR
 from .test_all_nodes import test_all_nodes
 from .test_backwards_compatibility import test_backwards_compatibility_to_0_1_1
+from .util import BACKWARDS_COMPATIBILITY_FILES_DIR, all_subclasses
 
 
 @pytest.fixture(autouse=True)

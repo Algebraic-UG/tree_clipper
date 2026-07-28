@@ -1,13 +1,12 @@
 import bpy
-
 from tree_clipper.import_nodes import ImportIntermediate, ImportParameters
 from tree_clipper.specific_handlers import BUILT_IN_EXPORTER, BUILT_IN_IMPORTER
 
 from .util import (
+    diff_exports,
+    export_to_string,
     make_test_node_tree,
     round_trip_without_external,
-    export_to_string,
-    diff_exports,
 )
 
 

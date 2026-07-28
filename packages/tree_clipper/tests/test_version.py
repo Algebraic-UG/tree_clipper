@@ -1,5 +1,5 @@
-from pathlib import Path
 import tomllib
+from pathlib import Path
 
 from tree_clipper.common import CURRENT_TREE_CLIPPER_VERSION
 

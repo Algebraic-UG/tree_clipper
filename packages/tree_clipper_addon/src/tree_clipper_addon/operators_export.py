@@ -1,20 +1,18 @@
+from typing import TYPE_CHECKING, Any
+
 import bpy
 
-from typing import Any, TYPE_CHECKING
-
 if TYPE_CHECKING:
-    import bpy._typing.rna_enums as rna_enums  # type: ignore
+    from bpy._typing import rna_enums  # type: ignore
 
 
 from pathlib import Path
 
 from ._vendor.tree_clipper.common import DEFAULT_FILE, DEFAULT_HINT
-
+from ._vendor.tree_clipper.export_nodes import ExportIntermediate, ExportParameters
 from ._vendor.tree_clipper.specific_handlers import (
     BUILT_IN_EXPORTER,
 )
-from ._vendor.tree_clipper.export_nodes import ExportParameters, ExportIntermediate
-
 from .preferences import get_max_clipboard_bytes, get_show_advanced_options
 
 _INTERMEDIATE_EXPORT_CACHE = None

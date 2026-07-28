@@ -1,8 +1,7 @@
+
 import bpy
 
-from typing import Type
-
-from .util import make_test_node_tree, save_failed, round_trip
+from .util import make_test_node_tree, round_trip, save_failed
 
 _PAIRED_NODE_TYPES = {
     bpy.types.GeometryNodeForeachGeometryElementInput: bpy.types.GeometryNodeForeachGeometryElementOutput,
@@ -12,7 +11,7 @@ _PAIRED_NODE_TYPES = {
 }
 
 
-def test_all_nodes(node_type: Type[bpy.types.Node]):
+def test_all_nodes(node_type: type[bpy.types.Node]):
     try:
         ignore = [
             bpy.types.NodeGroup,
@@ -51,7 +50,7 @@ def test_all_nodes(node_type: Type[bpy.types.Node]):
         tree.nodes.new(type=node_type_str)
 
         # these need to be tested in combination with the outputs
-        if node_type in _PAIRED_NODE_TYPES.keys():
+        if node_type in _PAIRED_NODE_TYPES:
             output_type = _PAIRED_NODE_TYPES[node_type]
             output_node = tree.nodes.new(type=output_type.bl_rna.identifier)  # ty: ignore[unresolved-attribute]
             tree.nodes[0].pair_with_output(output_node)

@@ -1,27 +1,25 @@
+from typing import Any
+
 import bpy
 
-from typing import Type, Any
-
+from .common import (
+    BL_IDNAME,
+    DATA,
+    DEFAULT_VALUE,
+    DIMENSIONS,
+    GETTER,
+    ID,
+    ITEMS,
+    NAME,
+    NODE_TREE,
+    no_clobber,
+)
+from .import_nodes import Importer
 from .specific_abstract import (
     _BUILT_IN_EXPORTER,
     _BUILT_IN_IMPORTER,
     SpecificExporter,
     SpecificImporter,
-)
-
-from .import_nodes import Importer
-
-from .common import (
-    DATA,
-    DIMENSIONS,
-    ID,
-    no_clobber,
-    ITEMS,
-    BL_IDNAME,
-    NAME,
-    DEFAULT_VALUE,
-    GETTER,
-    NODE_TREE,
 )
 
 # to help prevent typos, especially when used multiple times
@@ -112,7 +110,7 @@ SOCKET_IDNAME = "socket_idname"
 # this might not be needed anymore in many cases, because
 # due to https://github.com/Algebraic-UG/tree_clipper/issues/59
 # we don't skip defaults anymore
-def _or_default(serialization: dict, ty: Type[bpy.types.bpy_struct], identifier: str):
+def _or_default(serialization: dict, ty: type[bpy.types.bpy_struct], identifier: str):
     return serialization.get(identifier, ty.bl_rna.properties[identifier].default)  # ty: ignore[unresolved-attribute]
 
 
@@ -1538,7 +1536,7 @@ class RenderLayersImporter(SpecificImporter[bpy.types.CompositorNodeRLayers]):
             name = item.get(NAME, "unnamed")
             self.importer._import_obj(
                 getter=make_getter(i),
-                serialization=serialized_outputs[i],
+                serialization=item,
                 from_root=self.from_root.add(f"[{i}] ({name})"),
             )
 

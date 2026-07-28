@@ -1,9 +1,9 @@
 import bpy
 
 from .util import (
-    save_failed,
-    round_trip,
     NODE_ASSETS_DIR,
+    round_trip,
+    save_failed,
 )
 
 if (bpy.app.version[0] == 5 and bpy.app.version[1] >= 2) or bpy.app.version[0] > 5:

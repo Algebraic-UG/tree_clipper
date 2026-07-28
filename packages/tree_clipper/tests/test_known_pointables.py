@@ -1,7 +1,6 @@
-import deepdiff
-import bpy
 import _rna_info as rna_info
-
+import bpy
+import deepdiff
 from tree_clipper.dynamic_pointer import KNOWN_POINTABLES
 
 from .util import all_subclasses

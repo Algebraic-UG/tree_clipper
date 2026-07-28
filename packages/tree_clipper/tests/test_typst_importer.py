@@ -1,7 +1,6 @@
 import bpy
 
-from .util import BINARY_BLEND_FILES_DIR, save_failed, round_trip
-
+from .util import BINARY_BLEND_FILES_DIR, round_trip, save_failed
 
 _DIR = BINARY_BLEND_FILES_DIR / "typst_importer"
 

@@ -1,11 +1,7 @@
+
 import bpy
 
-from pathlib import Path
-
-from typing import Type
-
 from .common import no_clobber
-
 
 # TODO: we might need to return a list that fits the Blender version
 KNOWN_POINTABLES = {
@@ -77,7 +73,7 @@ KNOWN_POINTABLES = {
 
 def add_all_known_pointer_properties(
     *,
-    cls: Type[bpy.types.PropertyGroup],
+    cls: type[bpy.types.PropertyGroup],
     prefix: str,
 ):
     def get_pointer_property_name(ty: type):

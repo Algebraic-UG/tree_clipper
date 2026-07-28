@@ -1,10 +1,10 @@
-import bpy
-
-from types import NoneType
-from typing import Any, Callable, TYPE_CHECKING
-from pathlib import Path
 import tempfile
+from collections.abc import Callable
+from pathlib import Path
+from types import NoneType
+from typing import TYPE_CHECKING, Any
 
+import bpy
 
 if TYPE_CHECKING:
     from .export_nodes import Exporter
@@ -110,7 +110,7 @@ def most_specific_type_handled(
         return next(
             (
                 ty
-                for ty in specific_handlers.keys()
+                for ty in specific_handlers
                 if ty != NoneType and ty.bl_rna.identifier == obj.bl_rna.identifier  # type: ignore
             ),
             NoneType,
@@ -118,7 +118,7 @@ def most_specific_type_handled(
 
     ty = type(obj)
     while True:
-        if ty in specific_handlers.keys():
+        if ty in specific_handlers:
             return ty
         if len(ty.__bases__) == 0:
             return NoneType

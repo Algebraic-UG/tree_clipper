@@ -1,4 +1,4 @@
-from .util import round_trip_without_external, make_test_node_tree, save_failed
+from .util import make_test_node_tree, round_trip_without_external, save_failed
 
 
 def test_multi_input_order():

@@ -1,22 +1,20 @@
-import bpy
 import time
+from typing import TYPE_CHECKING, Any
 
-from typing import Any, TYPE_CHECKING
+import bpy
 
 if TYPE_CHECKING:
-    import bpy._typing.rna_enums as rna_enums  # type: ignore
+    from bpy._typing import rna_enums  # type: ignore
 
 
 from pathlib import Path
 
-from ._vendor.tree_clipper.dynamic_pointer import add_all_known_pointer_properties
 from ._vendor.tree_clipper.common import DEFAULT_FILE
-
+from ._vendor.tree_clipper.dynamic_pointer import add_all_known_pointer_properties
+from ._vendor.tree_clipper.import_nodes import ImportIntermediate, ImportParameters
 from ._vendor.tree_clipper.specific_handlers import (
     BUILT_IN_IMPORTER,
 )
-from ._vendor.tree_clipper.import_nodes import ImportParameters, ImportIntermediate
-
 from .post_import import post_import
 from .preferences import get_show_advanced_options
 
