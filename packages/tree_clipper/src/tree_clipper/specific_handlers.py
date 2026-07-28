@@ -1274,14 +1274,14 @@ class RerouteImporter(SpecificImporter[bpy.types.NodeReroute]):
 
 
 class CurveMapPointExporter(SpecificExporter[bpy.types.CurveMapPoint]):
-    f"""The container constructs them using the {LOCATION}"""
+    __doc__ = f"""The container constructs them using the {LOCATION}"""
 
     def serialize(self):
         return self.export_all_simple_writable_properties()
 
 
 class CurveMapPointsImporter(SpecificImporter[bpy.types.CurveMapPoints]):  # ty:ignore[invalid-type-arguments]
-    f"""The {LOCATION} needs to be picked apart into argumets
+    __doc__ = f"""The {LOCATION} needs to be picked apart into argumets
 and there are always at least two points.
 We remove all but two and skip first and last from the serialization."""
 
@@ -1308,7 +1308,7 @@ class CurveMappingImporter(SpecificImporter[bpy.types.CurveMapping]):
 class ConvertToDisplayImporter(
     SpecificImporter[bpy.types.CompositorNodeConvertToDisplay]
 ):
-    f"""The properties on this one are special.
+    __doc__ = f"""The properties on this one are special.
 The properties of the pointees {DISPLAY_SETTINGS} and {VIEW_SETTINGS} are set implicitly
 by setting certain enums values.
 They also have an implicit ordering, first the display needs to be set, then the view."""
@@ -1344,7 +1344,7 @@ class NodeEvaluateClosureImporter(SpecificImporter[bpy.types.NodeEvaluateClosure
 class EvalClosureInputItemExporter(
     SpecificExporter[bpy.types.NodeEvaluateClosureInputItem]
 ):
-    f"""We need {SOCKET_TYPE} and {NAME}, both are simple & writable"""
+    __doc__ = f"""We need {SOCKET_TYPE} and {NAME}, both are simple & writable"""
 
     def serialize(self):
         return self.export_all_simple_writable_properties()
@@ -1364,7 +1364,7 @@ class EvalClosureInputItemsImporter(
 class EvalClosureOutputItemExporter(
     SpecificExporter[bpy.types.NodeEvaluateClosureOutputItem]
 ):
-    f"""We need {SOCKET_TYPE} and {NAME}, both are simple & writable"""
+    __doc__ = f"""We need {SOCKET_TYPE} and {NAME}, both are simple & writable"""
 
     def serialize(self):
         return self.export_all_simple_writable_properties()
@@ -1455,7 +1455,7 @@ class SeparateBundleItemsImporter(SpecificImporter[bpy.types.NodeSeparateBundleI
 
 
 class RenderLayersExporter(SpecificExporter[bpy.types.CompositorNodeRLayers]):
-    f"""We skip the {LAYER} if the {SCENE} is not set.
+    __doc__ = f"""We skip the {LAYER} if the {SCENE} is not set.
 {LAYER} is an empty string in that case and we can't set that during import."""
 
     def serialize(self):
@@ -1654,7 +1654,7 @@ class MainItemsImporter(
 
 
 class BakeExporter(SpecificExporter[bpy.types.GeometryNodeBake]):
-    f"""We need to specialize to avoid {ACTIVE_ITEM}, which is broken
+    __doc__ = f"""We need to specialize to avoid {ACTIVE_ITEM}, which is broken
 https://projects.blender.org/blender/blender/issues/151276"""
 
     def serialize(self):
@@ -1688,7 +1688,7 @@ class BackeItemsImporter(SpecificImporter[bpy.types.NodeGeometryBakeItems]):  # 
 
 
 class FieldToGridExporter(SpecificExporter[bpy.types.GeometryNodeFieldToGrid]):
-    f"""We need to specialize to avoid {ACTIVE_ITEM}, which is broken
+    __doc__ = f"""We need to specialize to avoid {ACTIVE_ITEM}, which is broken
 https://projects.blender.org/blender/blender/issues/151276"""
 
     def serialize(self):
