@@ -55,9 +55,9 @@ norecursedirs = [".git", "build", "__pycache__", "_vendor"]
 target = "packages/tree_clipper_addon/src/tree_clipper_addon/_vendor"
 packages = ["packages/tree_clipper"]
 
-[[tool.uv.index]]
-name = "bpy"
-url = "https://bradyajohnston.github.io/dailybpy/"
+#[[tool.uv.index]]
+#name = "bpy"
+#url = "https://bradyajohnston.github.io/dailybpy/"
 
 [[tool.uv.index]]
 name = "testpypi"
