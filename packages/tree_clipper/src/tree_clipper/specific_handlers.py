@@ -302,7 +302,7 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
             name = _or_default(data, ty, NAME)
             description = _or_default(data, ty, DESCRIPTION)
 
-            def get_parent() -> None | bpy.types.NodeTreeInterfacePanel:
+            def get_parent(data) -> None | bpy.types.NodeTreeInterfacePanel:
                 if PARENT_INDEX in data:
                     parent_index = data[PARENT_INDEX]
                     assert parent_index < len(self.getter().items_tree)
@@ -322,7 +322,7 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
                     description=description,
                     in_out=_or_default(data, ty, "in_out"),
                     socket_type=data[SOCKET_TYPE],
-                    parent=get_parent(),
+                    parent=get_parent(data),
                 )
                 if isinstance(new_item, bpy.types.NodeTreeInterfaceSocketBool):
                     new_item.is_panel_toggle = data[IS_PANEL_TOGGLE]
@@ -334,7 +334,7 @@ class InterfaceImporter(SpecificImporter[bpy.types.NodeTreeInterface]):
                     description=description,
                     default_closed=_or_default(data, ty, DEFAULT_CLOSED),
                 )
-                parent = get_parent()
+                parent = get_parent(data)
                 if parent is not None:
                     self.getter().move_to_parent(
                         item=new_item,

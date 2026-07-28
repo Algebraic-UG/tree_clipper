@@ -277,9 +277,12 @@ class SpecificImporter[AssumedType](ABC):
         self.import_properties_from_id_list(id_list)
 
     def only_create_getters(self, id_list: list[str]):
+        def create_getter(identifier):
+            return lambda: getattr(self.getter(), identifier)
+
         for identifier in id_list:
             self.register_getter(
-                getter=lambda: getattr(self.getter(), identifier),
+                getter=create_getter(identifier),
                 serialization=self.serialization[identifier],
                 from_root=self.from_root.add_prop(
                     self.getter().bl_rna.properties[identifier]
