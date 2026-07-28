@@ -1,5 +1,5 @@
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import bpy
 
@@ -25,7 +25,7 @@ TIMER = None
 class SCENE_OT_Tree_Clipper_Import_File_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_file_prepare"
     bl_label = "Import File"
-    bl_options = {"REGISTER"}
+    bl_options: ClassVar[set[str]] = {"REGISTER"}  # ty:ignore[invalid-attribute-override]
 
     input_file: bpy.props.StringProperty(
         name="Input File",
@@ -52,7 +52,7 @@ class SCENE_OT_Tree_Clipper_Import_File_Prepare(bpy.types.Operator):
 class SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_clipboard_prepare"
     bl_label = "Import Clipboard"
-    bl_options = {"REGISTER"}
+    bl_options: ClassVar[set[str]] = {"REGISTER"}  # ty:ignore[invalid-attribute-override]
 
     def execute(
         self, context: bpy.types.Context
@@ -103,7 +103,7 @@ class Tree_Clipper_External_Import_Items(bpy.types.PropertyGroup):
 class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_cache"
     bl_label = "Import Cache"
-    bl_options = set()
+    bl_options: ClassVar[set[str]] = set()  # ty:ignore[invalid-attribute-override]
 
     debug_prints: bpy.props.BoolProperty(name="Debug on Console", default=False)  # type: ignore
 
@@ -195,7 +195,7 @@ class SCENE_OT_Tree_Clipper_Import_Cache(bpy.types.Operator):
 class SCENE_OT_Tree_Clipper_Import_Modal(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_modal"
     bl_label = "Import Modal"
-    bl_options = {"UNDO"}
+    bl_options: ClassVar[set[str]] = {"UNDO"}  # ty:ignore[invalid-attribute-override]
 
     _timer = None
 

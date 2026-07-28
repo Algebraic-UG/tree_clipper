@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import bpy
 
@@ -21,7 +21,7 @@ _INTERMEDIATE_EXPORT_CACHE = None
 class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_prepare"
     bl_label = "Export"
-    bl_options = {"REGISTER"}
+    bl_options: ClassVar[set[str]] = {"REGISTER"}  # ty:ignore[invalid-attribute-override]
 
     is_material: bpy.props.BoolProperty(name="Top level Material")  # type: ignore
     name: bpy.props.StringProperty(name="Material/NodeTree")  # type: ignore
@@ -70,7 +70,7 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
 class SCENE_OT_Tree_Clipper_Export_Modal(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_modal"
     bl_label = "Export Modal"
-    bl_options = set()
+    bl_options: ClassVar[set[str]] = set()  # ty:ignore[invalid-attribute-override]
 
     _timer = None
 
@@ -151,7 +151,7 @@ _FILE = "File"
 class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_cache"
     bl_label = "Export Cache"
-    bl_options = set()
+    bl_options: ClassVar[set[str]] = set()  # ty:ignore[invalid-attribute-override]
 
     clipboard_or_file: bpy.props.EnumProperty(items=[(_CLIPBOARD,) * 3, (_FILE,) * 3])  # type: ignore
     output_file: bpy.props.StringProperty(
