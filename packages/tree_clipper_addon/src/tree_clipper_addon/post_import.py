@@ -59,7 +59,9 @@ def post_import(
                 self.layout.label(text="Could not attached the root to current editor:")
                 self.layout.label(text=failure_reason)
                 self.layout.separator()
-                self.layout.label(text="Please check the INFO for the imported trees.")
+                self.layout.label(
+                    text="Please check the INFO window for the imported trees."
+                )
 
             bpy.context.window_manager.popup_menu(  # ty:ignore[possibly-missing-attribute]
                 draw, title="Where's My Import?", icon="INFO"
