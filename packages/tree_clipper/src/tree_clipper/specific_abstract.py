@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from types import NoneType
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar, Generic, TypeVar
 
 import bpy
 
@@ -14,9 +14,11 @@ from .import_nodes import GETTER, Importer
 AssumedType = TypeVar("AssumedType", bound=bpy.types.bpy_struct)
 
 
-def default_serializer[T](
+# https://github.com/Algebraic-UG/tree_clipper/issues/222
+# ruff: ignore[UP047]
+def default_serializer(
     _exporter: Exporter,
-    _obj: T,
+    _obj: AssumedType,
     _from_root: FromRoot,
 ) -> dict[str, Any]:
     return {}
@@ -40,7 +42,9 @@ _BUILT_IN_IMPORTER = {
 }
 
 
-class SpecificExporter[AssumedType](ABC):
+# https://github.com/Algebraic-UG/tree_clipper/issues/222
+# ruff: ignore[UP046]
+class SpecificExporter(ABC, Generic[AssumedType]):
     """Helper class for specific exporting.
     One can also just define functions but this is more convenient.
 
@@ -164,7 +168,9 @@ class SpecificExporter[AssumedType](ABC):
         """Do the actual exporting here"""
 
 
-class SpecificImporter[AssumedType](ABC):
+# https://github.com/Algebraic-UG/tree_clipper/issues/222
+# ruff: ignore[UP046]
+class SpecificImporter(ABC, Generic[AssumedType]):
     """Helper class for specific importing.
     One can also just define functions but this is more convenient.
 
