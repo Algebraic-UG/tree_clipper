@@ -14,6 +14,8 @@ from .import_nodes import GETTER, Importer
 AssumedType = TypeVar("AssumedType", bound=bpy.types.bpy_struct)
 
 
+# https://github.com/Algebraic-UG/tree_clipper/issues/222
+# ruff: ignore[UP047]
 def default_serializer(
     _exporter: Exporter,
     _obj: AssumedType,
@@ -40,6 +42,8 @@ _BUILT_IN_IMPORTER = {
 }
 
 
+# https://github.com/Algebraic-UG/tree_clipper/issues/222
+# ruff: ignore[UP046]
 class SpecificExporter(ABC, Generic[AssumedType]):
     """Helper class for specific exporting.
     One can also just define functions but this is more convenient.
@@ -164,6 +168,8 @@ class SpecificExporter(ABC, Generic[AssumedType]):
         """Do the actual exporting here"""
 
 
+# https://github.com/Algebraic-UG/tree_clipper/issues/222
+# ruff: ignore[UP046]
 class SpecificImporter(ABC, Generic[AssumedType]):
     """Helper class for specific importing.
     One can also just define functions but this is more convenient.
