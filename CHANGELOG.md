@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.10] - 2026-08-11
+
+Patch release to allow install in Blender 5.0.
+
+### Fixed
+- Prior fixes for issues flagged by ruff only work in Python 3.13.
+
 ## [0.1.9] - 2026-07-28
 
 Patch release to aid importing trees containing fonts and a few internal code changes.
