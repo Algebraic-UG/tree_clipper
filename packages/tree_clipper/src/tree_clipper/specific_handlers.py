@@ -105,8 +105,12 @@ SAMPLE_ATTRIBUTE_ITEMS = "sample_attribute_items"
 OPERATION = "operation"
 SUBSURFACE_METHOD = "subsurface_method"
 SOCKET_IDNAME = "socket_idname"
+PANEL_STATES = "panel_states"
 
-NODE_GENERIC_COLLECTIONS = [INPUTS, OUTPUTS]
+if (bpy.app.version[0] == 5 and bpy.app.version[1] >= 2) or bpy.app.version[0] > 5:
+    NODE_GENERIC_COLLECTIONS = [INPUTS, OUTPUTS, PANEL_STATES]
+else:
+    NODE_GENERIC_COLLECTIONS = [INPUTS, OUTPUTS]
 
 
 # this might not be needed anymore in many cases, because
