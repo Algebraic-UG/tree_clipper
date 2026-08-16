@@ -1671,7 +1671,7 @@ class BakeItemExporter(SpecificExporter[bpy.types.NodeGeometryBakeItem]):
         return self.export_all_simple_writable_properties()
 
 
-class BackeItemsImporter(SpecificImporter[bpy.types.NodeGeometryBakeItems]):  # ty:ignore[invalid-type-arguments]
+class BakeItemsImporter(SpecificImporter[bpy.types.NodeGeometryBakeItems]):  # ty:ignore[invalid-type-arguments]
     def deserialize(self):
         self.getter().clear()
         for item in self.serialization[ITEMS]:
@@ -1730,7 +1730,7 @@ class FileOutputItemExporter(SpecificExporter[bpy.types.NodeCompositorFileOutput
         return self.export_all_simple_writable_properties_and_list([FORMAT])
 
 
-class FileOutputItmesImporter(
+class FileOutputItemsImporter(
     SpecificImporter[bpy.types.NodeCompositorFileOutputItems]  # ty:ignore[invalid-type-arguments]
 ):
     def deserialize(self):
