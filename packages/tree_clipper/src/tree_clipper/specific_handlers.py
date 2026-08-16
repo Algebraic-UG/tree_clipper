@@ -106,6 +106,8 @@ OPERATION = "operation"
 SUBSURFACE_METHOD = "subsurface_method"
 SOCKET_IDNAME = "socket_idname"
 
+NODE_GENERIC_COLLECTIONS = [INPUTS, OUTPUTS]
+
 
 # this might not be needed anymore in many cases, because
 # due to https://github.com/Algebraic-UG/tree_clipper/issues/59
@@ -399,7 +401,7 @@ class TreePanelImporter(SpecificImporter[bpy.types.NodeTreeInterfacePanel]):
 class NodeExporter(SpecificExporter[bpy.types.Node]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME],
             [PARENT],
         )
 
@@ -414,14 +416,14 @@ class NodeImporter(SpecificImporter[bpy.types.Node]):
         if OPERATION in self.serialization:
             self.import_properties_from_id_list([OPERATION])
 
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        self.import_all_simple_writable_properties_and_list(NODE_GENERIC_COLLECTIONS)
         _import_node_parent(self)
 
 
 class CompositorNodeGroupImporter(SpecificImporter[bpy.types.CompositorNodeGroup]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
-            [NODE_TREE, INPUTS, OUTPUTS]
+            [NODE_TREE] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -429,7 +431,7 @@ class CompositorNodeGroupImporter(SpecificImporter[bpy.types.CompositorNodeGroup
 class GeometryNodeGroupImporter(SpecificImporter[bpy.types.GeometryNodeGroup]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
-            [NODE_TREE, INPUTS, OUTPUTS]
+            [NODE_TREE] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -437,7 +439,7 @@ class GeometryNodeGroupImporter(SpecificImporter[bpy.types.GeometryNodeGroup]):
 class ShaderNodeGroupImporter(SpecificImporter[bpy.types.ShaderNodeGroup]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
-            [NODE_TREE, INPUTS, OUTPUTS]
+            [NODE_TREE] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -445,7 +447,7 @@ class ShaderNodeGroupImporter(SpecificImporter[bpy.types.ShaderNodeGroup]):
 class TextureNodeGroupImporter(SpecificImporter[bpy.types.TextureNodeGroup]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
-            [NODE_TREE, INPUTS, OUTPUTS]
+            [NODE_TREE] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -641,7 +643,7 @@ class LinkImporter(SpecificImporter[bpy.types.NodeLink]):
 class MenuSwitchExporter(SpecificExporter[bpy.types.GeometryNodeMenuSwitch]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME, ENUM_ITEMS],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME, ENUM_ITEMS],
             [PARENT],
         )
 
@@ -650,7 +652,7 @@ class MenuSwitchImporter(SpecificImporter[bpy.types.GeometryNodeMenuSwitch]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the enum_items implicitly create sockets
-            [ENUM_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS],
+            [ENUM_ITEMS, ACTIVE_INDEX] + NODE_GENERIC_COLLECTIONS,
         )
         _import_node_parent(self)
 
@@ -669,7 +671,7 @@ class SwitchImporter(SpecificImporter[bpy.types.GeometryNodeSwitch]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the input_type resets sockets
-            [INPUT_TYPE, INPUTS, OUTPUTS],
+            [INPUT_TYPE] + NODE_GENERIC_COLLECTIONS,
         )
         _import_node_parent(self)
 
@@ -677,7 +679,7 @@ class SwitchImporter(SpecificImporter[bpy.types.GeometryNodeSwitch]):
 class CaptureAttrExporter(SpecificExporter[bpy.types.GeometryNodeCaptureAttribute]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME, CAPTURE_ITEMS],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME, CAPTURE_ITEMS],
             [PARENT],
         )
 
@@ -698,7 +700,7 @@ class CameraInfoImporter(SpecificImporter[bpy.types.GeometryNodeCameraInfo]):
             # https://github.com/Algebraic-UG/tree_clipper/issues/212
             self.serialization[OUTPUTS][DATA][ITEMS][2][DATA][DEFAULT_VALUE].pop()
             self.serialization[OUTPUTS][DATA][ITEMS][3][DATA][DEFAULT_VALUE].pop()
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        self.import_all_simple_writable_properties_and_list(NODE_GENERIC_COLLECTIONS)
         _import_node_parent(self)
 
 
@@ -725,7 +727,7 @@ class FindInStringImporter(SpecificImporter[bpy.types.FunctionNodeFindInString])
         if compat_5_1(self.importer):
             # https://github.com/Algebraic-UG/tree_clipper/issues/182
             self.serialization[INPUTS][DATA][ITEMS].insert(2, FAKE_MODE_SOCKET)
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        self.import_all_simple_writable_properties_and_list(NODE_GENERIC_COLLECTIONS)
         _import_node_parent(self)
 
 
@@ -734,7 +736,7 @@ class InputStringImporter(SpecificImporter[bpy.types.FunctionNodeInputString]):
         if compat_5_1(self.importer):
             # https://github.com/Algebraic-UG/tree_clipper/issues/211
             self.serialization[TEXTBOX_STATE] = None
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        self.import_all_simple_writable_properties_and_list(NODE_GENERIC_COLLECTIONS)
         _import_node_parent(self)
 
 
@@ -779,7 +781,7 @@ class ValueToStringImporter(SpecificImporter[bpy.types.FunctionNodeValueToString
             # https://github.com/Algebraic-UG/tree_clipper/issues/197
             self.serialization[INPUTS][DATA][ITEMS].insert(2, FAKE_BASE_SOCKET)
             self.serialization[INPUTS][DATA][ITEMS].insert(3, FAKE_PADDING_SOCKET)
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        self.import_all_simple_writable_properties_and_list(NODE_GENERIC_COLLECTIONS)
         _import_node_parent(self)
 
 
@@ -788,7 +790,7 @@ class StringToValueImporter(SpecificImporter[bpy.types.FunctionNodeStringToValue
         if compat_5_1(self.importer):
             # https://github.com/Algebraic-UG/tree_clipper/issues/198
             self.serialization[INPUTS][DATA][ITEMS].insert(1, FAKE_BASE_SOCKET)
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        self.import_all_simple_writable_properties_and_list(NODE_GENERIC_COLLECTIONS)
         _import_node_parent(self)
 
 
@@ -817,7 +819,7 @@ class SubdivisionSurfaceImporter(
         if compat_5_1(self.importer):
             # https://github.com/Algebraic-UG/tree_clipper/issues/210
             self.serialization[INPUTS][DATA][ITEMS].insert(5, FAKE_QUALITY_SOCKET)
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        self.import_all_simple_writable_properties_and_list(NODE_GENERIC_COLLECTIONS)
         _import_node_parent(self)
 
 
@@ -846,7 +848,7 @@ class PrincipledBSDFImporter(SpecificImporter[bpy.types.ShaderNodeBsdfPrincipled
             self.serialization[INPUTS][DATA][ITEMS].insert(5, FAKE_THIN_WALL_SOCKET)
             if self.serialization[SUBSURFACE_METHOD] == "RANDOM_WALK":
                 self.serialization[SUBSURFACE_METHOD] = "RANDOM_WALK_LEGACY"
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        self.import_all_simple_writable_properties_and_list(NODE_GENERIC_COLLECTIONS)
         _import_node_parent(self)
 
 
@@ -877,7 +879,7 @@ class CaptureAttrImporter(SpecificImporter[bpy.types.GeometryNodeCaptureAttribut
 
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the capture_items implicitly create sockets
-            [CAPTURE_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS],
+            [CAPTURE_ITEMS, ACTIVE_INDEX] + NODE_GENERIC_COLLECTIONS,
         )
         _import_node_parent(self)
 
@@ -902,7 +904,7 @@ class CaptureAttrItemsImporter(
 class RepeatInputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatInput]):
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME],
             [PARENT],
         )
         if self.obj.paired_output is None:
@@ -929,7 +931,7 @@ class RepeatInputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatInput]):
                 raise RuntimeError(
                     f"{self.from_root.to_str()}: failed to pair with {output}"
                 )
-            self.import_properties_from_id_list([INPUTS, OUTPUTS])
+            self.import_properties_from_id_list(NODE_GENERIC_COLLECTIONS)
 
         # defer connection until we've created the output node
         # only then, import the sockets
@@ -940,7 +942,7 @@ class RepeatInputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatInput]):
 class RepeatOutputExporter(SpecificExporter[bpy.types.GeometryNodeRepeatOutput]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME, REPEAT_ITEMS],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME, REPEAT_ITEMS],
             [PARENT],
         )
 
@@ -949,7 +951,7 @@ class RepeatOutputImporter(SpecificImporter[bpy.types.GeometryNodeRepeatOutput])
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the repeat_items implicitly create sockets
-            [REPEAT_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
+            [REPEAT_ITEMS, ACTIVE_INDEX] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -972,7 +974,7 @@ class IndexSwitchImporter(SpecificImporter[bpy.types.GeometryNodeIndexSwitch]):
 
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
-            [INDEX_SWITCH_ITEMS, INPUTS, OUTPUTS]
+            [INDEX_SWITCH_ITEMS] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -994,7 +996,7 @@ class IndexItemsImporter(SpecificImporter[bpy.types.NodeIndexSwitchItems]):  # t
 class ViewerSpecificExporter(SpecificExporter[bpy.types.GeometryNodeViewer]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME, VIEWER_ITEMS],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME, VIEWER_ITEMS],
             [PARENT],
         )
 
@@ -1003,7 +1005,7 @@ class ViewerImporter(SpecificImporter[bpy.types.GeometryNodeViewer]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the viewer_items implicitly create sockets
-            [VIEWER_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS],
+            [VIEWER_ITEMS, ACTIVE_INDEX] + NODE_GENERIC_COLLECTIONS,
         )
         _import_node_parent(self)
 
@@ -1069,7 +1071,7 @@ color ramps need at least one element"""
 class SimulationInputExporter(SpecificExporter[bpy.types.GeometryNodeSimulationInput]):
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME],
             [PARENT],
         )
         if self.obj.paired_output is None:
@@ -1096,7 +1098,7 @@ class SimulationInputImporter(SpecificImporter[bpy.types.GeometryNodeSimulationI
                 raise RuntimeError(
                     f"{self.from_root.to_str()}: failed to pair with {output}"
                 )
-            self.import_properties_from_id_list([INPUTS, OUTPUTS])
+            self.import_properties_from_id_list(NODE_GENERIC_COLLECTIONS)
 
         # defer connection until we've created the output node
         # only then, import the sockets
@@ -1109,7 +1111,7 @@ class SimulationOutputExporter(
 ):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME, STATE_ITEMS],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME, STATE_ITEMS],
             [PARENT],
         )
 
@@ -1120,7 +1122,7 @@ class SimulationOutputImporter(
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the state_items implicitly create sockets
-            [STATE_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
+            [STATE_ITEMS, ACTIVE_INDEX] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -1143,7 +1145,7 @@ class SimulationOutputItemsImporter(
 class NodeClosureInputExporter(SpecificExporter[bpy.types.NodeClosureInput]):
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME],
             [PARENT],
         )
         if self.obj.paired_output is None:
@@ -1170,7 +1172,7 @@ class NodeClosureInputImporter(SpecificImporter[bpy.types.NodeClosureInput]):
                 raise RuntimeError(
                     f"{self.from_root.to_str()}: failed to pair with {output}"
                 )
-            self.import_properties_from_id_list([INPUTS, OUTPUTS])
+            self.import_properties_from_id_list(NODE_GENERIC_COLLECTIONS)
 
         # defer connection until we've created the output node
         # only then, import the sockets
@@ -1181,7 +1183,7 @@ class NodeClosureInputImporter(SpecificImporter[bpy.types.NodeClosureInput]):
 class NodeClosureOutputExporter(SpecificExporter[bpy.types.NodeClosureOutput]):
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME, INPUT_ITEMS, OUTPUT_ITEMS],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME, INPUT_ITEMS, OUTPUT_ITEMS],
             [PARENT],
         )
 
@@ -1190,14 +1192,8 @@ class NodeClosureOutputImporter(SpecificImporter[bpy.types.NodeClosureOutput]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the items implicitly create sockets
-            [
-                INPUT_ITEMS,
-                OUTPUT_ITEMS,
-                ACTIVE_INPUT_INDEX,
-                ACTIVE_OUTPUT_INDEX,
-                INPUTS,
-                OUTPUTS,
-            ]
+            [INPUT_ITEMS, OUTPUT_ITEMS, ACTIVE_INPUT_INDEX, ACTIVE_OUTPUT_INDEX]
+            + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -1314,7 +1310,7 @@ by setting certain enums values.
 They also have an implicit ordering, first the display needs to be set, then the view."""
 
     def deserialize(self):
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        self.import_all_simple_writable_properties_and_list(NODE_GENERIC_COLLECTIONS)
         _import_node_parent(self)
 
         display_device = self.serialization[DISPLAY_SETTINGS][DATA][DISPLAY_DEVICE]
@@ -1329,14 +1325,8 @@ class NodeEvaluateClosureImporter(SpecificImporter[bpy.types.NodeEvaluateClosure
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the input_items and output_items implicitly create sockets
-            [
-                INPUT_ITEMS,
-                OUTPUT_ITEMS,
-                ACTIVE_INPUT_INDEX,
-                ACTIVE_OUTPUT_INDEX,
-                INPUTS,
-                OUTPUTS,
-            ]
+            [INPUT_ITEMS, OUTPUT_ITEMS, ACTIVE_INPUT_INDEX, ACTIVE_OUTPUT_INDEX]
+            + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -1385,7 +1375,7 @@ class FormatStringNodeImporter(SpecificImporter[bpy.types.FunctionNodeFormatStri
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the format_items implicitly create sockets
-            [FORMAT_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
+            [FORMAT_ITEMS, ACTIVE_INDEX] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -1412,7 +1402,7 @@ class CombineBundleImporter(SpecificImporter[bpy.types.NodeCombineBundle]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the bundle_items implicitly create sockets
-            [BUNDLE_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
+            [BUNDLE_ITEMS, ACTIVE_INDEX] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -1435,7 +1425,7 @@ class SeparateBundleImporter(SpecificImporter[bpy.types.NodeSeparateBundle]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the bundle_items implicitly create sockets
-            [BUNDLE_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
+            [BUNDLE_ITEMS, ACTIVE_INDEX] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -1546,7 +1536,7 @@ class ForEachInputExporter(
 ):
     def serialize(self):
         data = self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME],
             [PARENT],
         )
         if self.obj.paired_output is None:
@@ -1575,7 +1565,7 @@ class ForEachInputImporter(
                 raise RuntimeError(
                     f"{self.from_root.to_str()}: failed to pair with {output}"
                 )
-            self.import_properties_from_id_list([INPUTS, OUTPUTS])
+            self.import_properties_from_id_list(NODE_GENERIC_COLLECTIONS)
 
         # defer connection until we've created the output node
         # only then, import the sockets
@@ -1596,9 +1586,8 @@ class ForEachOutputImporter(
                 ACTIVE_GENERATION_INDEX,
                 ACTIVE_INPUT_INDEX,
                 ACTIVE_MAIN_INDEX,
-                INPUTS,
-                OUTPUTS,
             ]
+            + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -1659,7 +1648,7 @@ https://projects.blender.org/blender/blender/issues/151276"""
 
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME, BAKE_ITEMS],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME, BAKE_ITEMS],
             [PARENT],
         )
 
@@ -1668,7 +1657,7 @@ class BakeImporter(SpecificImporter[bpy.types.GeometryNodeBake]):
     def deserialize(self) -> None:
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the bake_items implicitly create sockets
-            [BAKE_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
+            [BAKE_ITEMS, ACTIVE_INDEX] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -1693,7 +1682,7 @@ https://projects.blender.org/blender/blender/issues/151276"""
 
     def serialize(self):
         return self.export_all_simple_writable_properties_and_list(
-            [INPUTS, OUTPUTS, BL_IDNAME, GRID_ITEMS],
+            NODE_GENERIC_COLLECTIONS + [BL_IDNAME, GRID_ITEMS],
             [PARENT],
         )
 
@@ -1702,7 +1691,7 @@ class FieldToGridImporter(SpecificImporter[bpy.types.GeometryNodeFieldToGrid]):
     def deserialize(self) -> None:
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the grid_items implicitly create sockets
-            [GRID_ITEMS, ACTIVE_INDEX, INPUTS, OUTPUTS]
+            [GRID_ITEMS, ACTIVE_INDEX] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -1727,7 +1716,7 @@ class FileOutputImporter(SpecificImporter[bpy.types.CompositorNodeOutputFile]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the file_output_items implicitly create sockets
-            [FILE_OUTPUT_ITEMS, ACTIVE_ITEM_INDEX, FORMAT, INPUTS, OUTPUTS]
+            [FILE_OUTPUT_ITEMS, ACTIVE_ITEM_INDEX, FORMAT] + NODE_GENERIC_COLLECTIONS
         )
         _import_node_parent(self)
 
@@ -1752,7 +1741,7 @@ class SetMeshNormalImporter(SpecificImporter[bpy.types.GeometryNodeSetMeshNormal
     """We need to trigger the import of mode first"""
 
     def deserialize(self) -> None:
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        self.import_all_simple_writable_properties_and_list(NODE_GENERIC_COLLECTIONS)
         _import_node_parent(self)
 
 
@@ -1771,7 +1760,7 @@ class CompareImporter(SpecificImporter[bpy.types.FunctionNodeCompare]):
     """We need to trigger the choices first"""
 
     def deserialize(self) -> None:
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        self.import_all_simple_writable_properties_and_list(NODE_GENERIC_COLLECTIONS)
         _import_node_parent(self)
 
 
@@ -1779,7 +1768,7 @@ class RotateEulerImporter(SpecificImporter[bpy.types.FunctionNodeRotateEuler]):
     """We need to trigger the import of rotation_type first"""
 
     def deserialize(self) -> None:
-        self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
+        self.import_all_simple_writable_properties_and_list(NODE_GENERIC_COLLECTIONS)
         _import_node_parent(self)
 
 
@@ -1788,7 +1777,7 @@ if (bpy.app.version[0] == 5 and bpy.app.version[1] >= 1) or bpy.app.version[0] >
     class FieldToListExporter(SpecificExporter[bpy.types.GeometryNodeFieldToList]):
         def serialize(self):
             return self.export_all_simple_writable_properties_and_list(
-                [INPUTS, OUTPUTS, BL_IDNAME, LIST_ITEMS],
+                NODE_GENERIC_COLLECTIONS + [BL_IDNAME, LIST_ITEMS],
                 [PARENT],
             )
 
@@ -1819,7 +1808,7 @@ if (bpy.app.version[0] == 5 and bpy.app.version[1] >= 1) or bpy.app.version[0] >
     class CryptomatteExporter(SpecificExporter[bpy.types.CompositorNodeCryptomatte]):
         def serialize(self):
             data = self.export_all_simple_writable_properties_and_list(
-                [INPUTS, OUTPUTS, BL_IDNAME],
+                NODE_GENERIC_COLLECTIONS + [BL_IDNAME],
                 [PARENT],
             )
             # https://github.com/Algebraic-UG/tree_clipper/issues/165
@@ -1832,7 +1821,7 @@ if (bpy.app.version[0] == 5 and bpy.app.version[1] >= 1) or bpy.app.version[0] >
     ):
         def serialize(self):
             data = self.export_all_simple_writable_properties_and_list(
-                [INPUTS, OUTPUTS, BL_IDNAME, ENTRIES],
+                NODE_GENERIC_COLLECTIONS + [BL_IDNAME, ENTRIES],
                 [PARENT, IMAGE, SCENE],
             )
             # https://github.com/Algebraic-UG/tree_clipper/issues/165
