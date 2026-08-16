@@ -430,7 +430,9 @@ class NodeImporter(SpecificImporter[bpy.types.Node]):
         if OPERATION in self.serialization:
             self.import_properties_from_id_list([OPERATION])
 
-        self.import_all_simple_writable_properties_and_list(_node_generic_collections(self))
+        self.import_all_simple_writable_properties_and_list(
+            _node_generic_collections(self)
+        )
         _import_node_parent(self)
 
 
@@ -714,7 +716,9 @@ class CameraInfoImporter(SpecificImporter[bpy.types.GeometryNodeCameraInfo]):
             # https://github.com/Algebraic-UG/tree_clipper/issues/212
             self.serialization[OUTPUTS][DATA][ITEMS][2][DATA][DEFAULT_VALUE].pop()
             self.serialization[OUTPUTS][DATA][ITEMS][3][DATA][DEFAULT_VALUE].pop()
-        self.import_all_simple_writable_properties_and_list(_node_generic_collections(self))
+        self.import_all_simple_writable_properties_and_list(
+            _node_generic_collections(self)
+        )
         _import_node_parent(self)
 
 
@@ -741,7 +745,9 @@ class FindInStringImporter(SpecificImporter[bpy.types.FunctionNodeFindInString])
         if compat_5_1(self.importer):
             # https://github.com/Algebraic-UG/tree_clipper/issues/182
             self.serialization[INPUTS][DATA][ITEMS].insert(2, FAKE_MODE_SOCKET)
-        self.import_all_simple_writable_properties_and_list(_node_generic_collections(self))
+        self.import_all_simple_writable_properties_and_list(
+            _node_generic_collections(self)
+        )
         _import_node_parent(self)
 
 
@@ -750,7 +756,9 @@ class InputStringImporter(SpecificImporter[bpy.types.FunctionNodeInputString]):
         if compat_5_1(self.importer):
             # https://github.com/Algebraic-UG/tree_clipper/issues/211
             self.serialization[TEXTBOX_STATE] = None
-        self.import_all_simple_writable_properties_and_list(_node_generic_collections(self))
+        self.import_all_simple_writable_properties_and_list(
+            _node_generic_collections(self)
+        )
         _import_node_parent(self)
 
 
@@ -795,7 +803,9 @@ class ValueToStringImporter(SpecificImporter[bpy.types.FunctionNodeValueToString
             # https://github.com/Algebraic-UG/tree_clipper/issues/197
             self.serialization[INPUTS][DATA][ITEMS].insert(2, FAKE_BASE_SOCKET)
             self.serialization[INPUTS][DATA][ITEMS].insert(3, FAKE_PADDING_SOCKET)
-        self.import_all_simple_writable_properties_and_list(_node_generic_collections(self))
+        self.import_all_simple_writable_properties_and_list(
+            _node_generic_collections(self)
+        )
         _import_node_parent(self)
 
 
@@ -804,7 +814,9 @@ class StringToValueImporter(SpecificImporter[bpy.types.FunctionNodeStringToValue
         if compat_5_1(self.importer):
             # https://github.com/Algebraic-UG/tree_clipper/issues/198
             self.serialization[INPUTS][DATA][ITEMS].insert(1, FAKE_BASE_SOCKET)
-        self.import_all_simple_writable_properties_and_list(_node_generic_collections(self))
+        self.import_all_simple_writable_properties_and_list(
+            _node_generic_collections(self)
+        )
         _import_node_parent(self)
 
 
@@ -833,7 +845,9 @@ class SubdivisionSurfaceImporter(
         if compat_5_1(self.importer):
             # https://github.com/Algebraic-UG/tree_clipper/issues/210
             self.serialization[INPUTS][DATA][ITEMS].insert(5, FAKE_QUALITY_SOCKET)
-        self.import_all_simple_writable_properties_and_list(_node_generic_collections(self))
+        self.import_all_simple_writable_properties_and_list(
+            _node_generic_collections(self)
+        )
         _import_node_parent(self)
 
 
@@ -862,7 +876,9 @@ class PrincipledBSDFImporter(SpecificImporter[bpy.types.ShaderNodeBsdfPrincipled
             self.serialization[INPUTS][DATA][ITEMS].insert(5, FAKE_THIN_WALL_SOCKET)
             if self.serialization[SUBSURFACE_METHOD] == "RANDOM_WALK":
                 self.serialization[SUBSURFACE_METHOD] = "RANDOM_WALK_LEGACY"
-        self.import_all_simple_writable_properties_and_list(_node_generic_collections(self))
+        self.import_all_simple_writable_properties_and_list(
+            _node_generic_collections(self)
+        )
         _import_node_parent(self)
 
 
@@ -1324,7 +1340,9 @@ by setting certain enums values.
 They also have an implicit ordering, first the display needs to be set, then the view."""
 
     def deserialize(self):
-        self.import_all_simple_writable_properties_and_list(_node_generic_collections(self))
+        self.import_all_simple_writable_properties_and_list(
+            _node_generic_collections(self)
+        )
         _import_node_parent(self)
 
         display_device = self.serialization[DISPLAY_SETTINGS][DATA][DISPLAY_DEVICE]
@@ -1730,7 +1748,8 @@ class FileOutputImporter(SpecificImporter[bpy.types.CompositorNodeOutputFile]):
     def deserialize(self):
         self.import_all_simple_writable_properties_and_list(
             # ordering is important, the file_output_items implicitly create sockets
-            [FILE_OUTPUT_ITEMS, ACTIVE_ITEM_INDEX, FORMAT] + _node_generic_collections(self)
+            [FILE_OUTPUT_ITEMS, ACTIVE_ITEM_INDEX, FORMAT]
+            + _node_generic_collections(self)
         )
         _import_node_parent(self)
 
@@ -1755,7 +1774,9 @@ class SetMeshNormalImporter(SpecificImporter[bpy.types.GeometryNodeSetMeshNormal
     """We need to trigger the import of mode first"""
 
     def deserialize(self) -> None:
-        self.import_all_simple_writable_properties_and_list(_node_generic_collections(self))
+        self.import_all_simple_writable_properties_and_list(
+            _node_generic_collections(self)
+        )
         _import_node_parent(self)
 
 
@@ -1774,7 +1795,9 @@ class CompareImporter(SpecificImporter[bpy.types.FunctionNodeCompare]):
     """We need to trigger the choices first"""
 
     def deserialize(self) -> None:
-        self.import_all_simple_writable_properties_and_list(_node_generic_collections(self))
+        self.import_all_simple_writable_properties_and_list(
+            _node_generic_collections(self)
+        )
         _import_node_parent(self)
 
 
@@ -1782,7 +1805,9 @@ class RotateEulerImporter(SpecificImporter[bpy.types.FunctionNodeRotateEuler]):
     """We need to trigger the import of rotation_type first"""
 
     def deserialize(self) -> None:
-        self.import_all_simple_writable_properties_and_list(_node_generic_collections(self))
+        self.import_all_simple_writable_properties_and_list(
+            _node_generic_collections(self)
+        )
         _import_node_parent(self)
 
 
