@@ -14,6 +14,7 @@ from .common import (
     NODE_TREE,
     no_clobber,
 )
+from .export_nodes import Exporter
 from .import_nodes import Importer
 from .specific_abstract import (
     _BUILT_IN_EXPORTER,
@@ -416,6 +417,42 @@ class NodeImporter(SpecificImporter[bpy.types.Node]):
 
         self.import_all_simple_writable_properties_and_list([INPUTS, OUTPUTS])
         _import_node_parent(self)
+
+
+_node_panel_state_type: Any = getattr(bpy.types, "NodePanelState", None)
+if _node_panel_state_type is not None:
+
+    def _export_node_panel_state(
+        exporter: Exporter,
+        obj: bpy.types.bpy_struct,
+        from_root,
+    ):
+        # `identifier` is intentionally omitted. It matches the interface
+        # panel's read-only persistent UID, which may change when an interface
+        # containing gaps in its UIDs is recreated on import. The collection
+        # order follows the interface panel order.
+        return exporter.export_all_simple_writable_properties(
+            obj=obj,
+            assumed_type=_node_panel_state_type,
+            from_root=from_root,
+        )
+
+    def _import_node_panel_state(
+        importer: Importer,
+        getter: GETTER,
+        serialization: dict[str, Any],
+        from_root,
+    ):
+        importer.import_all_simple_writable_properties(
+            getter=getter,
+            serialization=serialization,
+            assumed_type=_node_panel_state_type,
+            forbidden=[],
+            from_root=from_root,
+        )
+
+    no_clobber(_BUILT_IN_EXPORTER, _node_panel_state_type, _export_node_panel_state)
+    no_clobber(_BUILT_IN_IMPORTER, _node_panel_state_type, _import_node_panel_state)
 
 
 class CompositorNodeGroupImporter(SpecificImporter[bpy.types.CompositorNodeGroup]):

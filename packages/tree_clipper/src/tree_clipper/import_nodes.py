@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from operator import xor
 from pathlib import Path
 from types import NoneType
-from typing import Any
+from typing import Any, cast
 
 import bpy
 
@@ -28,6 +28,7 @@ from .common import (
     MAGIC_STRING,
     MATERIAL_NAME,
     NAME,
+    PANEL_STATES,
     PROP_TYPE_COLLECTION,
     PROP_TYPE_ENUM,
     PROP_TYPE_POINTER,
@@ -410,6 +411,18 @@ From root: {from_root.to_str()}"""
             from_root: FromRoot,
         ) -> None:
             specific_handler(importer, getter, serialization, from_root)
+
+            # Panel declarations can depend on node-specific properties and
+            # sockets, so restore their UI state only after the specific node
+            # handler has finished rebuilding the node.
+            if isinstance(getter(), bpy.types.Node) and PANEL_STATES in serialization:
+                prop = getter().bl_rna.properties[PANEL_STATES]
+                self._import_property_collection(
+                    getter=getter,
+                    prop=cast(bpy.types.CollectionProperty, prop),
+                    serialization=serialization[PANEL_STATES],
+                    from_root=from_root.add_prop(prop),
+                )
 
             for identifier in unhandled_prop_ids:
                 prop = getter().bl_rna.properties[identifier]

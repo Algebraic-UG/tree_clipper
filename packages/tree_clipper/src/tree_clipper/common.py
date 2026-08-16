@@ -55,6 +55,7 @@ SIMPLE_PROPERTY_TYPES_AS_STRS = {
     PROP_TYPE_ENUM,
 }
 NODE_TREE = "node_tree"
+PANEL_STATES = "panel_states"
 DIMENSIONS = "dimensions"
 
 

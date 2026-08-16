@@ -29,6 +29,7 @@ from .common import (
     MATERIAL_NAME,
     NAME,
     NODE_TREE,
+    PANEL_STATES,
     PROP_TYPE_BOOLEAN,
     PROP_TYPE_COLLECTION,
     PROP_TYPE_ENUM,
@@ -482,6 +483,26 @@ From root: {from_root.to_str()}"""
             from_root: FromRoot,
         ) -> dict[str, Any]:
             data = specific_handler(exporter, obj, from_root)
+
+            # Blender 5.2 exposes the open/closed state of interface panels as
+            # a read-only collection on every node. It has to be requested
+            # explicitly because a node's specific handler owns all inherited
+            # Node properties. Avoid writing an empty collection for the many
+            # nodes that do not have panels.
+            if isinstance(obj, bpy.types.Node) and hasattr(obj, PANEL_STATES):
+                panel_states = getattr(obj, PANEL_STATES)
+                if len(panel_states) > 0:
+                    prop = obj.bl_rna.properties[PANEL_STATES]
+                    no_clobber(
+                        data,
+                        prop.identifier,
+                        exporter._export_property_collection(
+                            obj=obj,
+                            prop=cast(bpy.types.CollectionProperty, prop),
+                            from_root=from_root.add_prop(prop),
+                        ),
+                    )
+
             for prop in unhandled_properties:
                 from_root_prop = from_root.add_prop(prop)
 
