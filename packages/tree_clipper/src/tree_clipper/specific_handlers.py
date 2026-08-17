@@ -2,6 +2,8 @@ from typing import Any
 
 import bpy
 
+from tree_clipper.common import version_at_least
+
 from .common import (
     BL_IDNAME,
     DATA,
@@ -116,10 +118,13 @@ else:
 
 
 def _node_generic_collections(specific_importer: SpecificImporter) -> list[str]:
-    if (
-        specific_importer.importer.blender_version[0] > 5
-        or specific_importer.importer.blender_version[1] >= 2
-    ):
+    blender_version_has_panels = version_at_least(
+        specific_importer.importer.blender_version, [5, 2, 0]
+    )
+    tree_clipper_exported_panels = version_at_least(
+        specific_importer.importer.tree_clipper_version, [0, 1, 11]
+    )
+    if blender_version_has_panels and tree_clipper_exported_panels:
         return [INPUTS, OUTPUTS, PANEL_STATES]
     else:
         return [INPUTS, OUTPUTS]

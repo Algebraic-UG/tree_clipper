@@ -1,6 +1,6 @@
 [project]
 name = "tree-clipper"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = []
 maintainers = [
     { name="Algebraic", email="tree.clipper@algebraic.games" },

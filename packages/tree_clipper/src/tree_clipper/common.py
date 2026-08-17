@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 # these fields are in the top level JSON object
 BLENDER_VERSION = "blender_version"
 TREE_CLIPPER_VERSION = "tree_clipper_version"
-CURRENT_TREE_CLIPPER_VERSION = "0.1.10"  # tested to match pyproject.toml
+CURRENT_TREE_CLIPPER_VERSION = "0.1.11"  # tested to match pyproject.toml
 MATERIAL_NAME = "name"
 TREES = "node_trees"
 EXTERNAL = "external"
@@ -123,6 +123,20 @@ def most_specific_type_handled(
         if len(ty.__bases__) > 1:
             raise RuntimeError(f"multiple inheritence {ty}, unclear what to choose")
         ty = ty.__bases__[0]
+
+
+def version_at_least(
+    version: list[int] | tuple[int, int, int], at_least: list[int]
+) -> bool:
+    if version[0] > at_least[0]:
+        return True
+    if version[0] < at_least[0]:
+        return False
+    if version[1] > at_least[1]:
+        return True
+    if version[1] < at_least[1]:
+        return False
+    return version[2] >= at_least[2]
 
 
 GETTER = Callable[[], bpy.types.bpy_struct]
