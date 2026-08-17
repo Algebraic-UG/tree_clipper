@@ -107,6 +107,8 @@ SUBSURFACE_METHOD = "subsurface_method"
 SOCKET_IDNAME = "socket_idname"
 PANEL_STATES = "panel_states"
 
+
+# https://github.com/Algebraic-UG/tree_clipper/issues/46
 if (bpy.app.version[0] == 5 and bpy.app.version[1] >= 2) or bpy.app.version[0] > 5:
     NODE_GENERIC_COLLECTIONS = [INPUTS, OUTPUTS, PANEL_STATES]
 else:
