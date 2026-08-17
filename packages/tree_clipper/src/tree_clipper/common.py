@@ -125,6 +125,18 @@ def most_specific_type_handled(
         ty = ty.__bases__[0]
 
 
+def version_at_least(version: list[int], at_least: list[int]) -> bool:
+    if version[0] > at_least[0]:
+        return True
+    if version[0] < at_least[0]:
+        return False
+    if version[1] > at_least[1]:
+        return True
+    if version[1] < at_least[1]:
+        return False
+    return version[2] >= at_least[2]
+
+
 GETTER = Callable[[], bpy.types.bpy_struct]
 SERIALIZER = Callable[["Exporter", bpy.types.bpy_struct, FromRoot], dict[str, Any]]
 DESERIALIZER = Callable[["Importer", GETTER, dict, FromRoot], None]

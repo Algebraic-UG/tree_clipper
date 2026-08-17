@@ -66,11 +66,13 @@ class Importer:
         self,
         *,
         blender_version: list[int],
+        tree_clipper_version: list[int],
         specific_handlers: dict[type, DESERIALIZER],
         getters: dict[int, GETTER],
         debug_prints: bool,
     ) -> None:
         self.blender_version = blender_version
+        self.tree_clipper_version = tree_clipper_version
 
         self.specific_handlers = specific_handlers
         self.getters = getters
@@ -649,17 +651,21 @@ class ImportIntermediate:
                 assert int(external_id) in self.getters
 
     def start_import(self, parameters: ImportParameters) -> None:
-        version_cycle = self.data[BLENDER_VERSION].split(" ")
-        blender_version = [int(v) for v in version_cycle[0].split(".")]
+        blender_version_cycle = self.data[BLENDER_VERSION].split(" ")
+        blender_version = [int(v) for v in blender_version_cycle[0].split(".")]
+        tree_clipper_version = [
+            int(v) for v in self.data[TREE_CLIPPER_VERSION][0].split(".")
+        ]
         self.importer = Importer(
             blender_version=blender_version,
+            tree_clipper_version=tree_clipper_version,
             specific_handlers=parameters.specific_handlers,
             getters=self.getters,
             debug_prints=parameters.debug_prints,
         )
-        if len(version_cycle) > 1 and version_cycle[1] != "LTS":
+        if len(blender_version_cycle) > 1 and blender_version_cycle[1] != "LTS":
             self.importer.report.warnings.append(
-                f"This was exported from a Blender {version_cycle[1]} version."
+                f"This was exported from a Blender {blender_version_cycle[1]} version."
             )
 
     def step(self) -> bool:
