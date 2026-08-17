@@ -1,5 +1,4 @@
 import bpy
-
 from tree_clipper.common import version_at_least
 from tree_clipper.import_nodes import ImportIntermediate, ImportParameters
 from tree_clipper.specific_handlers import BUILT_IN_IMPORTER
@@ -9,7 +8,6 @@ from .util import (
     make_test_node_tree,
     save_failed,
 )
-
 
 if version_at_least(bpy.app.version, [5, 2, 0]):
 
