@@ -654,7 +654,7 @@ class ImportIntermediate:
         blender_version_cycle = self.data[BLENDER_VERSION].split(" ")
         blender_version = [int(v) for v in blender_version_cycle[0].split(".")]
         tree_clipper_version = [
-            int(v) for v in self.data[TREE_CLIPPER_VERSION][0].split(".")
+            int(v) for v in self.data[TREE_CLIPPER_VERSION].split(".")
         ]
         self.importer = Importer(
             blender_version=blender_version,
