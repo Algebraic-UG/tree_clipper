@@ -125,7 +125,9 @@ def most_specific_type_handled(
         ty = ty.__bases__[0]
 
 
-def version_at_least(version: list[int], at_least: list[int]) -> bool:
+def version_at_least(
+    version: list[int] | tuple[int, int, int], at_least: list[int]
+) -> bool:
     if version[0] > at_least[0]:
         return True
     if version[0] < at_least[0]:
