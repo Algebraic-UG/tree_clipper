@@ -13,7 +13,9 @@
 
 import bpy
 
+from .context_menu import draw_tree_clipper_context_menu
 from .operators_export import (
+    SCENE_OT_Tree_Clipper_Copy_Magic_Node_String,
     SCENE_OT_Tree_Clipper_Export_Cache,
     SCENE_OT_Tree_Clipper_Export_Modal,
     SCENE_OT_Tree_Clipper_Export_Prepare,
@@ -38,6 +40,7 @@ classes = [
     SCENE_OT_Tree_Clipper_Export_Cache,
     SCENE_OT_Tree_Clipper_Export_Modal,
     SCENE_OT_Tree_Clipper_Export_Prepare,
+    SCENE_OT_Tree_Clipper_Copy_Magic_Node_String,
     Tree_Clipper_External_Import_Item,
     Tree_Clipper_External_Import_Items,
     SCENE_UL_Tree_Clipper_External_Import_List,
@@ -58,9 +61,11 @@ def register() -> None:
     bpy.types.Scene.tree_clipper_external_import_items = bpy.props.PointerProperty(  # ty: ignore[unresolved-attribute]
         type=Tree_Clipper_External_Import_Items
     )
+    bpy.types.NODE_MT_context_menu.append(draw_tree_clipper_context_menu)
 
 
 def unregister() -> None:
+    bpy.types.NODE_MT_context_menu.remove(draw_tree_clipper_context_menu)
     del bpy.types.Scene.tree_clipper_external_import_items  # ty: ignore[unresolved-attribute]
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

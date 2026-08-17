@@ -18,6 +18,22 @@ from .preferences import get_max_clipboard_bytes, get_show_advanced_options
 _INTERMEDIATE_EXPORT_CACHE = None
 
 
+def _copy_export_to_clipboard(
+    context: bpy.types.Context, intermediate: ExportIntermediate
+) -> None:
+    string = intermediate.export_to_str(compress=True, json_indent=0)
+
+    # https://github.com/Algebraic-UG/tree_clipper/issues/134
+    if len(string.encode("utf-8")) > get_max_clipboard_bytes():
+        raise RuntimeError(
+            f"The export exceeds the clipboard limit ({get_max_clipboard_bytes()}) set in the addon preferences."
+        )
+
+    window_manager = context.window_manager
+    assert window_manager is not None
+    window_manager.clipboard = string
+
+
 class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_prepare"
     bl_label = "Export"
@@ -67,12 +83,55 @@ class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
         self.layout.prop(self, "write_from_roots")  # ty:ignore[possibly-missing-attribute]
 
 
+class SCENE_OT_Tree_Clipper_Copy_Magic_Node_String(bpy.types.Operator):
+    bl_idname = "scene.tree_clipper_copy_magic_node_string"
+    bl_label = "Copy Magic Node String"
+    bl_description = "Copy this node group's compressed Tree Clipper string"
+    bl_options: ClassVar[set[str]] = {"REGISTER"}  # ty:ignore[invalid-attribute-override]
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        node = getattr(context, "active_node", None)
+        return (
+            isinstance(context.space_data, bpy.types.SpaceNodeEditor)
+            and node is not None
+            and node.type == "GROUP"
+            and node.node_tree is not None
+        )
+
+    def execute(
+        self, context: bpy.types.Context
+    ) -> set["rna_enums.OperatorReturnItems"]:
+        global _INTERMEDIATE_EXPORT_CACHE
+        node = context.active_node
+        assert node is not None and node.type == "GROUP"
+        node_tree = node.node_tree  # ty:ignore[unresolved-attribute]
+        assert node_tree is not None
+        _INTERMEDIATE_EXPORT_CACHE = ExportIntermediate(
+            ExportParameters(
+                is_material=False,
+                name=node_tree.name,
+                specific_handlers=BUILT_IN_EXPORTER,
+                export_sub_trees=True,
+                debug_prints=False,
+                write_from_roots=False,
+            )
+        )
+
+        bpy.ops.scene.tree_clipper_export_modal(  # ty:ignore[unresolved-attribute]
+            "INVOKE_DEFAULT", direct_to_clipboard=True
+        )
+        return {"FINISHED"}
+
+
 class SCENE_OT_Tree_Clipper_Export_Modal(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_modal"
     bl_label = "Export Modal"
     bl_options: ClassVar[set[str]] = set()  # ty:ignore[invalid-attribute-override]
 
     _timer = None
+
+    direct_to_clipboard: bpy.props.BoolProperty(default=False)  # type: ignore
 
     def invoke(
         self, context: bpy.types.Context, event: bpy.types.Event
@@ -108,8 +167,18 @@ class SCENE_OT_Tree_Clipper_Export_Modal(bpy.types.Operator):
         for warning in _INTERMEDIATE_EXPORT_CACHE.exporter.report.warnings:
             self.report({"WARNING"}, warning)
 
-        # seems impossible to use bl_idname here
-        bpy.ops.scene.tree_clipper_export_cache("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
+        if self.direct_to_clipboard:
+            try:
+                _copy_export_to_clipboard(context, _INTERMEDIATE_EXPORT_CACHE)
+            except RuntimeError as error:
+                self.report({"ERROR"}, str(error))
+                _INTERMEDIATE_EXPORT_CACHE = None
+                return {"CANCELLED"}
+            _INTERMEDIATE_EXPORT_CACHE = None
+            self.report({"INFO"}, "Magic Node string copied to clipboard")
+        else:
+            # seems impossible to use bl_idname here
+            bpy.ops.scene.tree_clipper_export_cache("INVOKE_DEFAULT")  # ty: ignore[unresolved-attribute]
         return {"FINISHED"}
 
 
@@ -191,19 +260,20 @@ class SCENE_OT_Tree_Clipper_Export_Cache(bpy.types.Operator):
             if not external_item.skip
         )
         if clipboard:
-            string = _INTERMEDIATE_EXPORT_CACHE.export_to_str(
-                compress=compress,
-                json_indent=self.json_indent,
-            )
-
-            # https://github.com/Algebraic-UG/tree_clipper/issues/134
-            utf8 = string.encode("utf-8")
-            if len(utf8) > get_max_clipboard_bytes():
-                raise RuntimeError(
-                    f"The export exceeds the clipboard limit ({get_max_clipboard_bytes()}) set in the addon preferences."
+            if compress:
+                _copy_export_to_clipboard(context, _INTERMEDIATE_EXPORT_CACHE)
+            else:
+                string = _INTERMEDIATE_EXPORT_CACHE.export_to_str(
+                    compress=False,
+                    json_indent=self.json_indent,
                 )
-
-            bpy.context.window_manager.clipboard = utf8  # ty:ignore[invalid-assignment]
+                if len(string.encode("utf-8")) > get_max_clipboard_bytes():
+                    raise RuntimeError(
+                        f"The export exceeds the clipboard limit ({get_max_clipboard_bytes()}) set in the addon preferences."
+                    )
+                window_manager = context.window_manager
+                assert window_manager is not None
+                window_manager.clipboard = string
         else:
             _INTERMEDIATE_EXPORT_CACHE.export_to_file(
                 file_path=Path(self.output_file),
