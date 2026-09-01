@@ -11,7 +11,11 @@ from pathlib import Path
 
 from ._vendor.tree_clipper.common import DEFAULT_FILE
 from ._vendor.tree_clipper.dynamic_pointer import add_all_known_pointer_properties
-from ._vendor.tree_clipper.import_nodes import ImportIntermediate, ImportParameters
+from ._vendor.tree_clipper.import_nodes import (
+    ImportIntermediate,
+    ImportParameters,
+    preliminary_check,
+)
 from ._vendor.tree_clipper.specific_handlers import (
     BUILT_IN_IMPORTER,
 )
@@ -55,6 +59,10 @@ class SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare(bpy.types.Operator):
     bl_label = "Import Clipboard"
     bl_description = "Import a Tree Clipper string from the clipboard."
     bl_options: ClassVar[set[str]] = {"REGISTER"}  # ty:ignore[invalid-attribute-override]
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        return preliminary_check(bpy.context.window_manager.clipboard)  # ty:ignore[unresolved-attribute]
 
     def execute(
         self, context: bpy.types.Context
