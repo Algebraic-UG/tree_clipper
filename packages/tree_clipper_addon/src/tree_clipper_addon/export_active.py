@@ -11,7 +11,9 @@ from .operators_import import (
 class SCENE_OT_Tree_Clipper_Export_Active(bpy.types.Operator):
     bl_label = "Export Tree Clipper"
     bl_idname = "scene.tree_clipper_export_active"
-    bl_description = "Export the selected and active node group as a compressed Tree Clipper string to the clipboard."
+    bl_description = (
+        "Export the selected and active node group as a Tree Clipper string."
+    )
 
     @classmethod
     def poll(cls, context: bpy.types.Context) -> bool:
