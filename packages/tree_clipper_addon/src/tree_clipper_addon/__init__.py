@@ -13,6 +13,7 @@
 
 import bpy
 
+from .export_active import SCENE_OT_Tree_Clipper_Export_Active
 from .operators_export import (
     SCENE_OT_Tree_Clipper_Export_Cache,
     SCENE_OT_Tree_Clipper_Export_Modal,
@@ -46,8 +47,20 @@ classes = [
     SCENE_OT_Tree_Clipper_Import_File_Prepare,
     SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare,
     SCENE_PT_Tree_Clipper_Panel,
+    SCENE_OT_Tree_Clipper_Export_Active,
     TreeClipperPreferences,
 ]
+
+
+def draw_export_active(self, _context):
+    self.layout.operator(SCENE_OT_Tree_Clipper_Export_Active.bl_idname)
+
+
+def draw_import(self, _context):
+    self.layout.operator(
+        SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare.bl_idname,
+        text="Import Tree Clipper",
+    )
 
 
 def register() -> None:
@@ -58,9 +71,13 @@ def register() -> None:
     bpy.types.Scene.tree_clipper_external_import_items = bpy.props.PointerProperty(  # ty: ignore[unresolved-attribute]
         type=Tree_Clipper_External_Import_Items
     )
+    bpy.types.NODE_MT_context_menu.append(draw_import)
+    bpy.types.NODE_MT_context_menu.append(draw_export_active)
 
 
 def unregister() -> None:
+    bpy.types.NODE_MT_context_menu.remove(draw_export_active)
+    bpy.types.NODE_MT_context_menu.remove(draw_import)
     del bpy.types.Scene.tree_clipper_external_import_items  # ty: ignore[unresolved-attribute]
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
