@@ -5,7 +5,6 @@ from .operators_import import (
     SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare,
     SCENE_OT_Tree_Clipper_Import_File_Prepare,
 )
-from ._vendor.tree_clipper.import_nodes import preliminary_check
 
 
 class SCENE_PT_Tree_Clipper_Panel(bpy.types.Panel):

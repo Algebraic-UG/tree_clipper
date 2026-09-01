@@ -699,4 +699,4 @@ class ImportIntermediate:
 
 
 def preliminary_check(string: str) -> bool:
-    return string.startswith(MAGIC_STRING) or string.startswith("{")
+    return string.startswith((MAGIC_STRING, "{"))
