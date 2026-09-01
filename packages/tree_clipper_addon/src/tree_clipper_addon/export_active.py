@@ -1,12 +1,5 @@
 import bpy
 
-from .operators_export import SCENE_OT_Tree_Clipper_Export_Prepare
-
-from .operators_import import (
-    SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare,
-    SCENE_OT_Tree_Clipper_Import_File_Prepare,
-)
-
 
 class SCENE_OT_Tree_Clipper_Export_Active(bpy.types.Operator):
     bl_label = "Export Tree Clipper"

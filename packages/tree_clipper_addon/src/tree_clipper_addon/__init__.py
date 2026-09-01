@@ -13,6 +13,7 @@
 
 import bpy
 
+from .export_active import SCENE_OT_Tree_Clipper_Export_Active
 from .operators_export import (
     SCENE_OT_Tree_Clipper_Export_Cache,
     SCENE_OT_Tree_Clipper_Export_Modal,
@@ -31,7 +32,6 @@ from .operators_import import (
 )
 from .panel import SCENE_PT_Tree_Clipper_Panel
 from .preferences import TreeClipperPreferences
-from .export_active import SCENE_OT_Tree_Clipper_Export_Active
 
 classes = [
     Tree_Clipper_External_Export_Item,
