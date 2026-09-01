@@ -21,6 +21,7 @@ _INTERMEDIATE_EXPORT_CACHE = None
 class SCENE_OT_Tree_Clipper_Export_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_export_prepare"
     bl_label = "Export"
+    bl_description = "Export the node tree as a Tree Clipper string."
     bl_options: ClassVar[set[str]] = {"REGISTER"}  # ty:ignore[invalid-attribute-override]
 
     is_material: bpy.props.BoolProperty(name="Top level Material")  # type: ignore

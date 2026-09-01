@@ -25,6 +25,7 @@ TIMER = None
 class SCENE_OT_Tree_Clipper_Import_File_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_file_prepare"
     bl_label = "Import File"
+    bl_description = "Import a Tree Clipper string from a file."
     bl_options: ClassVar[set[str]] = {"REGISTER"}  # ty:ignore[invalid-attribute-override]
 
     input_file: bpy.props.StringProperty(
@@ -52,6 +53,7 @@ class SCENE_OT_Tree_Clipper_Import_File_Prepare(bpy.types.Operator):
 class SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare(bpy.types.Operator):
     bl_idname = "scene.tree_clipper_import_clipboard_prepare"
     bl_label = "Import Clipboard"
+    bl_description = "Import a Tree Clipper string from the clipboard."
     bl_options: ClassVar[set[str]] = {"REGISTER"}  # ty:ignore[invalid-attribute-override]
 
     def execute(
