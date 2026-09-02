@@ -16,11 +16,16 @@ from ._vendor.tree_clipper.import_nodes import (
     ImportParameters,
     preliminary_check,
 )
+from ._vendor.tree_clipper.import_to_asset_file import move_import_to_asset_file
 from ._vendor.tree_clipper.specific_handlers import (
     BUILT_IN_IMPORTER,
 )
 from .post_import import post_import
-from .preferences import get_show_advanced_options
+from .preferences import (
+    get_asset_directory,
+    get_import_as_asset,
+    get_show_advanced_options,
+)
 
 _INTERMEDIATE_IMPORT_CACHE = None
 TIMER = None
@@ -255,8 +260,39 @@ class SCENE_OT_Tree_Clipper_Import_Modal(bpy.types.Operator):
         for warning in report.warnings:
             self.report({"WARNING"}, warning)
 
+        if not get_import_as_asset():
+            post_import(
+                context=context, event=event, imported_root=report.last_getter()
+            )
+            return {"FINISHED"}
+
+        root_is_material = report.rename_material is not None
+        if root_is_material:
+            _original_name, root_name = report.rename_material
+        else:
+            root_name = report.last_getter().name
+
+        asset_file_path = move_import_to_asset_file(
+            report=report, asset_directory=Path(get_asset_directory())
+        )
+
+        with bpy.data.libraries.load(str(asset_file_path), link=True, pack=True) as (
+            _data_from,
+            data_to,
+        ):
+            if root_is_material:
+                data_to.materials = [root_name]
+            else:
+                data_to.node_groups = [root_name]
+
+        imported_root = (
+            data_to.materials[0].node_tree
+            if root_is_material
+            else data_to.node_groups[0]
+        )
+
         _INTERMEDIATE_IMPORT_CACHE = None
 
-        post_import(context=context, event=event, report=report)
+        post_import(context=context, event=event, imported_root=imported_root)
 
         return {"FINISHED"}

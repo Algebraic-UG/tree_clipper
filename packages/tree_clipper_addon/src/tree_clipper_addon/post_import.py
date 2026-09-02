@@ -1,7 +1,5 @@
 import bpy
 
-from ._vendor.tree_clipper.import_nodes import ImportReport
-
 TREE_TYPE_TO_GROUP_TYPE = {
     bpy.types.CompositorNodeTree: bpy.types.CompositorNodeGroup,
     bpy.types.GeometryNodeTree: bpy.types.GeometryNodeGroup,
@@ -14,7 +12,7 @@ def post_import(
     *,
     context: bpy.types.Context,
     event: bpy.types.Event,
-    report: ImportReport,
+    imported_root: bpy.types.NodeTree,
 ) -> None:
     def add_as_group() -> str | None:
         if not isinstance(context.space_data, bpy.types.SpaceNodeEditor):
@@ -23,9 +21,6 @@ def post_import(
         node_tree = context.space_data.edit_tree
         if node_tree is None:
             return "No active tree to attach to."
-
-        assert report.last_getter is not None
-        imported_root = report.last_getter()
 
         if node_tree.bl_rna.identifier != imported_root.bl_rna.identifier:  # ty:ignore[unresolved-attribute]
             return f"Editor type is {node_tree.bl_rna.identifier}, but imported {imported_root.bl_rna.identifier}."  # ty:ignore[unresolved-attribute]
