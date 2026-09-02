@@ -82,6 +82,7 @@ def import_to_asset_file(
     asset_file_path = move_import_to_asset_file(
         report=report,
         asset_file_path=asset_file_path,
+        asset_directory=asset_directory,
         path_remap=path_remap,
         fake_user=fake_user,
         compress=compress,
