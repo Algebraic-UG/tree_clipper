@@ -1,6 +1,5 @@
 import uuid
 from pathlib import Path
-from typing import Literal
 
 import bpy
 
