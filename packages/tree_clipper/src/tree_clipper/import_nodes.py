@@ -696,3 +696,7 @@ class ImportIntermediate:
         while self.step():
             pass
         return self.importer.report
+
+
+def preliminary_check(string: str) -> bool:
+    return string.startswith((MAGIC_STRING, "{"))

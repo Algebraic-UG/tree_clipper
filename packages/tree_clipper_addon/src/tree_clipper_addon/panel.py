@@ -39,5 +39,11 @@ class SCENE_PT_Tree_Clipper_Panel(bpy.types.Panel):
         self.layout.separator()  # ty:ignore[possibly-missing-attribute]
 
         import_col = self.layout.column()  # ty:ignore[possibly-missing-attribute]
-        import_col.operator(SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare.bl_idname)
+        if SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare.poll(context):
+            import_text = SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare.bl_label
+        else:
+            import_text = "Invalid Clipboard Content"
+        import_col.operator(
+            SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare.bl_idname, text=import_text
+        )
         import_col.operator(SCENE_OT_Tree_Clipper_Import_File_Prepare.bl_idname)

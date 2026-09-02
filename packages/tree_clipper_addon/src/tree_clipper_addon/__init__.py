@@ -56,10 +56,15 @@ def draw_export_active(self, _context):
     self.layout.operator(SCENE_OT_Tree_Clipper_Export_Active.bl_idname)
 
 
-def draw_import(self, _context):
+def draw_import(self, context):
+    if not SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare.poll(context):
+        import_text = "Import Tree Clipper (Invalid Clipboard Content)"
+    else:
+        import_text = "Import Tree Clipper"
+
     self.layout.operator(
         SCENE_OT_Tree_Clipper_Import_Clipboard_Prepare.bl_idname,
-        text="Import Tree Clipper",
+        text=import_text,
     )
 
 
